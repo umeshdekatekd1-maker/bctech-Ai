@@ -6,7 +6,7 @@ import io
 
 st.set_page_config(page_title="Bctech AI Assistant", layout="centered", initial_sidebar_state="collapsed")
 
-# Custom Styling
+# Clean Styling
 st.markdown("""
 <style>
     #MainMenu, header, footer {visibility: hidden;}
@@ -28,7 +28,6 @@ st.markdown("""
 st.title("🎓 Bctech AI Assistant")
 
 SHEET_ID = "1ES2A77U61GeS710Xfyc0dKIevUhzR2v7-aSjkr1R3tg"
-
 URL_GVIZ = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
 URL_EXPORT = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
 
@@ -79,8 +78,8 @@ def search_student(query_text, df):
     clean_q = query_text.strip().lower()
     fillers = [
         "result", "marks", "kya", "hai", "check", "batao", "mera", "meri", "ka", "ki", 
-        "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam",
-        "રિઝલ્ટ", "પરિણામ", "જોવું", "છે", "મારું", "મારુ", "નામ", "આપો"
+        "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam", "name",
+        "chhe", "che", "maru", "maro", "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું"
     ]
     words = [w for w in clean_q.split() if w not in fillers and len(w) >= 2]
     
@@ -112,7 +111,7 @@ def search_student(query_text, df):
 KNOWLEDGE_BASE = """
 About Bctech Computer Education:
 - Institute: Bctech Computer Education (Website: https://sites.google.com/view/bctechcomputer)
-- Location & Repute: Known for practical computer training, ISO certified courses, experienced faculty, and placement support.
+- Main Offerings: Professional computer training, practical learning, ISO certified courses, job assistance.
 - Popular Courses: Basic Computer Course, Graphic Designing (CorelDraw, Photoshop, Illustrator), Accounting & Tally Prime, Web Development, Programming (Python, C++), Digital Marketing, Advanced Excel.
 """
 
@@ -134,9 +133,9 @@ if query:
     
     with st.chat_message("assistant"):
         if err:
-            st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}). Kripya Sheet ke Share menu me 'Anyone with the link' ko Viewer set karein.")
+            st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
         elif is_generic_result_request(query) and len(query.strip().split()) <= 3 and not search_student(query, df_sheet):
-            reply = "📋 Apna exam result dekhne ke liye kripya apna **Pura Naam (Student Name)** yahan type karein.\n\nતમારું રીઝલ્ટ જોવા માટે કૃપા કરીને તમારું **પૂરું નામ (Student Name)** અહીં લખો."
+            reply = "📋 Apna result dekhne ke liye kripya apna **Pura Naam (Student Name)** yahan type karein.\n\nતમારું પરિણામ જોવા માટે કૃપા કરીને તમારું **પૂરું નામ** અહીં લખો."
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
         else:
@@ -145,9 +144,6 @@ if query:
             
             with st.spinner("Jankari check ho rahi hai..."):
                 try:
-                    models_data = client.models.list()
-                    active_models = [m.id for m in models_data.data if "whisper" not in m.id]
-                    
                     if matched_records:
                         details_text = ""
                         for idx, record in enumerate(matched_records[:3], 1):
@@ -158,59 +154,44 @@ if query:
 
                         system_prompt = f"""
                         You are the professional AI Assistant for Bctech Computer Education.
-                        Student exam record found in official sheet:
+                        Verified exam record from sheet:
                         {details_text}
 
-                        Language Rules:
-                        - Detect user language: If the user asks in Gujarati (or Gujarati script), respond in fluent, grammatically correct Gujarati. If in Hindi/Hinglish, reply in clean Hinglish. If in English, reply in professional English.
-                        - Never use broken, robotic, or mixed-up grammar.
-
-                        Formatting:
-                        - Present marks neatly using bullet points (Student Name, Exam Course, Theory Marks, Practical Marks).
-                        - Congratulate them warmly on their result.
+                        Rules:
+                        1. Reply in the exact same language the user typed in (Gujarati, Hindi/Hinglish, or English).
+                        2. Never output corrupted, weird unicode characters or random scripts.
+                        3. Clearly display student marks using clean bullet points.
+                        4. Congratulate the student politely.
                         """
                     else:
                         system_prompt = f"""
-                        You are the professional AI Counselor for Bctech Computer Education.
+                        You are the professional counselor for Bctech Computer Education institute.
                         
                         CRITICAL RESTRICTIONS:
-                        1. NEVER disclose, estimate, or discuss any COURSE FEES or charges under any circumstances. If asked about fees:
-                           - In Hinglish: "Fees ki jankari ke liye kripya direct hamare institute branch par visit karein ya diye gaye contact number par call/WhatsApp karein."
-                           - In Gujarati: "ફી અંગેની સંપૂર્ણ માહિતી માટે કૃપા કરીને રૂબરૂ સંસ્થાની મુલાકાત લો અથવા આપેલા સંપર્ક નંબર પર કોલ/વોટ્સએપ કરો."
-                        2. NEVER mention or use the word 'Free' or offer free services.
-                        3. If student is searching for result and their name is not in records:
-                           - In Hinglish: "Aapka naam result sheet me nahi mila. Kripya apne naam ki sahi spelling check karein ya branch se sampark karein."
-                           - In Gujarati: "આ નામ રીઝલ્ટ શીટમાં મળ્યું નથી. કૃપા કરીને સ્પેલિંગ ચેક કરો અથવા શાખાનો સંપર્ક કરો."
+                        1. NEVER tell, estimate, or discuss any fees or pricing. Always say to visit branch or call directly.
+                        2. NEVER mention or use the word 'Free'.
+                        3. If user is introducing themselves, greet them warmly in 2-3 concise sentences in their language.
+                        4. If user asked for exam result with a name that is not in records, tell them politely that the name was not found.
+                        5. Speak naturally in clean Hinglish, Gujarati, or English based on how the user wrote. Do not mix unrelated scripts or repeat gibberish characters.
                         
-                        Language Rules:
-                        - If the user asks in Gujarati, reply strictly in polite, natural Gujarati.
-                        - If the user asks in Hindi/Hinglish, reply in clean, natural Hinglish.
-                        - If the user asks in English, reply in clean, grammatically correct English.
-                        - Always be welcoming, polite, and helpful.
-
-                        Institute Information:
+                        Institute Info:
                         {KNOWLEDGE_BASE}
                         """
 
-                    answer = None
-                    for selected_model in active_models:
-                        try:
-                            chat_completion = client.chat.completions.create(
-                                messages=[
-                                    {"role": "system", "content": system_prompt},
-                                    {"role": "user", "content": query}
-                                ],
-                                model=selected_model,
-                            )
-                            answer = chat_completion.choices[0].message.content
-                            break
-                        except Exception:
-                            continue
+                    # Sabse stable 70B model use karenge
+                    chat_completion = client.chat.completions.create(
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": query}
+                        ],
+                        model="llama-3.3-70b-versatile",
+                        temperature=0.3,
+                        max_tokens=500
+                    )
+                    answer = chat_completion.choices[0].message.content
                     
                     if answer:
                         st.write(answer)
                         st.session_state.messages.append({"role": "assistant", "content": answer})
-                    else:
-                        st.error("Filhal AI uplabdh nahi hai. Kripya thodi der baad prayas karein.")
                 except Exception as e:
                     st.error(f"Error: {e}")
