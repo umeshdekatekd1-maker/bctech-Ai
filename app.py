@@ -48,6 +48,7 @@ st.markdown("""
         color: #202124;
     }
     
+    /* Sidebar Recent item styling */
     section[data-testid="stSidebar"] div[data-testid="stExpander"] .stButton>button {
         width: 100% !important;
         float: none !important;
@@ -59,7 +60,6 @@ st.markdown("""
         background-color: #ffffff !important;
         border: 1px solid #dadce0 !important;
         color: #202124 !important;
-        margin-bottom: 6px !important;
         cursor: pointer !important;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -120,42 +120,67 @@ def run_aerial_celebration():
 # Session States
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "search_history" not in st.session_state:
-    st.session_state.search_history = []
+if "recent_chats" not in st.session_state:
+    st.session_state.recent_chats = []
 if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
 if "waiting_for_image_prompt" not in st.session_state:
     st.session_state.waiting_for_image_prompt = False
 
-def start_new_chat():
+# New Chat Function: ONLY saves when button is clicked
+def on_new_chat_clicked():
+    if st.session_state.messages:
+        # Get first or last user question to name the chat
+        user_queries = [m["content"] for m in st.session_state.messages if m["role"] == "user"]
+        title_text = user_queries[0] if user_queries else "Chat Session"
+        short_title = (title_text[:20] + "..") if len(title_text) > 20 else title_text
+        
+        st.session_state.recent_chats.append({
+            "title": short_title,
+            "messages": list(st.session_state.messages)
+        })
     st.session_state.messages = []
     st.session_state.waiting_for_result_name = False
     st.session_state.waiting_for_image_prompt = False
 
-def restore_search_item(item_idx):
-    if 0 <= item_idx < len(st.session_state.search_history):
-        st.session_state.messages = list(st.session_state.search_history[item_idx]["messages"])
+def restore_recent_chat(chat_idx):
+    if 0 <= chat_idx < len(st.session_state.recent_chats):
+        st.session_state.messages = list(st.session_state.recent_chats[chat_idx]["messages"])
 
-# Sidebar with Live Auto-Updating Recent Searches
+def delete_recent_chat(chat_idx):
+    if 0 <= chat_idx < len(st.session_state.recent_chats):
+        st.session_state.recent_chats.pop(chat_idx)
+
+# Sidebar
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
-    if st.button("➕ New Chat", key="side_new_chat_btn", on_click=start_new_chat):
+    if st.button("➕ New Chat", key="side_new_chat_btn", on_click=on_new_chat_clicked):
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
     
-    with st.expander("🕒 Recent Searches", expanded=True):
-        if st.session_state.search_history:
-            for idx, item in enumerate(reversed(st.session_state.search_history)):
-                actual_idx = len(st.session_state.search_history) - 1 - idx
-                st.button(
-                    f"🔍 {item['title']}", 
-                    key=f"recent_search_{actual_idx}",
-                    on_click=restore_search_item,
-                    args=(actual_idx,)
-                )
+    with st.expander("🕒 Recent", expanded=True):
+        if st.session_state.recent_chats:
+            for idx, item in enumerate(reversed(st.session_state.recent_chats)):
+                actual_idx = len(st.session_state.recent_chats) - 1 - idx
+                col_btn, col_del = st.columns([0.8, 0.2])
+                with col_btn:
+                    st.button(
+                        f"💬 {item['title']}", 
+                        key=f"load_chat_{actual_idx}",
+                        on_click=restore_recent_chat,
+                        args=(actual_idx,)
+                    )
+                with col_del:
+                    st.button(
+                        "❌", 
+                        key=f"del_chat_{actual_idx}",
+                        on_click=delete_recent_chat,
+                        args=(actual_idx,),
+                        help="Delete this chat"
+                    )
         else:
-            st.caption("No recent searches yet.")
+            st.caption("No recent chats yet.")
             
     st.markdown("---")
     st.markdown("**📌 Quick Links:**")
@@ -507,11 +532,3 @@ if query:
                             st.error(f"API Error: {last_api_err}")
                     except Exception as e:
                         st.error(f"Error: {e}")
-
-    # Automatically save each search into Recent Searches history
-    item_title = (query[:22] + "..") if len(query) > 22 else query
-    st.session_state.search_history.append({
-        "title": item_title,
-        "messages": list(st.session_state.messages)
-    })
-    st.rerun()
