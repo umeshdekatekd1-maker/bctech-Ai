@@ -27,7 +27,7 @@ st.title("🎓 Bctech AI Assistant")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Show previous history
+# Previous conversation history
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
@@ -55,7 +55,7 @@ if query:
                             "content": query,
                         }
                     ],
-                    model="llama-3.1-8b-instant",
+                    model="llama3-8b-8192",
                 )
                 answer = chat_completion.choices[0].message.content
                 st.write(answer)
