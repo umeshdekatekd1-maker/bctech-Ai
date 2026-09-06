@@ -1,6 +1,6 @@
-import time
 import streamlit as st
 from google import genai
+import time
 
 st.set_page_config(page_title="Bctech AI Assistant", layout="centered")
 
@@ -20,21 +20,27 @@ if st.button("Ask AI (Puchhein)"):
             Help students with clear and simple advice in Hinglish.
             Question: {user_query}
             """
-            success = False
-            for attempt in range(3):
+            
+            # Retry loop for temporary 503 server load
+            response_text = None
+            last_error = None
+            
+            for attempt in range(4):
                 try:
                     response = client.models.generate_content(
-                        model="gemini-2.5-flash",
+                        model="gemini-3.6-flash",
                         contents=prompt
                     )
-                    st.success("AI Jawab:")
-                    st.write(response.text)
-                    success = True
+                    response_text = response.text
                     break
-                except Exception:
-                    time.sleep(1.5)
-
-            if not success:
-                st.error("Server par abhi bheed hai, kripya 5 second baad dobara click karein.")
+                except Exception as e:
+                    last_error = e
+                    time.sleep(2)
+            
+            if response_text:
+                st.success("AI Jawab:")
+                st.write(response_text)
+            else:
+                st.error(f"Error: {last_error}")
     else:
         st.warning("Pehle apna sawal type karein.")
