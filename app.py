@@ -1,3 +1,4 @@
+import time
 import streamlit as st
 from google import genai
 
@@ -14,19 +15,26 @@ user_query = st.text_area("Apna sawal likhein:", placeholder="Jaise: Graphic des
 if st.button("Ask AI (Puchhein)"):
     if user_query.strip():
         with st.spinner("AI jawab taiyar kar raha hai..."):
-            try:
-                prompt = f"""
-                You are a helpful AI counselor for 'Bctech Computer Education' institute.
-                Help students with clear and simple advice in Hinglish.
-                Question: {user_query}
-                """
-                response = client.models.generate_content(
-                    model="gemini-3.6-flash",
-                    contents=prompt
-                )
-                st.success("AI Jawab:")
-                st.write(response.text)
-            except Exception as e:
-                st.error(f"Error: {e}")
+            prompt = f"""
+            You are a helpful AI counselor for 'Bctech Computer Education' institute.
+            Help students with clear and simple advice in Hinglish.
+            Question: {user_query}
+            """
+            success = False
+            for attempt in range(3):
+                try:
+                    response = client.models.generate_content(
+                        model="gemini-2.5-flash",
+                        contents=prompt
+                    )
+                    st.success("AI Jawab:")
+                    st.write(response.text)
+                    success = True
+                    break
+                except Exception:
+                    time.sleep(1.5)
+
+            if not success:
+                st.error("Server par abhi bheed hai, kripya 5 second baad dobara click karein.")
     else:
         st.warning("Pehle apna sawal type karein.")
