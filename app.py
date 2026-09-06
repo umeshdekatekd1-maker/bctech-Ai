@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Modern Chat Bubbles Styling (User Right, AI Left)
+# Custom Modern Chat Bubbles Styling (User Right, AI Left with distinct spacing)
 st.markdown("""
 <style>
     #MainMenu, footer {visibility: hidden;}
@@ -34,7 +34,7 @@ st.markdown("""
         border-color: #4285F4 !important;
     }
     
-    /* Target User messages to align to Right */
+    /* Target User messages to align to Right cleanly */
     [data-testid="stChatMessage"]:has(div.st-emotion-cache-1c7y2kd),
     [data-testid="stChatMessage"]:has(img[alt="user"]) {
         flex-direction: row-reverse;
@@ -42,9 +42,9 @@ st.markdown("""
     }
     
     [data-testid="stChatMessage"] {
-        padding: 1rem;
-        border-radius: 12px;
-        margin-bottom: 10px;
+        padding: 1.2rem;
+        border-radius: 16px;
+        margin-bottom: 16px;
     }
     
     /* Sidebar Recent Buttons */
@@ -87,8 +87,8 @@ st.markdown("""
 def render_persistence_script():
     persistence_js = """
     <script>
-        const STORAGE_KEY_MSGS = "bctech_chat_messages_v8";
-        const STORAGE_KEY_RECENT = "bctech_recent_chats_v8";
+        const STORAGE_KEY_MSGS = "bctech_chat_messages_v9";
+        const STORAGE_KEY_RECENT = "bctech_recent_chats_v9";
 
         window.addEventListener('DOMContentLoaded', () => {
             try {
