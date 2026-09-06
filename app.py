@@ -8,6 +8,7 @@ import re
 import json
 import urllib.parse
 import random
+from datetime import datetime
 
 st.set_page_config(
     page_title="BC Tech Ai Assistant", 
@@ -69,33 +70,12 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Client-Side Live Time Injector Component (Pulls exact local device time)
-def render_live_time_injector():
-    time_js = """
-    <script>
-        function getDeviceTimeContext() {
-            const now = new Date();
-            const options = { 
-                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-                year: 'numeric', month: 'long', day: 'numeric',
-                hour: '2-digit', minute: '2-digit', second: '2-digit', 
-                hour12: true, weekday: 'long'
-            };
-            return now.toLocaleString('en-US', options);
-        }
-        try {
-            sessionStorage.setItem("client_current_time", getDeviceTimeContext());
-        } catch(e) {}
-    </script>
-    """
-    components.html(time_js, height=0)
-
-# Bulletproof Persistence Component
-def render_persistence_and_sync_script():
+# Persistence Script
+def render_persistence_script():
     persistence_js = """
     <script>
-        const STORAGE_KEY_MSGS = "bctech_chat_messages_v4";
-        const STORAGE_KEY_RECENT = "bctech_recent_chats_v4";
+        const STORAGE_KEY_MSGS = "bctech_chat_messages_v5";
+        const STORAGE_KEY_RECENT = "bctech_recent_chats_v5";
 
         window.addEventListener('DOMContentLoaded', () => {
             try {
@@ -297,8 +277,7 @@ if "waiting_for_result_name" not in st.session_state:
 if "current_language" not in st.session_state:
     st.session_state.current_language = "ENGLISH"
 
-render_persistence_and_sync_script()
-render_live_time_injector()
+render_persistence_script()
 
 def on_new_chat_clicked():
     if st.session_state.messages:
@@ -461,13 +440,13 @@ def update_language_state(text):
         
     hindi_triggers = [
         "hindi", "in hindi", "hindi me", "hindi main", "bat kro", "baat karo", "batao",
-        "namaste", "mera", "meri", "kaise", "chahiye", "kya hai", "kaha hai", "kab aaya tha", "time", "samay", "aaj"
+        "namaste", "mera", "meri", "kaise", "chahiye", "kya hai", "kaha hai", "kab aaya tha", "time", "samay", "aaj", "date"
     ]
     if any(re.search(r"\b" + re.escape(w) + r"\b", text_clean) for w in hindi_triggers):
         st.session_state.current_language = "HINDI"
         return "HINDI"
         
-    english_triggers = ["english", "in english", "speak english"]
+    english_triggers = ["english", "in english", "speak english", "time", "date"]
     if any(re.search(r"\b" + re.escape(w) + r"\b", text_clean) for w in english_triggers):
         st.session_state.current_language = "ENGLISH"
         return "ENGLISH"
@@ -648,12 +627,13 @@ if query:
                       - Marks: [Marks list]
                     """
                 else:
+                    current_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S (%A)")
                     lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                     system_prompt = f"""
                     You are BC Tech AI Assistant, a smart, professional assistant for BC Tech Computer Education and general queries.
                     
-                    CRITICAL INSTRUCTION FOR TIME/DATE:
-                    - When the user asks for the current time, date, or day, use JavaScript injected live context from their browser/device (or assume current local device time).
+                    EXACT CURRENT REAL-TIME CONTEXT:
+                    - Current Date and Time: {current_time_str} (IST / Local Time).
                     
                     CRITICAL LANGUAGE RULE:
                     - Reply strictly in {lang_name}.
@@ -661,11 +641,12 @@ if query:
                     - If Hindi, reply in clean Hindi script.
                     
                     CRITICAL INSTRUCTIONS:
-                    1. Answer general knowledge questions accurately in 2-3 direct sentences.
-                    2. For BC Tech courses, refer to:
+                    1. When the user asks for time, date, day, or 'aaj kya ho raha hai', directly state the exact real-time provided above ({current_time_str}).
+                    2. Answer general knowledge questions accurately in 2-3 direct sentences.
+                    3. For BC Tech courses, refer to:
                     {KNOWLEDGE_BASE}
-                    3. If asked about location, provide: {BRANCH_LINK}
-                    4. Output ONLY the response text without greetings or meta notes.
+                    4. If asked about location, provide: {BRANCH_LINK}
+                    5. Output ONLY the response text without greetings or meta notes.
                     """
 
                 with st.spinner("Thinking..."):
