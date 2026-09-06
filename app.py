@@ -48,26 +48,25 @@ st.markdown("""
         color: #202124;
     }
     
-    /* Sidebar styling */
-    section[data-testid="stSidebar"] div[data-testid="stExpander"] .stButton>button,
-    .last-search-box .stButton>button {
+    /* Recent Button Styling */
+    section[data-testid="stSidebar"] div[data-testid="stExpander"] .stButton>button {
         width: 100% !important;
         float: none !important;
         border-radius: 8px !important;
-        padding: 8px 10px !important;
+        padding: 8px 12px !important;
         font-size: 13px !important;
         text-align: left !important;
         justify-content: flex-start !important;
         background-color: #ffffff !important;
         border: 1px solid #dadce0 !important;
-        color: #202124 !important;
+        color: #1a73e8 !important;
+        font-weight: 500 !important;
         cursor: pointer !important;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-    section[data-testid="stSidebar"] div[data-testid="stExpander"] .stButton>button:hover,
-    .last-search-box .stButton>button:hover {
+    section[data-testid="stSidebar"] div[data-testid="stExpander"] .stButton>button:hover {
         background-color: #e8f0fe !important;
         border-color: #4285f4 !important;
         color: #1967d2 !important;
@@ -122,10 +121,8 @@ def run_aerial_celebration():
 # Session States
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "recent_chats" not in st.session_state:
-    st.session_state.recent_chats = []
-if "last_search" not in st.session_state:
-    st.session_state.last_search = ""
+if "last_recent_chat" not in st.session_state:
+    st.session_state.last_recent_chat = None
 if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
 if "waiting_for_image_prompt" not in st.session_state:
@@ -134,26 +131,23 @@ if "waiting_for_image_prompt" not in st.session_state:
 def on_new_chat_clicked():
     if st.session_state.messages:
         user_queries = [m["content"] for m in st.session_state.messages if m["role"] == "user"]
-        title_text = user_queries[0] if user_queries else "Chat Session"
-        short_title = (title_text[:20] + "..") if len(title_text) > 20 else title_text
+        title_text = user_queries[-1] if user_queries else "Last Chat"
+        short_title = (title_text[:22] + "..") if len(title_text) > 22 else title_text
         
-        st.session_state.recent_chats.append({
+        # Save only the LAST chat (overwrites previous)
+        st.session_state.last_recent_chat = {
             "title": short_title,
             "messages": list(st.session_state.messages)
-        })
+        }
     st.session_state.messages = []
     st.session_state.waiting_for_result_name = False
     st.session_state.waiting_for_image_prompt = False
 
-def restore_recent_chat(chat_idx):
-    if 0 <= chat_idx < len(st.session_state.recent_chats):
-        st.session_state.messages = list(st.session_state.recent_chats[chat_idx]["messages"])
+def restore_last_chat():
+    if st.session_state.last_recent_chat:
+        st.session_state.messages = list(st.session_state.last_recent_chat["messages"])
 
-def delete_recent_chat(chat_idx):
-    if 0 <= chat_idx < len(st.session_state.recent_chats):
-        st.session_state.recent_chats.pop(chat_idx)
-
-# Sidebar UI
+# Sidebar
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -161,39 +155,15 @@ with st.sidebar:
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # 1. Last Search Card
-    st.markdown("#### 🔎 Last Search")
-    if st.session_state.last_search:
-        st.markdown('<div class="last-search-box">', unsafe_allow_html=True)
-        disp_txt = (st.session_state.last_search[:28] + "..") if len(st.session_state.last_search) > 28 else st.session_state.last_search
-        st.info(f"**{disp_txt}**")
-        st.markdown('</div>', unsafe_allow_html=True)
-    else:
-        st.caption("No search made yet.")
-
-    # 2. Recent Saved Chats
-    with st.expander("🕒 Recent Chats", expanded=True):
-        if st.session_state.recent_chats:
-            for idx, item in enumerate(reversed(st.session_state.recent_chats)):
-                actual_idx = len(st.session_state.recent_chats) - 1 - idx
-                col_btn, col_del = st.columns([0.8, 0.2])
-                with col_btn:
-                    st.button(
-                        f"💬 {item['title']}", 
-                        key=f"load_chat_{actual_idx}",
-                        on_click=restore_recent_chat,
-                        args=(actual_idx,)
-                    )
-                with col_del:
-                    st.button(
-                        "❌", 
-                        key=f"del_chat_{actual_idx}",
-                        on_click=delete_recent_chat,
-                        args=(actual_idx,),
-                        help="Delete"
-                    )
+    with st.expander("🕒 Recent", expanded=True):
+        if st.session_state.last_recent_chat:
+            st.button(
+                f"💬 {st.session_state.last_recent_chat['title']}", 
+                key="btn_restore_last_search",
+                on_click=restore_last_chat
+            )
         else:
-            st.caption("No saved sessions yet.")
+            st.caption("No recent search yet.")
             
     st.markdown("---")
     st.markdown("**📌 Quick Links:**")
@@ -372,8 +342,6 @@ for idx, msg in enumerate(st.session_state.messages):
 query = st.chat_input("")
 
 if query:
-    # Save the latest query into last_search immediately
-    st.session_state.last_search = query
     st.session_state.messages.append({"role": "user", "content": query})
     
     with st.chat_message("user"):
