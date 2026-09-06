@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 from groq import Groq
 import pandas as pd
 import requests
@@ -20,7 +19,6 @@ st.markdown("""
     header {visibility: visible !important;}
     .block-container {padding-top: 1.5rem; max-width: 720px;}
     
-    /* Search box rounded */
     div[data-baseweb="input"] {
         border-radius: 28px !important;
         box-shadow: 0 1px 6px rgba(32,33,36,0.18) !important;
@@ -32,7 +30,6 @@ st.markdown("""
         border-color: #4285F4 !important;
     }
     
-    /* Copy Button Right-Aligned */
     .stButton>button {
         border-radius: 16px;
         padding: 2px 12px;
@@ -49,23 +46,25 @@ st.markdown("""
         color: #202124;
     }
     
-    /* Left Sidebar Buttons */
-    section[data-testid="stSidebar"] .stButton>button {
-        width: 100%;
-        float: none;
-        border-radius: 20px;
-        padding: 8px 16px;
-        font-size: 14px;
-        font-weight: 500;
-        background-color: #ffffff;
-        border: 1px solid #dadce0;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-        color: #1f1f1f;
-        margin-top: 6px;
+    /* Left Sidebar Clickable Recent Items */
+    section[data-testid="stSidebar"] div[data-testid="stExpander"] .stButton>button {
+        width: 100% !important;
+        float: none !important;
+        border-radius: 8px !important;
+        padding: 6px 10px !important;
+        font-size: 13px !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
+        background-color: #f8f9fa !important;
+        border: 1px solid #e8eaed !important;
+        color: #3c4043 !important;
+        margin-bottom: 5px !important;
+        cursor: pointer !important;
     }
-    section[data-testid="stSidebar"] .stButton>button:hover {
-        background-color: #f1f3f4;
-        border-color: #c6c6c6;
+    section[data-testid="stSidebar"] div[data-testid="stExpander"] .stButton>button:hover {
+        background-color: #e8f0fe !important;
+        border-color: #4285f4 !important;
+        color: #1967d2 !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -79,9 +78,10 @@ if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
 if "storage_synced" not in st.session_state:
     st.session_state.storage_synced = False
+if "active_query" not in st.session_state:
+    st.session_state.active_query = None
 
-# --- Auto Save / Restore via Browser LocalStorage ---
-# Query params check for reload persistence
+# Reload Persistence
 qp = st.query_params
 if not st.session_state.storage_synced:
     if "chat_data" in qp:
@@ -103,20 +103,31 @@ def sync_to_browser():
     except Exception:
         pass
 
-# --- Left Sidebar: New Chat & Recent Dropdown ---
+def select_recent_query(text):
+    st.session_state.active_query = text
+
+# --- Left Sidebar: New Chat & Clickable Recent List ---
 with st.sidebar:
     st.markdown("### 🎓 Bctech AI")
     if st.button("➕ New Chat", key="side_new_chat_btn", use_container_width=True):
         st.session_state.messages = []
         st.session_state.recent_queries = []
         st.session_state.waiting_for_result_name = False
+        st.session_state.active_query = None
         st.query_params.clear()
         st.rerun()
     
     with st.expander("Recent", expanded=True):
         if st.session_state.recent_queries:
-            for q_item in reversed(st.session_state.recent_queries[-8:]):
-                st.caption(f"💬 {q_item}")
+            for idx, q_item in enumerate(reversed(st.session_state.recent_queries[-8:])):
+                btn_label = f"💬 {q_item}"
+                st.button(
+                    btn_label, 
+                    key=f"recent_btn_{idx}", 
+                    on_click=select_recent_query, 
+                    args=(q_item,), 
+                    use_container_width=True
+                )
         else:
             st.caption("No recent queries yet.")
             
@@ -239,12 +250,19 @@ for idx, msg in enumerate(st.session_state.messages):
                 st.code(msg["content"], language=None)
                 st.toast("Copied!", icon="📋")
 
-query = st.chat_input("")
+# Process either clicked recent item or new typed input
+typed_input = st.chat_input("")
+query = None
+
+if st.session_state.active_query:
+    query = st.session_state.active_query
+    st.session_state.active_query = None
+elif typed_input:
+    query = typed_input
 
 if query:
-    trimmed_query = (query[:30] + '...') if len(query) > 30 else query
-    if trimmed_query not in st.session_state.recent_queries:
-        st.session_state.recent_queries.append(trimmed_query)
+    if query not in st.session_state.recent_queries:
+        st.session_state.recent_queries.append(query)
 
     st.session_state.messages.append({"role": "user", "content": query})
     with st.chat_message("user"):
