@@ -299,35 +299,35 @@ def load_all_sheets_data():
         
     return None, "Sheet data unavailable"
 
-# Smarter Image Prompt Interpreter to prevent random images like fish
+# Advanced Image & Editing Interpreter
 def detect_image_request(text):
     text_lower = text.lower().strip()
     triggers = [
         "image", "photo", "picture", "wallpaper", "banao", "create", 
-        "generate", "tasveer", "chhavi", "તસવીર", "ફોટો", "draw", "kare"
+        "generate", "tasveer", "chhavi", "તસવીર", "ફોટો", "draw", "kare",
+        "badlo", "change", "edit", "karo", "kro", "redesign", "modify"
     ]
     
     is_img_query = any(t in text_lower for t in triggers)
     if not is_img_query:
         return False, ""
     
-    # Clean words to extract the real meaning of what user wants in the image
     remove_words = [
         "mere liye", "ek", "please", "can you", "kro", "karo", "banao", "chahiye",
         "image", "photo", "picture", "create", "generate", "make", "of", "ki", "ka", 
-        "ke liye", "dikhao", "draw", "kare", "yesi", "aisi", "wala", "wali"
+        "ke liye", "dikhao", "draw", "kare", "yesi", "aisi", "wala", "wali",
+        "badlo", "change", "edit", "modify", "isame", "is me"
     ]
     pattern = r"\b(" + "|".join(remove_words) + r")\b"
     cleaned = re.sub(pattern, "", text_lower).strip()
     base_prompt = re.sub(r"\s+", " ", cleaned)
     
     if len(base_prompt) < 3:
-        base_prompt = "professional working in a modern computer office environment"
+        base_prompt = "professional graphic design artwork cinematic high quality"
 
     hd_boosted_prompt = (
         f"{base_prompt}, ultra photorealistic, 8k resolution, 4k uhd, masterpiece, "
-        "hyperrealistic photography, natural volumetric lighting, 35mm photograph, shot on DSLR, "
-        "extremely detailed textures, cinematic octane render"
+        "hyperrealistic photography, professional studio lighting, highly detailed textures, octane render"
     )
     return True, hd_boosted_prompt
 
@@ -424,7 +424,8 @@ About Bctech Computer Education:
 for idx, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"]):
         if msg.get("is_image", False):
-            st.image(msg["content"], caption=msg.get("caption", "Ultra HD Output"), use_container_width=True)
+            st.image(msg["content"], caption=msg.get("caption", "4K Ultra-HD Output"), use_container_width=True)
+            st.markdown(f'<a href="{msg["content"]}" target="_blank" download="bctech_image.jpg"><button style="border-radius:16px; padding:4px 14px; font-size:12px; border:1px solid #dadce0; background-color:#f8f9fa; color:#3c4043; cursor:pointer;">📥 Download Image</button></a>', unsafe_allow_html=True)
         else:
             st.write(msg["content"])
             render_clean_copy_button(msg["content"], f"hist_{idx}")
@@ -442,18 +443,19 @@ if query:
     
     if is_img_req:
         with st.chat_message("assistant"):
-            with st.spinner("🎨 Rendering 4K Ultra-HD Realistic Image..."):
+            with st.spinner("🎨 Generating High-Resolution Image & Applying Edits..."):
                 encoded_prompt = urllib.parse.quote(enhanced_prompt)
                 seed = random.randint(1000, 999999)
                 image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1920&height=1080&model=flux&seed={seed}&nologo=true"
                 st.image(image_url, caption="✨ 4K Ultra-HD Photorealistic Output", use_container_width=True)
+                st.markdown(f'<a href="{image_url}" target="_blank" download="bctech_image.jpg"><button style="border-radius:16px; padding:4px 14px; font-size:12px; border:1px solid #dadce0; background-color:#f8f9fa; color:#3c4043; cursor:pointer; margin-top:5px;">📥 Download Image</button></a>', unsafe_allow_html=True)
+                
                 st.session_state.messages.append({
                     "role": "assistant",
                     "content": image_url,
                     "caption": "✨ 4K Ultra-HD Photorealistic Output",
                     "is_image": True
                 })
-        render_clean_copy_button(image_url, f"img_curr_{len(st.session_state.messages)}")
     else:
         df_sheet, err = load_all_sheets_data()
         lang = update_language_state(query)
@@ -540,9 +542,8 @@ if query:
                     system_prompt = f"""
                     You are BC Tech AI Assistant, a smart, professional assistant for BC Tech Computer Education.
                     
-                    CRITICAL CONTEXT & THINKING RULE:
-                    - Before answering, think carefully about what the user is asking. If the user asks about general activities or computer work, connect it intelligently to practical learning, career skills, or professional training provided at BC Tech Computer Education. 
-                    - Avoid robotic or vague definitions. Give practical, sharp, and context-aware responses.
+                    CRITICAL CONTEXT RULE:
+                    - Understand the user's query context. If asked about work, skills, or studies, connect it helpfully to BC Tech Computer Education courses.
                     
                     CRITICAL LANGUAGE RULE:
                     - Reply strictly in {lang_name}.
