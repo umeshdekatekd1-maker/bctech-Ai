@@ -183,11 +183,9 @@ def run_aerial_celebration():
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "recent_chats" not in st.session_state:
-    st.session_state.recent_chats = []  # List holding up to 3 saved chats
+    st.session_state.recent_chats = []
 if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
-if "waiting_for_image_prompt" not in st.session_state:
-    st.session_state.waiting_for_image_prompt = False
 if "current_language" not in st.session_state:
     st.session_state.current_language = "ENGLISH"
 
@@ -201,14 +199,11 @@ def on_new_chat_clicked():
             "title": short_title,
             "messages": list(st.session_state.messages)
         }
-        
-        # Insert at the beginning and keep only last 3
         st.session_state.recent_chats.insert(0, new_entry)
         st.session_state.recent_chats = st.session_state.recent_chats[:3]
 
     st.session_state.messages = []
     st.session_state.waiting_for_result_name = False
-    st.session_state.waiting_for_image_prompt = False
     st.session_state.current_language = "ENGLISH"
 
 def restore_chat(idx):
@@ -304,31 +299,30 @@ def load_all_sheets_data():
         
     return None, "Sheet data unavailable"
 
+# Smarter Image Prompt Interpreter to prevent random images like fish
 def detect_image_request(text):
     text_lower = text.lower().strip()
     triggers = [
         "image", "photo", "picture", "wallpaper", "banao", "create", 
-        "generate", "tasveer", "chhavi", "તસવીર", "ફોટો", "draw"
+        "generate", "tasveer", "chhavi", "તસવીર", "ફોટો", "draw", "kare"
     ]
     
-    if st.session_state.waiting_for_image_prompt:
-        st.session_state.waiting_for_image_prompt = False
-        base_prompt = text_lower
-    else:
-        is_img_query = any(t in text_lower for t in triggers)
-        if not is_img_query:
-            return False, ""
-        
-        remove_words = [
-            "mere liye", "ek", "please", "can you", "kro", "karo", "banao", "chahiye",
-            "image", "photo", "picture", "create", "generate", "make", "of", "ki", "ka", 
-            "ke liye", "dikhao", "draw"
-        ]
-        pattern = r"\b(" + "|".join(remove_words) + r")\b"
-        cleaned = re.sub(pattern, "", text_lower).strip()
-        base_prompt = re.sub(r"\s+", " ", cleaned)
-        if len(base_prompt) < 2:
-            base_prompt = "breathtaking cinematic mountain landscape sunrise"
+    is_img_query = any(t in text_lower for t in triggers)
+    if not is_img_query:
+        return False, ""
+    
+    # Clean words to extract the real meaning of what user wants in the image
+    remove_words = [
+        "mere liye", "ek", "please", "can you", "kro", "karo", "banao", "chahiye",
+        "image", "photo", "picture", "create", "generate", "make", "of", "ki", "ka", 
+        "ke liye", "dikhao", "draw", "kare", "yesi", "aisi", "wala", "wali"
+    ]
+    pattern = r"\b(" + "|".join(remove_words) + r")\b"
+    cleaned = re.sub(pattern, "", text_lower).strip()
+    base_prompt = re.sub(r"\s+", " ", cleaned)
+    
+    if len(base_prompt) < 3:
+        base_prompt = "professional working in a modern computer office environment"
 
     hd_boosted_prompt = (
         f"{base_prompt}, ultra photorealistic, 8k resolution, 4k uhd, masterpiece, "
@@ -459,6 +453,7 @@ if query:
                     "caption": "✨ 4K Ultra-HD Photorealistic Output",
                     "is_image": True
                 })
+        render_clean_copy_button(image_url, f"img_curr_{len(st.session_state.messages)}")
     else:
         df_sheet, err = load_all_sheets_data()
         lang = update_language_state(query)
@@ -543,7 +538,11 @@ if query:
                 else:
                     lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                     system_prompt = f"""
-                    You are BC Tech AI Assistant, a helpful and knowledgeable assistant for BC Tech Computer Education and general queries.
+                    You are BC Tech AI Assistant, a smart, professional assistant for BC Tech Computer Education.
+                    
+                    CRITICAL CONTEXT & THINKING RULE:
+                    - Before answering, think carefully about what the user is asking. If the user asks about general activities or computer work, connect it intelligently to practical learning, career skills, or professional training provided at BC Tech Computer Education. 
+                    - Avoid robotic or vague definitions. Give practical, sharp, and context-aware responses.
                     
                     CRITICAL LANGUAGE RULE:
                     - Reply strictly in {lang_name}.
@@ -551,7 +550,7 @@ if query:
                     - If Hindi, reply in clean Hindi script.
                     
                     CRITICAL INSTRUCTIONS:
-                    1. Answer general knowledge questions accurately in 2-3 direct sentences.
+                    1. Answer accurately and contextually in 2-3 direct sentences.
                     2. For BC Tech courses, refer to:
                     {KNOWLEDGE_BASE}
                     3. If asked about location, provide: {BRANCH_LINK}
