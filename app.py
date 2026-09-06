@@ -27,7 +27,7 @@ st.title("🎓 Bctech AI Assistant")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Show previous history
+# Purani history upar dikhana
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
@@ -41,42 +41,38 @@ if query:
 
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
     
-    # Active supported models on Groq
-    AVAILABLE_MODELS = [
-        "llama-3.3-70b-versatile",
-        "llama-3.2-3b-preview",
-        "llama-3.2-11b-vision-preview",
-        "gemma2-9b-it"
-    ]
-    
     with st.chat_message("assistant"):
         with st.spinner("AI jawab taiyar kar raha hai..."):
-            answer = None
-            last_err = None
-            
-            for mod in AVAILABLE_MODELS:
-                try:
-                    chat_completion = client.chat.completions.create(
-                        messages=[
-                            {
-                                "role": "system",
-                                "content": "You are a helpful and friendly AI counselor for Bctech Computer Education institute. Guide students on courses, fees, syllabus, and computer career advice in simple Hinglish."
-                            },
-                            {
-                                "role": "user",
-                                "content": query,
-                            }
-                        ],
-                        model=mod,
-                    )
-                    answer = chat_completion.choices[0].message.content
-                    break
-                except Exception as e:
-                    last_err = e
-                    continue
-            
-            if answer:
-                st.write(answer)
-                st.session_state.messages.append({"role": "assistant", "content": answer})
-            else:
-                st.error(f"Model Error: {last_err}")
+            try:
+                # Groq se active models ki live list fetch karna
+                models_data = client.models.list()
+                active_models = [m.id for m in models_data.data if "whisper" not in m.id]
+                
+                answer = None
+                for selected_model in active_models:
+                    try:
+                        chat_completion = client.chat.completions.create(
+                            messages=[
+                                {
+                                    "role": "system",
+                                    "content": "You are a helpful and friendly AI counselor for Bctech Computer Education institute. Guide students on courses, fees, syllabus, and computer career advice in simple Hinglish."
+                                },
+                                {
+                                    "role": "user",
+                                    "content": query,
+                                }
+                            ],
+                            model=selected_model,
+                        )
+                        answer = chat_completion.choices[0].message.content
+                        break
+                    except Exception:
+                        continue
+                
+                if answer:
+                    st.write(answer)
+                    st.session_state.messages.append({"role": "assistant", "content": answer})
+                else:
+                    st.error("Filhal koi active model uplabdh nahi mila.")
+            except Exception as e:
+                st.error(f"Error: {e}")
