@@ -5,6 +5,7 @@ import pandas as pd
 import requests
 import io
 import re
+import json
 import urllib.parse
 import random
 
@@ -32,22 +33,7 @@ st.markdown("""
         border-color: #4285F4 !important;
     }
     
-    .stButton>button {
-        border-radius: 16px;
-        padding: 2px 12px;
-        font-size: 12px;
-        border: 1px solid #dadce0;
-        background-color: #f8f9fa;
-        color: #3c4043;
-        float: right;
-        margin-top: 4px;
-    }
-    .stButton>button:hover {
-        background-color: #e8eaed;
-        border-color: #dadce0;
-        color: #202124;
-    }
-    
+    /* Sidebar Recent Button */
     section[data-testid="stSidebar"] div[data-testid="stExpander"] .stButton>button {
         width: 100% !important;
         float: none !important;
@@ -81,6 +67,81 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
+# Clean One-Click Clipboard Button (No Code Box)
+def render_clean_copy_button(text_to_copy, unique_id):
+    json_text = json.dumps(text_to_copy)
+    html_btn = f"""
+    <html>
+    <head>
+    <style>
+        body {{
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }}
+        .copy-btn {{
+            border-radius: 16px;
+            padding: 3px 12px;
+            font-size: 12px;
+            border: 1px solid #dadce0;
+            background-color: #f8f9fa;
+            color: #3c4043;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s ease;
+        }}
+        .copy-btn:hover {{
+            background-color: #e8eaed;
+            color: #202124;
+        }}
+    </style>
+    </head>
+    <body>
+        <button class="copy-btn" id="btn_{unique_id}" onclick="doCopy()">
+            📋 Copy
+        </button>
+        <script>
+            function doCopy() {{
+                const text = {json_text};
+                if (navigator.clipboard && window.isSecureContext) {{
+                    navigator.clipboard.writeText(text).then(showSuccess);
+                }} else {{
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    showSuccess();
+                }}
+            }}
+            function showSuccess() {{
+                const b = document.getElementById('btn_{unique_id}');
+                b.innerHTML = '✓ Copied!';
+                b.style.backgroundColor = '#e6f4ea';
+                b.style.color = '#137333';
+                b.style.borderColor = '#ceead6';
+                setTimeout(() => {{
+                    b.innerHTML = '📋 Copy';
+                    b.style.backgroundColor = '#f8f9fa';
+                    b.style.color = '#3c4043';
+                    b.style.borderColor = '#dadce0';
+                }}, 2000);
+            }}
+        </script>
+    </body>
+    </html>
+    """
+    components.html(html_btn, height=30)
 
 def run_aerial_celebration():
     st.balloons()
@@ -268,11 +329,9 @@ def detect_image_request(text):
     )
     return True, hd_boosted_prompt
 
-# Accurate language tracking that remembers user choice
 def update_language_state(text):
     text_clean = text.strip().lower()
     
-    # 1. Direct Script Check
     if any('\u0A80' <= ch <= '\u0AFF' for ch in text):
         st.session_state.current_language = "GUJARATI"
         return "GUJARATI"
@@ -280,16 +339,14 @@ def update_language_state(text):
         st.session_state.current_language = "HINDI"
         return "HINDI"
     
-    # 2. Explicit Gujarati Requests
     guj_triggers = [
         "gujarati", "gujrati", "gujaratin", "in gujarati", "gujarati ma", "gujarati mein",
-        "kem cho", "kem chho", "halo", "maru", "maro", "chhe", "che", "tamaru", "tame", "karo ne"
+        "kem cho", "kem chho", "halo", "maru", "maro", "chhe", "che", "tamaru", "tame"
     ]
     if any(re.search(r"\b" + re.escape(w) + r"\b", text_clean) for w in guj_triggers):
         st.session_state.current_language = "GUJARATI"
         return "GUJARATI"
         
-    # 3. Explicit Hindi Requests
     hindi_triggers = [
         "hindi", "in hindi", "hindi me", "hindi main", "bat kro", "baat karo", "batao",
         "namaste", "mera", "meri", "kaise", "chahiye", "kya hai", "kaha hai", "kab aaya tha"
@@ -298,7 +355,6 @@ def update_language_state(text):
         st.session_state.current_language = "HINDI"
         return "HINDI"
         
-    # 4. Explicit English Requests
     english_triggers = ["english", "in english", "speak english"]
     if any(re.search(r"\b" + re.escape(w) + r"\b", text_clean) for w in english_triggers):
         st.session_state.current_language = "ENGLISH"
@@ -369,11 +425,7 @@ for idx, msg in enumerate(st.session_state.messages):
             st.image(msg["content"], caption=msg.get("caption", "Ultra HD Output"), use_container_width=True)
         else:
             st.write(msg["content"])
-            col_l, col_r = st.columns([0.85, 0.15])
-            with col_r:
-                if st.button("📋 Copy", key=f"copy_hist_{idx}"):
-                    st.code(msg["content"], language=None)
-                    st.toast("Copied!", icon="📋")
+            render_clean_copy_button(msg["content"], f"hist_{idx}")
 
 query = st.chat_input("")
 
@@ -382,11 +434,7 @@ if query:
     
     with st.chat_message("user"):
         st.write(query)
-        col_l, col_r = st.columns([0.85, 0.15])
-        with col_r:
-            if st.button("📋 Copy", key=f"copy_user_curr_{len(st.session_state.messages)}"):
-                st.code(query, language=None)
-                st.toast("Copied!", icon="📋")
+        render_clean_copy_button(query, f"user_curr_{len(st.session_state.messages)}")
 
     is_img_req, enhanced_prompt = detect_image_request(query)
     
@@ -411,26 +459,17 @@ if query:
             if err:
                 st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
             
-            # Simple direct language acknowledgments
             elif query.strip().lower() in ["gujarati", "gujrati", "gujarati ma", "gujarati mein baat karte hai", "gujarati main baat karte hai ok", "gujarati ma vaat kariye"]:
                 reply = "ચોક્કસ! હવે આપણે ગુજરાતીમાં વાત કરીશું. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
-                col_l, col_r = st.columns([0.85, 0.15])
-                with col_r:
-                    if st.button("📋 Copy", key=f"copy_ack_{len(st.session_state.messages)}"):
-                        st.code(reply, language=None)
-                        st.toast("Copied!", icon="📋")
+                render_clean_copy_button(reply, f"ack_{len(st.session_state.messages)}")
 
             elif query.strip().lower() in ["hindi", "in hindi", "hindi me", "hindi main baat karo", "hindi me baat karte hai"]:
                 reply = "ज़रूर! अब हम हिंदी में बात करेंगे। मैं आपकी क्या सहायता कर सकता हूँ? 😊"
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
-                col_l, col_r = st.columns([0.85, 0.15])
-                with col_r:
-                    if st.button("📋 Copy", key=f"copy_ack_{len(st.session_state.messages)}"):
-                        st.code(reply, language=None)
-                        st.toast("Copied!", icon="📋")
+                render_clean_copy_button(reply, f"ack_{len(st.session_state.messages)}")
 
             elif is_greeting(query):
                 if lang == "GUJARATI":
@@ -441,11 +480,7 @@ if query:
                     reply = "Hello! Welcome to BC Tech Computer Education. How can I help you today? 😊"
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
-                col_l, col_r = st.columns([0.85, 0.15])
-                with col_r:
-                    if st.button("📋 Copy", key=f"copy_greet_{len(st.session_state.messages)}"):
-                        st.code(reply, language=None)
-                        st.toast("Copied!", icon="📋")
+                render_clean_copy_button(reply, f"greet_{len(st.session_state.messages)}")
 
             elif check_is_branch_intent(query):
                 if lang == "GUJARATI":
@@ -457,11 +492,7 @@ if query:
                 
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
-                col_l, col_r = st.columns([0.85, 0.15])
-                with col_r:
-                    if st.button("📋 Copy", key=f"copy_branch_{len(st.session_state.messages)}"):
-                        st.code(reply, language=None)
-                        st.toast("Copied!", icon="📋")
+                render_clean_copy_button(reply, f"branch_{len(st.session_state.messages)}")
 
             else:
                 matched_records = search_student_all_sheets(query, df_sheet)
@@ -491,10 +522,10 @@ if query:
                     {details_text}
 
                     CRITICAL RULES:
-                    - Target Language: {lang_name}. Output 100% strictly in pure {lang_name}.
+                    - Target Language: {lang_name}. Output strictly in {lang_name}.
                     - Display all {len(matched_records)} records separately.
-                    - Show numbers without decimals (e.g., 23, 41).
-                    - DO NOT mention 'Result: Pass' or any status.
+                    - Show clean whole numbers without decimals (e.g., 23, 41).
+                    - DO NOT write 'Result: Pass' or any status.
                     - Format:
                       📌 Record [Number]: [Exam Name]
                       - Name: {found_name}
@@ -504,20 +535,19 @@ if query:
                 else:
                     lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                     system_prompt = f"""
-                    You are a helpful, knowledgeable AI Assistant for BC Tech Computer Education and general queries.
+                    You are BC Tech AI Assistant, a helpful and knowledgeable assistant for BC Tech Computer Education and general queries.
                     
                     CRITICAL LANGUAGE RULE:
-                    - You MUST reply strictly in {lang_name} language.
-                    - If target language is Gujarati, reply 100% in natural Gujarati script.
-                    - If target language is Hindi, reply 100% in natural Hindi script.
-                    - Never reply in English unless target language is English.
+                    - Reply strictly in {lang_name}.
+                    - If Gujarati, reply in clean Gujarati script.
+                    - If Hindi, reply in clean Hindi script.
                     
                     CRITICAL INSTRUCTIONS:
-                    1. Answer general knowledge and fact questions directly and accurately in 2-3 sentences.
-                    2. If asked about BC Tech computer courses, use:
+                    1. Answer general knowledge questions accurately in 2-3 direct sentences.
+                    2. For BC Tech courses, refer to:
                     {KNOWLEDGE_BASE}
                     3. If asked about location, provide: {BRANCH_LINK}
-                    4. Output ONLY the clean answer without <think> tags or setup statements.
+                    4. Output ONLY the response text without greetings or meta notes.
                     """
 
                 with st.spinner("Thinking..."):
@@ -558,11 +588,7 @@ if query:
                             if is_found_result:
                                 run_aerial_celebration()
 
-                            col_l, col_r = st.columns([0.85, 0.15])
-                            with col_r:
-                                if st.button("📋 Copy", key=f"copy_ast_curr_{len(st.session_state.messages)}"):
-                                    st.code(answer, language=None)
-                                    st.toast("Copied!", icon="📋")
+                            render_clean_copy_button(answer, f"ast_curr_{len(st.session_state.messages)}")
                         else:
                             st.error(f"API Error: {last_api_err}")
                     except Exception as e:
