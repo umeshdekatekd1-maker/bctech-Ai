@@ -90,14 +90,14 @@ def search_student(query_text, df):
     name_col = df.columns[0]
     name_series = df[name_col].astype(str).str.strip().str.lower()
     
-    # 1. Exact match
+    # Exact match
     matched = df[name_series == search_term]
     
-    # 2. Contains match
+    # Contains match
     if matched.empty:
         matched = df[name_series.str.contains(search_term, regex=False, na=False)]
         
-    # 3. Individual word match
+    # Word match
     if matched.empty:
         for w in words:
             matched = df[name_series.str.contains(w, regex=False, na=False)]
@@ -159,7 +159,7 @@ if query:
 
                         Rules:
                         1. Reply in the exact same language the user typed in (Gujarati, Hindi/Hinglish, or English).
-                        2. Never output corrupted, weird unicode characters or random scripts.
+                        2. Never output weird characters or repeating garbage.
                         3. Clearly display student marks using clean bullet points.
                         4. Congratulate the student politely.
                         """
@@ -178,20 +178,31 @@ if query:
                         {KNOWLEDGE_BASE}
                         """
 
-                    # Sabse stable 70B model use karenge
-                    chat_completion = client.chat.completions.create(
-                        messages=[
-                            {"role": "system", "content": system_prompt},
-                            {"role": "user", "content": query}
-                        ],
-                        model="llama-3.3-70b-versatile",
-                        temperature=0.3,
-                        max_tokens=500
-                    )
-                    answer = chat_completion.choices[0].message.content
+                    # Supported Groq models list with automatic fallback
+                    available_models = ["llama-3.1-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"]
+                    answer = None
+                    
+                    for model_name in available_models:
+                        try:
+                            chat_completion = client.chat.completions.create(
+                                messages=[
+                                    {"role": "system", "content": system_prompt},
+                                    {"role": "user", "content": query}
+                                ],
+                                model=model_name,
+                                temperature=0.3,
+                                max_tokens=500
+                            )
+                            answer = chat_completion.choices[0].message.content
+                            if answer:
+                                break
+                        except Exception:
+                            continue
                     
                     if answer:
                         st.write(answer)
                         st.session_state.messages.append({"role": "assistant", "content": answer})
+                    else:
+                        st.error("Filhal AI uplabdh nahi hai. Kripya thodi der baad prayas karein.")
                 except Exception as e:
                     st.error(f"Error: {e}")
