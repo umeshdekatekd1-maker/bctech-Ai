@@ -16,12 +16,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Clean Styling
+# Custom Modern Chat Bubbles Styling (User on Right, AI on Left)
 st.markdown("""
 <style>
     #MainMenu, footer {visibility: hidden;}
     header {visibility: visible !important;}
-    .block-container {padding-top: 1.5rem; max-width: 720px;}
+    .block-container {padding-top: 1.5rem; max-width: 780px;}
     
     div[data-baseweb="input"] {
         border-radius: 28px !important;
@@ -32,6 +32,20 @@ st.markdown("""
     div[data-baseweb="input"]:focus-within {
         box-shadow: 0 2px 8px rgba(32,33,36,0.3) !important;
         border-color: #4285F4 !important;
+    }
+    
+    /* Streamlit Chat Message alignment modifications */
+    /* User Message Container */
+    [data-testid="stChatMessage"]:has(div.st-emotion-cache-1c7y2kd) {
+        flex-direction: row-reverse;
+        text-align: right;
+    }
+    
+    /* General message bubble layout adjustments */
+    [data-testid="stChatMessage"] {
+        padding: 1rem;
+        border-radius: 12px;
+        margin-bottom: 10px;
     }
     
     /* Sidebar Recent Buttons */
@@ -74,8 +88,8 @@ st.markdown("""
 def render_persistence_script():
     persistence_js = """
     <script>
-        const STORAGE_KEY_MSGS = "bctech_chat_messages_v6";
-        const STORAGE_KEY_RECENT = "bctech_recent_chats_v6";
+        const STORAGE_KEY_MSGS = "bctech_chat_messages_v7";
+        const STORAGE_KEY_RECENT = "bctech_recent_chats_v7";
 
         window.addEventListener('DOMContentLoaded', () => {
             try {
@@ -509,29 +523,30 @@ About Bctech Computer Education:
 - Popular Courses: Basic Computer Course, Graphic Designing (CorelDraw, Photoshop, Illustrator), Accounting & Tally Prime, Web Development, Programming (Python, C++), Digital Marketing, Advanced Excel.
 """
 
-# Render history
+# Render chat history with explicit user/assistant styling
 for idx, msg in enumerate(st.session_state.messages):
-    with st.chat_message(msg["role"]):
+    is_user = (msg["role"] == "user")
+    with st.chat_message(msg["role"], avatar="👤" if is_user else "🤖"):
         if msg.get("is_image", False):
             st.image(msg["content"], caption=msg.get("caption", "DSLR Vertical Output"), use_container_width=True)
             render_direct_download_button(msg["content"], f"hist_dl_{idx}")
         else:
             st.write(msg["content"])
-            render_clean_copy_button(msg["content"], f"hist_{idx}")
+            if not is_user:
+                render_clean_copy_button(msg["content"], f"hist_{idx}")
 
 query = st.chat_input("")
 
 if query:
     st.session_state.messages.append({"role": "user", "content": query})
     
-    with st.chat_message("user"):
+    with st.chat_message("user", avatar="👤"):
         st.write(query)
-        render_clean_copy_button(query, f"user_curr_{len(st.session_state.messages)}")
 
     is_img_req, enhanced_prompt = detect_image_request(query)
     
     if is_img_req:
-        with st.chat_message("assistant"):
+        with st.chat_message("assistant", avatar="🤖"):
             with st.spinner("🎨 Rendering DSLR Vertical Full-Body Image..."):
                 encoded_prompt = urllib.parse.quote(enhanced_prompt)
                 seed = random.randint(1000, 999999)
@@ -549,7 +564,7 @@ if query:
         df_sheet, err = load_all_sheets_data()
         lang = update_language_state(query)
         
-        with st.chat_message("assistant"):
+        with st.chat_message("assistant", avatar="🤖"):
             if err:
                 st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
             
@@ -627,7 +642,6 @@ if query:
                       - Marks: [Marks list]
                     """
                 else:
-                    # Enforce strict IST Time (UTC +5:30)
                     ist_tz = timezone(timedelta(hours=5, minutes=30))
                     current_time_str = datetime.now(ist_tz).strftime("%Y-%m-%d %I:%M:%S %p (%A)")
                     
@@ -644,7 +658,7 @@ if query:
                     - If Hindi, reply in clean Hindi script.
                     
                     CRITICAL INSTRUCTIONS:
-                    1. When the user asks for time, date, day, or 'aaj kya ho raha hai', directly state the exact real-time provided above ({current_time_str}).
+                    1. When the user asks for time, date, day, or general queries, answer accurately using the real-time context provided above ({current_time_str}).
                     2. Answer general knowledge questions accurately in 2-3 direct sentences.
                     3. For BC Tech courses, refer to:
                     {KNOWLEDGE_BASE}
