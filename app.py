@@ -79,6 +79,30 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Fireworks & Celebration Effect Trigger
+def trigger_fireworks_effect():
+    fireworks_html = """
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script>
+        var count = 200;
+        var defaults = { origin: { y: 0.2 } };
+
+        function fire(particleRatio, opts) {
+            confetti(Object.assign({}, defaults, opts, {
+                particleCount: Math.floor(count * particleRatio)
+            }));
+        }
+
+        // Aerial Fireworks Burst Simulation
+        fire(0.25, { spread: 26, startVelocity: 55 });
+        fire(0.2, { spread: 60 });
+        fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+        fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+        fire(0.1, { spread: 120, startVelocity: 45 });
+    </script>
+    """
+    st.components.v1.html(fireworks_html, height=0)
+
 # State initialization
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -184,10 +208,8 @@ def load_all_sheets_data():
 
 # Strictly detect Gujarati
 def is_gujarati_input(text):
-    # Detect Gujarati script range
     if any('\u0A80' <= ch <= '\u0AFF' for ch in text):
         return True
-    # Detect common phonetic Gujarati keywords
     guj_words = ["maru", "maro", "chhe", "che", "kem", "tamaro", "tamare", "jovu"]
     words = text.lower().split()
     return any(w in words for w in guj_words)
@@ -231,14 +253,9 @@ def search_student_all_sheets(query_text, df):
     name_col = df.columns[0]
     name_series = df[name_col].astype(str).str.strip().str.lower()
     
-    # 1. Exact match
     matched = df[name_series == search_term]
-    
-    # 2. Substring match
     if matched.empty:
         matched = df[name_series.str.contains(search_term, regex=False, na=False)]
-        
-    # 3. Individual word match
     if matched.empty:
         for w in words:
             matched = df[name_series.str.contains(w, regex=False, na=False)]
@@ -326,8 +343,10 @@ if query:
             # Check student sheet records
             matched_records = search_student_all_sheets(query, df_sheet)
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+            is_found_result = False
             
             if matched_records:
+                is_found_result = True
                 st.session_state.waiting_for_result_name = False
                 details_text = ""
                 for record in matched_records[:2]:
@@ -352,7 +371,7 @@ if query:
                 - Exam / Course: [Course]
                 - Theory Marks: [Score]
                 - Practical Marks: [Score]
-                Add 1 short line congratulating them.
+                Add 1 short line congratulating them with festive cheer.
                 Output ONLY this result.
                 """
             elif check_is_result_intent(query) or st.session_state.waiting_for_result_name:
@@ -420,6 +439,11 @@ if query:
                         if answer:
                             st.write(answer)
                             st.session_state.messages.append({"role": "assistant", "content": answer})
+                            
+                            # Fire Aerial Fireworks & Celebration when result is displayed
+                            if is_found_result:
+                                trigger_fireworks_effect()
+
                             col_l, col_r = st.columns([0.85, 0.15])
                             with col_r:
                                 if st.button("📋 Copy", key=f"copy_ast_curr_{len(st.session_state.messages)}"):
