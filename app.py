@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 from groq import Groq
 import pandas as pd
 import requests
@@ -79,29 +80,42 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Fireworks & Celebration Effect Trigger
-def trigger_fireworks_effect():
-    fireworks_html = """
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+# Direct Fireworks & Lanterns Blast on Main Window
+def run_aerial_celebration():
+    st.balloons()
+    anim_js = """
     <script>
-        var count = 200;
-        var defaults = { origin: { y: 0.2 } };
+    const parentDoc = window.parent.document;
+    const colors = ['#FF4500', '#FFD700', '#00FF7F', '#1E90FF', '#FF1493', '#9400D3'];
+    for(let i = 0; i < 45; i++) {
+        let el = parentDoc.createElement('div');
+        el.innerText = ['🎆', '✨', '🏮', '🚀', '⭐', '🎉'][Math.floor(Math.random() * 6)];
+        el.style.position = 'fixed';
+        el.style.left = Math.random() * 95 + 'vw';
+        el.style.bottom = '-50px';
+        el.style.fontSize = (Math.random() * 24 + 20) + 'px';
+        el.style.zIndex = '999999';
+        el.style.transition = 'all ' + (Math.random() * 1.8 + 1.2) + 's cubic-bezier(0.25, 1, 0.5, 1)';
+        el.style.opacity = '1';
+        el.style.pointerEvents = 'none';
+        parentDoc.body.appendChild(el);
 
-        function fire(particleRatio, opts) {
-            confetti(Object.assign({}, defaults, opts, {
-                particleCount: Math.floor(count * particleRatio)
-            }));
-        }
+        setTimeout(() => {
+            el.style.bottom = (Math.random() * 55 + 40) + 'vh';
+            el.style.transform = 'scale(' + (Math.random() * 1.5 + 1) + ') rotate(' + (Math.random() * 360) + 'deg)';
+        }, 30);
 
-        // Aerial Fireworks Burst Simulation
-        fire(0.25, { spread: 26, startVelocity: 55 });
-        fire(0.2, { spread: 60 });
-        fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
-        fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
-        fire(0.1, { spread: 120, startVelocity: 45 });
+        setTimeout(() => {
+            el.style.opacity = '0';
+        }, 2200);
+
+        setTimeout(() => {
+            el.remove();
+        }, 3200);
+    }
     </script>
     """
-    st.components.v1.html(fireworks_html, height=0)
+    components.html(anim_js, height=0)
 
 # State initialization
 if "messages" not in st.session_state:
@@ -189,7 +203,6 @@ def load_all_sheets_data():
     except Exception:
         pass
 
-    # Fallback to standard CSV
     csv_url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
     try:
         res = requests.get(csv_url, timeout=10)
@@ -206,7 +219,6 @@ def load_all_sheets_data():
         
     return None, "Sheet data unavailable"
 
-# Strictly detect Gujarati
 def is_gujarati_input(text):
     if any('\u0A80' <= ch <= '\u0AFF' for ch in text):
         return True
@@ -340,7 +352,6 @@ if query:
                     st.toast("Copied!", icon="📋")
 
         else:
-            # Check student sheet records
             matched_records = search_student_all_sheets(query, df_sheet)
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
             is_found_result = False
@@ -363,7 +374,7 @@ if query:
 
                 LANGUAGE RULE:
                 - Target Language: {"GUJARATI" if user_wants_gujarati else "ENGLISH"}.
-                - Unless the user specifically wrote in Gujarati script, output 100% in pure, professional ENGLISH.
+                - Unless user specifically typed in Gujarati script, output 100% in pure, professional ENGLISH.
                 - Never output broken machine translation.
 
                 Format:
@@ -440,9 +451,8 @@ if query:
                             st.write(answer)
                             st.session_state.messages.append({"role": "assistant", "content": answer})
                             
-                            # Fire Aerial Fireworks & Celebration when result is displayed
                             if is_found_result:
-                                trigger_fireworks_effect()
+                                run_aerial_celebration()
 
                             col_l, col_r = st.columns([0.85, 0.15])
                             with col_r:
