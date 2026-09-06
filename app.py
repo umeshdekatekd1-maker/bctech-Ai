@@ -1,10 +1,12 @@
 import streamlit as st
 from groq import Groq
 import pandas as pd
+import requests
+import io
 
 st.set_page_config(page_title="Bctech AI Assistant", layout="centered", initial_sidebar_state="collapsed")
 
-# Custom Clean Styling
+# Custom Styling
 st.markdown("""
 <style>
     #MainMenu, header, footer {visibility: hidden;}
@@ -25,64 +27,66 @@ st.markdown("""
 
 st.title("🎓 Bctech AI Assistant")
 
-SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1ES2A77U61GeS710Xfyc0dKIevUhzR2v7-aSjkr1R3tg/gviz/tq?tqx=out:csv"
+SHEET_ID = "1ES2A77U61GeS710Xfyc0dKIevUhzR2v7-aSjkr1R3tg"
+CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
 
 @st.cache_data(ttl=15)
 def load_sheet_data():
     try:
-        # Load CSV and clean columns
-        df = pd.read_csv(SHEET_CSV_URL)
+        response = requests.get(CSV_URL, timeout=10)
+        if response.status_code != 200:
+            return None, f"Google Sheet एक्सेस नहीं हो पाई (Status: {response.status_code}). Kripya Sheet ko 'Anyone with link can view' karein."
+        
+        csv_text = response.content.decode("utf-8")
+        df = pd.read_csv(io.StringIO(csv_text))
+        
+        # Column names clean karein
         df.columns = [str(c).strip() for c in df.columns]
-        # Ignore empty or separator rows like 'Batch Times'
-        first_col = df.columns[0]
-        df = df[df[first_col].notna()]
-        df = df[~df[first_col].astype(str).str.lower().str.contains("batch time", na=False)]
-        return df
-    except Exception:
-        return None
+        
+        # Khali rows aur 'Batch Times' wali rows filter karein
+        name_col = df.columns[0]
+        df = df[df[name_col].notna()]
+        df = df[~df[name_col].astype(str).str.lower().str.contains("batch time", na=False)]
+        df = df[df[name_col].astype(str).str.strip() != ""]
+        return df, None
+    except Exception as e:
+        return None, str(e)
 
 def is_generic_result_request(text):
     text = text.lower().strip()
     keywords = ["result check", "check result", "result dekhna", "result dekhna hai", "marks dekhna", "result batao", "result", "exam result", "marks"]
     return any(text == kw or text.replace(" ", "") == kw.replace(" ", "") for kw in keywords)
 
-def search_student_by_name(query_text, df):
+def search_student(query_text, df):
     if df is None or df.empty:
         return []
     
     clean_q = query_text.strip().lower()
-    # Remove conversation filler words, but KEEP names
     fillers = ["result", "marks", "kya", "hai", "check", "batao", "mera", "meri", "ka", "ki", "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam"]
     words = [w for w in clean_q.split() if w not in fillers and len(w) >= 2]
     
     if not words:
         words = [clean_q]
-
+        
     search_term = " ".join(words)
-    first_col = df.columns[0] # Student Name column
-
-    # 1. Direct name match in first column (Student Name)
-    name_series = df[first_col].astype(str).str.strip().str.lower()
+    name_col = df.columns[0]
     
-    # Exact full name match
-    matched = df[name_series == search_term]
+    # 1. Exact match in Student Name column
+    matched = df[df[name_col].astype(str).str.strip().str.lower() == search_term]
     
-    # Partial / First name match if exact not found
+    # 2. Contains match in Student Name
+    if matched.empty:
+        matched = df[df[name_col].astype(str).str.strip().str.lower().str.contains(search_term, regex=False, na=False)]
+        
+    # 3. Single word match (jaise sirf 'pooja' ya 'ramesh')
     if matched.empty:
         for w in words:
-            matched = df[name_series.str.contains(w, regex=False, na=False)]
+            matched = df[df[name_col].astype(str).str.strip().str.lower().str.contains(w, regex=False, na=False)]
             if not matched.empty:
                 break
                 
-    # Fallback: Search in entire table
-    if matched.empty:
-        for col in df.columns:
-            matched = df[df[col].astype(str).str.strip().str.lower().str.contains(search_term, regex=False, na=False)]
-            if not matched.empty:
-                break
-
     if not matched.empty:
-        return matched.dropna(how="all").to_dict(orient="records")
+        return matched.to_dict(orient="records")
     return []
 
 KNOWLEDGE_BASE = """
@@ -106,15 +110,17 @@ if query:
     with st.chat_message("user"):
         st.write(query)
 
-    df_sheet = load_sheet_data()
+    df_sheet, err = load_sheet_data()
     
     with st.chat_message("assistant"):
-        if is_generic_result_request(query):
+        if err:
+            st.error(f"Sheet Error: {err}")
+        elif is_generic_result_request(query):
             reply = "📋 Apna exam result dekhne ke liye kripya apna **Pura Naam (Student Name)** yahan type karein."
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
         else:
-            matched_records = search_student_by_name(query, df_sheet)
+            matched_records = search_student(query, df_sheet)
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
             
             with st.spinner("Record check kiya ja raha hai..."):
@@ -127,7 +133,7 @@ if query:
                         for idx, record in enumerate(matched_records[:3], 1):
                             details_text += f"\n--- Student Record {idx} ---\n"
                             for k, v in record.items():
-                                if pd.notna(v) and str(v).strip() != "":
+                                if pd.notna(v) and str(v).strip() != "" and "unnamed" not in str(k).lower():
                                     details_text += f"{k}: {v}\n"
 
                         system_prompt = f"""
@@ -136,9 +142,9 @@ if query:
                         {details_text}
 
                         Instructions:
-                        1. Display the student's name, exam name, theory marks, and practical marks in a neat bulleted list or small table.
-                        2. Congratulate them on their performance.
-                        3. Reply in natural, polite Hinglish.
+                        1. Display the student's name, exam course, theory marks, and practical marks in clean bullet points.
+                        2. Congratulate them on their score.
+                        3. Reply politely in natural Hinglish.
                         """
                     else:
                         system_prompt = f"""
