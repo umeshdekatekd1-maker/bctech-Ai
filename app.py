@@ -8,7 +8,6 @@ import re
 import json
 import urllib.parse
 import random
-from datetime import datetime
 
 st.set_page_config(
     page_title="BC Tech Ai Assistant", 
@@ -70,12 +69,33 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Bulletproof Persistence and Direct Download Component
+# Client-Side Live Time Injector Component (Pulls exact local device time)
+def render_live_time_injector():
+    time_js = """
+    <script>
+        function getDeviceTimeContext() {
+            const now = new Date();
+            const options = { 
+                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit', 
+                hour12: true, weekday: 'long'
+            };
+            return now.toLocaleString('en-US', options);
+        }
+        try {
+            sessionStorage.setItem("client_current_time", getDeviceTimeContext());
+        } catch(e) {}
+    </script>
+    """
+    components.html(time_js, height=0)
+
+# Bulletproof Persistence Component
 def render_persistence_and_sync_script():
     persistence_js = """
     <script>
-        const STORAGE_KEY_MSGS = "bctech_chat_messages_v3";
-        const STORAGE_KEY_RECENT = "bctech_recent_chats_v3";
+        const STORAGE_KEY_MSGS = "bctech_chat_messages_v4";
+        const STORAGE_KEY_RECENT = "bctech_recent_chats_v4";
 
         window.addEventListener('DOMContentLoaded', () => {
             try {
@@ -86,13 +106,6 @@ def render_persistence_and_sync_script():
                 }
             } catch(e) {}
         });
-
-        function syncLocalStorage(msgs, recent) {
-            try {
-                localStorage.setItem(STORAGE_KEY_MSGS, JSON.stringify(msgs));
-                localStorage.setItem(STORAGE_KEY_RECENT, JSON.stringify(recent));
-            } catch(e) {}
-        }
     </script>
     """
     components.html(persistence_js, height=0)
@@ -285,6 +298,7 @@ if "current_language" not in st.session_state:
     st.session_state.current_language = "ENGLISH"
 
 render_persistence_and_sync_script()
+render_live_time_injector()
 
 def on_new_chat_clicked():
     if st.session_state.messages:
@@ -447,7 +461,7 @@ def update_language_state(text):
         
     hindi_triggers = [
         "hindi", "in hindi", "hindi me", "hindi main", "bat kro", "baat karo", "batao",
-        "namaste", "mera", "meri", "kaise", "chahiye", "kya hai", "kaha hai", "kab aaya tha", "time", "samay"
+        "namaste", "mera", "meri", "kaise", "chahiye", "kya hai", "kaha hai", "kab aaya tha", "time", "samay", "aaj"
     ]
     if any(re.search(r"\b" + re.escape(w) + r"\b", text_clean) for w in hindi_triggers):
         st.session_state.current_language = "HINDI"
@@ -574,7 +588,7 @@ if query:
 
             elif is_greeting(query):
                 if lang == "GUJARATI":
-                    reply = "नમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                    reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                 elif lang == "HINDI":
                     reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                 else:
@@ -634,13 +648,12 @@ if query:
                       - Marks: [Marks list]
                     """
                 else:
-                    current_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S (%A)")
                     lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                     system_prompt = f"""
                     You are BC Tech AI Assistant, a smart, professional assistant for BC Tech Computer Education and general queries.
                     
-                    CURRENT REAL-TIME CONTEXT:
-                    - Current Date and Time: {current_time_str} (Indian Standard Time / local time).
+                    CRITICAL INSTRUCTION FOR TIME/DATE:
+                    - When the user asks for the current time, date, or day, use JavaScript injected live context from their browser/device (or assume current local device time).
                     
                     CRITICAL LANGUAGE RULE:
                     - Reply strictly in {lang_name}.
@@ -648,12 +661,11 @@ if query:
                     - If Hindi, reply in clean Hindi script.
                     
                     CRITICAL INSTRUCTIONS:
-                    1. If asked about the current time, date, or day, provide it accurately based on the CURRENT REAL-TIME CONTEXT provided above.
-                    2. Answer general knowledge questions accurately in 2-3 direct sentences.
-                    3. For BC Tech courses, refer to:
+                    1. Answer general knowledge questions accurately in 2-3 direct sentences.
+                    2. For BC Tech courses, refer to:
                     {KNOWLEDGE_BASE}
-                    4. If asked about location, provide: {BRANCH_LINK}
-                    5. Output ONLY the response text without greetings or meta notes.
+                    3. If asked about location, provide: {BRANCH_LINK}
+                    4. Output ONLY the response text without greetings or meta notes.
                     """
 
                 with st.spinner("Thinking..."):
