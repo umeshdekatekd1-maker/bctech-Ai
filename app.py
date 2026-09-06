@@ -8,6 +8,7 @@ import re
 import json
 import urllib.parse
 import random
+from datetime import datetime
 
 st.set_page_config(
     page_title="BC Tech Ai Assistant", 
@@ -73,10 +74,9 @@ st.markdown("""
 def render_persistence_and_sync_script():
     persistence_js = """
     <script>
-        const STORAGE_KEY_MSGS = "bctech_chat_messages_v2";
-        const STORAGE_KEY_RECENT = "bctech_recent_chats_v2";
+        const STORAGE_KEY_MSGS = "bctech_chat_messages_v3";
+        const STORAGE_KEY_RECENT = "bctech_recent_chats_v3";
 
-        // On page load, if python session is empty but localStorage has items, restore them
         window.addEventListener('DOMContentLoaded', () => {
             try {
                 const savedMsgs = localStorage.getItem(STORAGE_KEY_MSGS);
@@ -172,7 +172,7 @@ def render_clean_copy_button(text_to_copy, unique_id):
     """
     components.html(html_btn, height=30)
 
-# Direct Image Download Button Component using fetch blob
+# Direct Image Download Button Component
 def render_direct_download_button(img_url, unique_id):
     json_url = json.dumps(img_url)
     download_html = f"""
@@ -447,7 +447,7 @@ def update_language_state(text):
         
     hindi_triggers = [
         "hindi", "in hindi", "hindi me", "hindi main", "bat kro", "baat karo", "batao",
-        "namaste", "mera", "meri", "kaise", "chahiye", "kya hai", "kaha hai", "kab aaya tha"
+        "namaste", "mera", "meri", "kaise", "chahiye", "kya hai", "kaha hai", "kab aaya tha", "time", "samay"
     ]
     if any(re.search(r"\b" + re.escape(w) + r"\b", text_clean) for w in hindi_triggers):
         st.session_state.current_language = "HINDI"
@@ -574,7 +574,7 @@ if query:
 
             elif is_greeting(query):
                 if lang == "GUJARATI":
-                    reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                    reply = "नમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                 elif lang == "HINDI":
                     reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                 else:
@@ -634,12 +634,13 @@ if query:
                       - Marks: [Marks list]
                     """
                 else:
+                    current_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S (%A)")
                     lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                     system_prompt = f"""
-                    You are BC Tech AI Assistant, a smart, professional assistant for BC Tech Computer Education.
+                    You are BC Tech AI Assistant, a smart, professional assistant for BC Tech Computer Education and general queries.
                     
-                    CRITICAL CONTEXT RULE:
-                    - Understand the user's query context. If asked about work, skills, or studies, connect it helpfully to BC Tech Computer Education courses.
+                    CURRENT REAL-TIME CONTEXT:
+                    - Current Date and Time: {current_time_str} (Indian Standard Time / local time).
                     
                     CRITICAL LANGUAGE RULE:
                     - Reply strictly in {lang_name}.
@@ -647,11 +648,12 @@ if query:
                     - If Hindi, reply in clean Hindi script.
                     
                     CRITICAL INSTRUCTIONS:
-                    1. Answer accurately and contextually in 2-3 direct sentences.
-                    2. For BC Tech courses, refer to:
+                    1. If asked about the current time, date, or day, provide it accurately based on the CURRENT REAL-TIME CONTEXT provided above.
+                    2. Answer general knowledge questions accurately in 2-3 direct sentences.
+                    3. For BC Tech courses, refer to:
                     {KNOWLEDGE_BASE}
-                    3. If asked about location, provide: {BRANCH_LINK}
-                    4. Output ONLY the response text without greetings or meta notes.
+                    4. If asked about location, provide: {BRANCH_LINK}
+                    5. Output ONLY the response text without greetings or meta notes.
                     """
 
                 with st.spinner("Thinking..."):
