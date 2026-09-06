@@ -11,12 +11,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Clean Styling & Visible Sidebar Controls
+# Custom Clean Styling
 st.markdown("""
 <style>
     #MainMenu, footer {visibility: hidden;}
     header {visibility: visible !important;}
-    .block-container {padding-top: 1rem; max-width: 720px;}
+    .block-container {padding-top: 1.5rem; max-width: 720px;}
     
     /* Search box rounded */
     div[data-baseweb="input"] {
@@ -65,49 +65,37 @@ st.markdown("""
         background-color: #f1f3f4;
         border-color: #c6c6c6;
     }
-
-    /* Top bar quick reset button */
-    .top-bar-btn button {
-        float: left !important;
-        border-radius: 20px !important;
-        background-color: #ffffff !important;
-        border: 1px solid #dadce0 !important;
-        padding: 4px 14px !important;
-        font-size: 13px !important;
-    }
 </style>
 """, unsafe_allow_html=True)
 
 # State initialization
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "recent_queries" not in st.session_state:
+    st.session_state.recent_queries = []
 if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
 
-# --- Top Navigation Bar for Quick Access (When sidebar is hidden) ---
-col_top_left, col_top_title = st.columns([0.35, 0.65])
-with col_top_left:
-    st.markdown('<div class="top-bar-btn">', unsafe_allow_html=True)
-    if st.button("➕ New Chat", key="top_new_chat_btn"):
-        st.session_state.messages = []
-        st.session_state.waiting_for_result_name = False
-        st.rerun()
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# --- Left Sidebar Menu ---
+# --- Left Sidebar: New Chat & Recent Dropdown ---
 with st.sidebar:
-    st.markdown("### 🎓 Bctech Education")
+    st.markdown("### 🎓 Bctech AI")
     if st.button("➕ New Chat", key="side_new_chat_btn", use_container_width=True):
         st.session_state.messages = []
         st.session_state.waiting_for_result_name = False
         st.rerun()
     
+    # Recent Section (Collapsible dropdown)
+    with st.expander("Recent", expanded=True):
+        if st.session_state.recent_queries:
+            for q_item in reversed(st.session_state.recent_queries[-8:]):
+                st.caption(f"💬 {q_item}")
+        else:
+            st.caption("No recent queries yet.")
+            
     st.markdown("---")
     st.markdown("**📌 Quick Links:**")
     st.markdown("🌐 [Official Website](https://sites.google.com/view/bctechcomputer)")
     st.markdown("📍 [Branch Location](https://sites.google.com/view/bctechcomputer/about-us)")
-    st.markdown("---")
-    st.caption("AI Assistant for Bctech Computer Education.")
 
 st.title("🎓 Bctech AI Assistant")
 
@@ -226,6 +214,11 @@ for idx, msg in enumerate(st.session_state.messages):
 query = st.chat_input("")
 
 if query:
+    # Save to recent queries list
+    trimmed_query = (query[:30] + '...') if len(query) > 30 else query
+    if trimmed_query not in st.session_state.recent_queries:
+        st.session_state.recent_queries.append(trimmed_query)
+
     st.session_state.messages.append({"role": "user", "content": query})
     with st.chat_message("user"):
         st.write(query)
