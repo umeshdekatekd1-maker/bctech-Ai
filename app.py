@@ -27,7 +27,7 @@ st.title("🎓 Bctech AI Assistant")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Purani history upar dikhana
+# Show previous history
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
@@ -48,14 +48,14 @@ if query:
                     messages=[
                         {
                             "role": "system",
-                            "content": "You are a helpful and friendly AI counselor for Bctech Computer Education. Guide students on courses, fees, syllabus, and computer career advice in simple Hinglish."
+                            "content": "You are a helpful and friendly AI counselor for Bctech Computer Education institute. Guide students on courses, fees, syllabus, and computer career advice in simple Hinglish."
                         },
                         {
                             "role": "user",
                             "content": query,
                         }
                     ],
-                    model="llama-3.3-70b-versatile",
+                    model="llama-3.1-8b-instant",
                 )
                 answer = chat_completion.choices[0].message.content
                 st.write(answer)
