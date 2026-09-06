@@ -4,7 +4,6 @@ import pandas as pd
 import requests
 import io
 import re
-import json
 
 st.set_page_config(
     page_title="Bctech AI Assistant", 
@@ -19,6 +18,7 @@ st.markdown("""
     header {visibility: visible !important;}
     .block-container {padding-top: 1.5rem; max-width: 720px;}
     
+    /* Search box rounded */
     div[data-baseweb="input"] {
         border-radius: 28px !important;
         box-shadow: 0 1px 6px rgba(32,33,36,0.18) !important;
@@ -30,6 +30,7 @@ st.markdown("""
         border-color: #4285F4 !important;
     }
     
+    /* Copy Button Right-Aligned */
     .stButton>button {
         border-radius: 16px;
         padding: 2px 12px;
@@ -46,7 +47,7 @@ st.markdown("""
         color: #202124;
     }
     
-    /* Left Sidebar Clickable Recent Items */
+    /* Left Sidebar Buttons */
     section[data-testid="stSidebar"] div[data-testid="stExpander"] .stButton>button {
         width: 100% !important;
         float: none !important;
@@ -66,70 +67,63 @@ st.markdown("""
         border-color: #4285f4 !important;
         color: #1967d2 !important;
     }
+    
+    #new_chat_btn_wrap button {
+        border-radius: 20px !important;
+        padding: 8px 16px !important;
+        font-size: 14px !important;
+        font-weight: 500 !important;
+        float: none !important;
+        width: 100% !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# State initialization
+# State initialization (Only stays alive while tab is open; wipes when closed)
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "recent_queries" not in st.session_state:
-    st.session_state.recent_queries = []
+if "saved_sessions" not in st.session_state:
+    st.session_state.saved_sessions = []
 if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
-if "storage_synced" not in st.session_state:
-    st.session_state.storage_synced = False
-if "active_query" not in st.session_state:
-    st.session_state.active_query = None
 
-# Reload Persistence
-qp = st.query_params
-if not st.session_state.storage_synced:
-    if "chat_data" in qp:
-        try:
-            saved_data = json.loads(qp["chat_data"])
-            st.session_state.messages = saved_data.get("messages", [])
-            st.session_state.recent_queries = saved_data.get("recent", [])
-        except Exception:
-            pass
-    st.session_state.storage_synced = True
+def start_new_chat():
+    # Save previous conversation to Recent only if there was a conversation
+    if st.session_state.messages:
+        first_user_msg = next((m["content"] for m in st.session_state.messages if m["role"] == "user"), "Chat")
+        title = (first_user_msg[:24] + "..") if len(first_user_msg) > 24 else first_user_msg
+        st.session_state.saved_sessions.append({
+            "title": title,
+            "messages": list(st.session_state.messages)
+        })
+    st.session_state.messages = []
+    st.session_state.waiting_for_result_name = False
 
-def sync_to_browser():
-    try:
-        data_to_save = {
-            "messages": st.session_state.messages,
-            "recent": st.session_state.recent_queries
-        }
-        st.query_params["chat_data"] = json.dumps(data_to_save)
-    except Exception:
-        pass
+def load_saved_chat(session_index):
+    if 0 <= session_index < len(st.session_state.saved_sessions):
+        st.session_state.messages = list(st.session_state.saved_sessions[session_index]["messages"])
 
-def select_recent_query(text):
-    st.session_state.active_query = text
-
-# --- Left Sidebar: New Chat & Clickable Recent List ---
+# --- Left Sidebar: New Chat & Recent Archived Chats ---
 with st.sidebar:
     st.markdown("### 🎓 Bctech AI")
-    if st.button("➕ New Chat", key="side_new_chat_btn", use_container_width=True):
-        st.session_state.messages = []
-        st.session_state.recent_queries = []
-        st.session_state.waiting_for_result_name = False
-        st.session_state.active_query = None
-        st.query_params.clear()
+    st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
+    if st.button("➕ New Chat", key="side_new_chat_btn", on_click=start_new_chat):
         st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
     
+    # Recent Section: Shows previously closed chats
     with st.expander("Recent", expanded=True):
-        if st.session_state.recent_queries:
-            for idx, q_item in enumerate(reversed(st.session_state.recent_queries[-8:])):
-                btn_label = f"💬 {q_item}"
+        if st.session_state.saved_sessions:
+            for idx, session_item in enumerate(reversed(st.session_state.saved_sessions)):
+                actual_idx = len(st.session_state.saved_sessions) - 1 - idx
                 st.button(
-                    btn_label, 
-                    key=f"recent_btn_{idx}", 
-                    on_click=select_recent_query, 
-                    args=(q_item,), 
-                    use_container_width=True
+                    f"💬 {session_item['title']}", 
+                    key=f"recent_chat_{actual_idx}",
+                    on_click=load_saved_chat,
+                    args=(actual_idx,)
                 )
         else:
-            st.caption("No recent queries yet.")
+            st.caption("New chat lene ke baad yahan purani chat dikhegi.")
             
     st.markdown("---")
     st.markdown("**📌 Quick Links:**")
@@ -250,20 +244,9 @@ for idx, msg in enumerate(st.session_state.messages):
                 st.code(msg["content"], language=None)
                 st.toast("Copied!", icon="📋")
 
-# Process either clicked recent item or new typed input
-typed_input = st.chat_input("")
-query = None
-
-if st.session_state.active_query:
-    query = st.session_state.active_query
-    st.session_state.active_query = None
-elif typed_input:
-    query = typed_input
+query = st.chat_input("")
 
 if query:
-    if query not in st.session_state.recent_queries:
-        st.session_state.recent_queries.append(query)
-
     st.session_state.messages.append({"role": "user", "content": query})
     with st.chat_message("user"):
         st.write(query)
@@ -283,7 +266,6 @@ if query:
             reply = "Hello! Welcome to Bctech Computer Education. How can I help you today? 😊"
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
-            sync_to_browser()
             col_l, col_r = st.columns([0.85, 0.15])
             with col_r:
                 if st.button("📋 Copy", key=f"copy_greet_{len(st.session_state.messages)}"):
@@ -301,7 +283,6 @@ if query:
             
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
-            sync_to_browser()
             col_l, col_r = st.columns([0.85, 0.15])
             with col_r:
                 if st.button("📋 Copy", key=f"copy_branch_{len(st.session_state.messages)}"):
@@ -400,7 +381,6 @@ if query:
                     if answer:
                         st.write(answer)
                         st.session_state.messages.append({"role": "assistant", "content": answer})
-                        sync_to_browser()
                         col_l, col_r = st.columns([0.85, 0.15])
                         with col_r:
                             if st.button("📋 Copy", key=f"copy_ast_curr_{len(st.session_state.messages)}"):
