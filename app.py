@@ -391,7 +391,7 @@ if query:
         # 3. Branch Intent
         elif check_is_branch_intent(query):
             if user_wants_gujarati:
-                reply = f"BC Tech Computer Education ની શાખા અને લોકેશનની સંપૂર્ણ વિગત માટે અહીં ક્લિક કરો:\n🔗 {BRANCH_LINK}"
+                reply = f"BC Tech Computer Education ની શાખા और लोकेशन की संपूर्ण जानकारी के लिए यहाँ क्लिक करें:\n🔗 {BRANCH_LINK}"
             else:
                 reply = f"You can check the branch location and address details of BC Tech Computer Education here:\n🔗 {BRANCH_LINK}"
             
@@ -412,36 +412,44 @@ if query:
             if matched_records:
                 is_found_result = True
                 st.session_state.waiting_for_result_name = False
+                
                 details_text = ""
-                for record in matched_records[:2]:
-                    sheet_tab = record.get("_Sheet_Tab", "")
-                    details_text += f"\nStudent Record ({sheet_tab}):\n"
+                # Agar ek se jyada sheets me record ho to sabhi ko include karein
+                for i, record in enumerate(matched_records[:5], 1):
+                    sheet_tab = record.get("_Sheet_Tab", f"Record {i}")
+                    details_text += f"\n--- Record #{i} (From Sheet: {sheet_tab}) ---\n"
                     for k, v in record.items():
                         if k != "_Sheet_Tab" and pd.notna(v) and str(v).strip() != "" and "unnamed" not in str(k).lower():
                             details_text += f"- {k}: {v}\n"
 
                 system_prompt = f"""
                 You are the AI Assistant for BC Tech Computer Education.
-                Verified Student Data from sheet:
+                Verified Student Data from sheets:
                 {details_text}
 
+                CRITICAL INSTRUCTION FOR MULTIPLE RECORDS:
+                - If the student is found in multiple sheets or courses, YOU MUST DISPLAY ALL OF THEM clearly one after another.
+                - Do not skip or merge any record.
+                
                 LANGUAGE RULE:
                 - Target Language: {"GUJARATI" if user_wants_gujarati else "ENGLISH"}.
                 - Unless user specifically typed in Gujarati script, output 100% in pure, professional ENGLISH.
-                - Never output broken machine translation.
 
-                Format:
+                Output Format for each record found:
+                📌 [Course / Sheet Name]
                 - Name: [Student Name]
                 - Exam / Course: [Course]
                 - Theory Marks: [Score]
                 - Practical Marks: [Score]
-                Add 1 short line congratulating them with festive cheer.
-                Output ONLY this result.
+                - Result: [Pass / Grade if available]
+
+                Add 1 short congratulatory/encouraging line at the end.
+                Output ONLY the verified student result details.
                 """
             elif check_is_result_intent(query) or st.session_state.waiting_for_result_name:
                 st.session_state.waiting_for_result_name = True
                 if user_wants_gujarati:
-                    reply = "પરિણામ જોવા માટે કૃપા કરીને તમારું સાચું પૂરું નામ અહીં લખો."
+                    reply = "परिणाम देखने के लिए कृपया अपना पूरा नाम यहाँ लिखें."
                 else:
                     reply = "Please enter your full Student Name to check your exam result."
                 st.write(reply)
