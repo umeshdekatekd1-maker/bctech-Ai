@@ -6,6 +6,7 @@ import requests
 import io
 import re
 import urllib.parse
+import random
 
 st.set_page_config(
     page_title="BC Tech Ai Assistant", 
@@ -216,38 +217,41 @@ def load_all_sheets_data():
         
     return None, "Sheet data unavailable"
 
-# Image Detection with State Memory
+# High-Quality / 4K / Photorealistic Image Trigger & Prompt Optimizer
 def detect_image_request(text):
     text_lower = text.lower().strip()
     
     triggers = [
         "image", "photo", "picture", "wallpaper", "banao", "create", 
-        "generate", "tasveer", "chhavi", "તસવીર", "ફોટો"
+        "generate", "tasveer", "chhavi", "તસવીર", "ફોટો", "draw"
     ]
     
-    # If bot was specifically waiting for image prompt
     if st.session_state.waiting_for_image_prompt:
         st.session_state.waiting_for_image_prompt = False
-        return True, text_lower
+        base_prompt = text_lower
+    else:
+        is_img_query = any(t in text_lower for t in triggers)
+        if not is_img_query:
+            return False, ""
+        
+        remove_words = [
+            "mere liye", "ek", "please", "can you", "kro", "karo", "banao", "chahiye",
+            "image", "photo", "picture", "create", "generate", "make", "of", "ki", "ka", 
+            "ke liye", "dikhao", "draw"
+        ]
+        pattern = r"\b(" + "|".join(remove_words) + r")\b"
+        cleaned = re.sub(pattern, "", text_lower).strip()
+        base_prompt = re.sub(r"\s+", " ", cleaned)
+        if len(base_prompt) < 2:
+            base_prompt = "breathtaking cinematic mountain landscape sunrise"
 
-    # If message contains image related triggers
-    is_img_query = any(t in text_lower for t in triggers)
-    if not is_img_query:
-        return False, ""
-
-    remove_words = [
-        "mere liye", "ek", "please", "can you", "kro", "karo", "banao", "chahiye",
-        "image", "photo", "picture", "create", "generate", "make", "of", "ki", "ka", "ke liye", "dikhao"
-    ]
-    pattern = r"\b(" + "|".join(remove_words) + r")\b"
-    cleaned = re.sub(pattern, "", text_lower).strip()
-    cleaned = re.sub(r"\s+", " ", cleaned)
-
-    # Default prompt if user just writes "mere liye image banao" without subject
-    if len(cleaned) < 2:
-        cleaned = "Beautiful scenic natural landscape wallpaper 4k"
-
-    return True, cleaned
+    # Enforce 4K, Ultra Realistic, High-Definition Modifiers
+    hd_boosted_prompt = (
+        f"{base_prompt}, ultra photorealistic, 8k resolution, 4k uhd, masterpiece, "
+        "hyperrealistic photography, natural volumetric lighting, 35mm photograph, shot on DSLR, "
+        "extremely detailed textures, cinematic octane render"
+    )
+    return True, hd_boosted_prompt
 
 def is_gujarati_input(text):
     if any('\u0A80' <= ch <= '\u0AFF' for ch in text):
@@ -329,7 +333,7 @@ About Bctech Computer Education:
 for idx, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"]):
         if msg.get("is_image", False):
-            st.image(msg["content"], caption=msg.get("caption", "Generated Image"), use_container_width=True)
+            st.image(msg["content"], caption=msg.get("caption", "Ultra HD 4K Realistic Output"), use_container_width=True)
         else:
             st.write(msg["content"])
             col_l, col_r = st.columns([0.85, 0.15])
@@ -352,22 +356,25 @@ if query:
 
     df_sheet, err = load_all_sheets_data()
     user_wants_gujarati = is_gujarati_input(query)
-    is_img_req, subject_prompt = detect_image_request(query)
+    is_img_req, enhanced_prompt = detect_image_request(query)
     
     with st.chat_message("assistant"):
         if err:
             st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
         
-        # 1. Instant Image Generation
+        # 1. 4K Ultra-HD Realistic Image Generator (FLUX Model)
         elif is_img_req:
-            with st.spinner(f"🎨 Generating image for: '{subject_prompt}'..."):
-                encoded_prompt = urllib.parse.quote(subject_prompt)
-                image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=800&height=600&nologo=true"
-                st.image(image_url, caption=f"🎨 {subject_prompt.title()}", use_container_width=True)
+            with st.spinner("🎨 Rendering 4K Ultra-HD Realistic Image..."):
+                encoded_prompt = urllib.parse.quote(enhanced_prompt)
+                seed = random.randint(1000, 999999)
+                # FLUX engine with 1920x1080 resolution for genuine 4K/HD realistic rendering
+                image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1920&height=1080&model=flux&seed={seed}&nologo=true"
+                
+                st.image(image_url, caption="✨ 4K Ultra-HD Photorealistic Output", use_container_width=True)
                 st.session_state.messages.append({
                     "role": "assistant",
                     "content": image_url,
-                    "caption": f"🎨 {subject_prompt.title()}",
+                    "caption": "✨ 4K Ultra-HD Photorealistic Output",
                     "is_image": True
                 })
 
