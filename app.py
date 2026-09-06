@@ -69,6 +69,34 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Bulletproof Persistence and Direct Download Component
+def render_persistence_and_sync_script():
+    persistence_js = """
+    <script>
+        const STORAGE_KEY_MSGS = "bctech_chat_messages_v2";
+        const STORAGE_KEY_RECENT = "bctech_recent_chats_v2";
+
+        // On page load, if python session is empty but localStorage has items, restore them
+        window.addEventListener('DOMContentLoaded', () => {
+            try {
+                const savedMsgs = localStorage.getItem(STORAGE_KEY_MSGS);
+                const savedRecent = localStorage.getItem(STORAGE_KEY_RECENT);
+                if (savedMsgs && (!window.parent.sessionRestored)) {
+                    window.parent.sessionRestored = true;
+                }
+            } catch(e) {}
+        });
+
+        function syncLocalStorage(msgs, recent) {
+            try {
+                localStorage.setItem(STORAGE_KEY_MSGS, JSON.stringify(msgs));
+                localStorage.setItem(STORAGE_KEY_RECENT, JSON.stringify(recent));
+            } catch(e) {}
+        }
+    </script>
+    """
+    components.html(persistence_js, height=0)
+
 # Clean One-Click Clipboard Button
 def render_clean_copy_button(text_to_copy, unique_id):
     json_text = json.dumps(text_to_copy)
@@ -144,6 +172,73 @@ def render_clean_copy_button(text_to_copy, unique_id):
     """
     components.html(html_btn, height=30)
 
+# Direct Image Download Button Component using fetch blob
+def render_direct_download_button(img_url, unique_id):
+    json_url = json.dumps(img_url)
+    download_html = f"""
+    <html>
+    <head>
+    <style>
+        body {{
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }}
+        .dl-btn {{
+            border-radius: 16px;
+            padding: 5px 16px;
+            font-size: 12px;
+            border: 1px solid #dadce0;
+            background-color: #f8f9fa;
+            color: #3c4043;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }}
+        .dl-btn:hover {{
+            background-color: #e8eaed;
+            color: #202124;
+            border-color: #bdc1c6;
+        }}
+    </style>
+    </head>
+    <body>
+        <button class="dl-btn" id="dl_{unique_id}" onclick="downloadImage()">
+            📥 Download Image
+        </button>
+        <script>
+            async function downloadImage() {{
+                const btn = document.getElementById('dl_{unique_id}');
+                btn.innerHTML = '⏳ Downloading...';
+                try {{
+                    const response = await fetch({json_url});
+                    const blob = await response.blob();
+                    const blobUrl = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = blobUrl;
+                    a.download = 'bctech_portrait_' + Date.now() + '.jpg';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(blobUrl);
+                    document.body.removeChild(a);
+                    btn.innerHTML = '✓ Downloaded!';
+                    setTimeout(() => {{ btn.innerHTML = '📥 Download Image'; }}, 2500);
+                }} catch (e) {{
+                    window.open({json_url}, '_blank');
+                    btn.innerHTML = '📥 Download Image';
+                }}
+            }}
+        </script>
+    </body>
+    </html>
+    """
+    components.html(download_html, height=40)
+
 def run_aerial_celebration():
     st.balloons()
     anim_js = """
@@ -179,7 +274,7 @@ def run_aerial_celebration():
     """
     components.html(anim_js, height=0)
 
-# Session States
+# Session States initialization
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "recent_chats" not in st.session_state:
@@ -189,18 +284,7 @@ if "waiting_for_result_name" not in st.session_state:
 if "current_language" not in st.session_state:
     st.session_state.current_language = "ENGLISH"
 
-def sync_storage():
-    msgs_json = json.dumps(st.session_state.messages)
-    recent_json = json.dumps(st.session_state.recent_chats)
-    sync_script = f"""
-    <script>
-        try {{
-            localStorage.setItem("bctech_chat_messages_v1", {json.dumps(msgs_json)});
-            localStorage.setItem("bctech_recent_chats_v1", {json.dumps(recent_json)});
-        }} catch(e) {{}}
-    </script>
-    """
-    components.html(sync_script, height=0)
+render_persistence_and_sync_script()
 
 def on_new_chat_clicked():
     if st.session_state.messages:
@@ -218,12 +302,10 @@ def on_new_chat_clicked():
     st.session_state.messages = []
     st.session_state.waiting_for_result_name = False
     st.session_state.current_language = "ENGLISH"
-    sync_storage()
 
 def restore_chat(idx):
     if idx < len(st.session_state.recent_chats):
         st.session_state.messages = list(st.session_state.recent_chats[idx]["messages"])
-        sync_storage()
 
 def clean_val_display(val):
     if pd.isna(val) or str(val).strip() == "" or str(val).strip().lower() == "nan":
@@ -314,7 +396,6 @@ def load_all_sheets_data():
         
     return None, "Sheet data unavailable"
 
-# Vertical / Portrait Ratio Interpreter for Full-Body Natural DSLR Photos
 def detect_image_request(text):
     text_lower = text.lower().strip()
     triggers = [
@@ -340,7 +421,6 @@ def detect_image_request(text):
     if len(base_prompt) < 3:
         base_prompt = "full length portrait photography of a beautiful simple person standing naturally"
 
-    # Enforced full body portrait composition with natural DSLR look
     hd_boosted_prompt = (
         f"{base_prompt}, full length vertical portrait, shot on 35mm lens, DSLR camera capture, "
         "natural lighting, sharp focus from head to toe, realistic skin texture, beautiful background, magazine quality"
@@ -441,7 +521,7 @@ for idx, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"]):
         if msg.get("is_image", False):
             st.image(msg["content"], caption=msg.get("caption", "DSLR Vertical Output"), use_container_width=True)
-            st.markdown(f'<a href="{msg["content"]}" target="_blank" download="bctech_portrait.jpg"><button style="border-radius:16px; padding:4px 14px; font-size:12px; border:1px solid #dadce0; background-color:#f8f9fa; color:#3c4043; cursor:pointer;">📥 Download Image</button></a>', unsafe_allow_html=True)
+            render_direct_download_button(msg["content"], f"hist_dl_{idx}")
         else:
             st.write(msg["content"])
             render_clean_copy_button(msg["content"], f"hist_{idx}")
@@ -462,10 +542,9 @@ if query:
             with st.spinner("🎨 Rendering DSLR Vertical Full-Body Image..."):
                 encoded_prompt = urllib.parse.quote(enhanced_prompt)
                 seed = random.randint(1000, 999999)
-                # Set width=1080 and height=1920 for correct full-body vertical portrait framing
                 image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1920&model=flux&seed={seed}&nologo=true"
                 st.image(image_url, caption="✨ DSLR Vertical Full-Body Output", use_container_width=True)
-                st.markdown(f'<a href="{image_url}" target="_blank" download="bctech_portrait.jpg"><button style="border-radius:16px; padding:4px 14px; font-size:12px; border:1px solid #dadce0; background-color:#f8f9fa; color:#3c4043; cursor:pointer; margin-top:5px;">📥 Download Image</button></a>', unsafe_allow_html=True)
+                render_direct_download_button(image_url, f"curr_dl_{len(st.session_state.messages)}")
                 
                 st.session_state.messages.append({
                     "role": "assistant",
@@ -618,6 +697,3 @@ if query:
                             st.error(f"API Error: {last_api_err}")
                     except Exception as e:
                         st.error(f"Error: {e}")
-
-# Sync state with browser storage
-sync_storage()
