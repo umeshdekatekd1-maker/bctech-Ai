@@ -48,12 +48,13 @@ st.markdown("""
         color: #202124;
     }
     
-    /* Sidebar Recent item styling */
-    section[data-testid="stSidebar"] div[data-testid="stExpander"] .stButton>button {
+    /* Sidebar styling */
+    section[data-testid="stSidebar"] div[data-testid="stExpander"] .stButton>button,
+    .last-search-box .stButton>button {
         width: 100% !important;
         float: none !important;
         border-radius: 8px !important;
-        padding: 6px 10px !important;
+        padding: 8px 10px !important;
         font-size: 13px !important;
         text-align: left !important;
         justify-content: flex-start !important;
@@ -65,7 +66,8 @@ st.markdown("""
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-    section[data-testid="stSidebar"] div[data-testid="stExpander"] .stButton>button:hover {
+    section[data-testid="stSidebar"] div[data-testid="stExpander"] .stButton>button:hover,
+    .last-search-box .stButton>button:hover {
         background-color: #e8f0fe !important;
         border-color: #4285f4 !important;
         color: #1967d2 !important;
@@ -122,15 +124,15 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 if "recent_chats" not in st.session_state:
     st.session_state.recent_chats = []
+if "last_search" not in st.session_state:
+    st.session_state.last_search = ""
 if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
 if "waiting_for_image_prompt" not in st.session_state:
     st.session_state.waiting_for_image_prompt = False
 
-# New Chat Function: ONLY saves when button is clicked
 def on_new_chat_clicked():
     if st.session_state.messages:
-        # Get first or last user question to name the chat
         user_queries = [m["content"] for m in st.session_state.messages if m["role"] == "user"]
         title_text = user_queries[0] if user_queries else "Chat Session"
         short_title = (title_text[:20] + "..") if len(title_text) > 20 else title_text
@@ -151,7 +153,7 @@ def delete_recent_chat(chat_idx):
     if 0 <= chat_idx < len(st.session_state.recent_chats):
         st.session_state.recent_chats.pop(chat_idx)
 
-# Sidebar
+# Sidebar UI
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -159,7 +161,18 @@ with st.sidebar:
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
     
-    with st.expander("🕒 Recent", expanded=True):
+    # 1. Last Search Card
+    st.markdown("#### 🔎 Last Search")
+    if st.session_state.last_search:
+        st.markdown('<div class="last-search-box">', unsafe_allow_html=True)
+        disp_txt = (st.session_state.last_search[:28] + "..") if len(st.session_state.last_search) > 28 else st.session_state.last_search
+        st.info(f"**{disp_txt}**")
+        st.markdown('</div>', unsafe_allow_html=True)
+    else:
+        st.caption("No search made yet.")
+
+    # 2. Recent Saved Chats
+    with st.expander("🕒 Recent Chats", expanded=True):
         if st.session_state.recent_chats:
             for idx, item in enumerate(reversed(st.session_state.recent_chats)):
                 actual_idx = len(st.session_state.recent_chats) - 1 - idx
@@ -177,10 +190,10 @@ with st.sidebar:
                         key=f"del_chat_{actual_idx}",
                         on_click=delete_recent_chat,
                         args=(actual_idx,),
-                        help="Delete this chat"
+                        help="Delete"
                     )
         else:
-            st.caption("No recent chats yet.")
+            st.caption("No saved sessions yet.")
             
     st.markdown("---")
     st.markdown("**📌 Quick Links:**")
@@ -359,7 +372,10 @@ for idx, msg in enumerate(st.session_state.messages):
 query = st.chat_input("")
 
 if query:
+    # Save the latest query into last_search immediately
+    st.session_state.last_search = query
     st.session_state.messages.append({"role": "user", "content": query})
+    
     with st.chat_message("user"):
         st.write(query)
         col_l, col_r = st.columns([0.85, 0.15])
