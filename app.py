@@ -88,7 +88,6 @@ if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
 
 def start_new_chat():
-    # Save conversation using the LAST user query as the title
     if st.session_state.messages:
         user_messages = [m["content"] for m in st.session_state.messages if m["role"] == "user"]
         if user_messages:
@@ -108,7 +107,7 @@ def load_saved_chat(session_index):
     if 0 <= session_index < len(st.session_state.saved_sessions):
         st.session_state.messages = list(st.session_state.saved_sessions[session_index]["messages"])
 
-# --- Left Sidebar: New Chat & Recent Archived Chats ---
+# --- Left Sidebar: New Chat & Recent Chats ---
 with st.sidebar:
     st.markdown("### 🎓 Bctech AI")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -116,7 +115,6 @@ with st.sidebar:
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Recent Section: Shows previously closed chats with last query title
     with st.expander("Recent", expanded=True):
         if st.session_state.saved_sessions:
             for idx, session_item in enumerate(reversed(st.session_state.saved_sessions)):
@@ -138,37 +136,51 @@ with st.sidebar:
 st.title("🎓 Bctech AI Assistant")
 
 SHEET_ID = "1ES2A77U61GeS710Xfyc0dKIevUhzR2v7-aSjkr1R3tg"
-URL_GVIZ = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
-URL_EXPORT = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
+EXCEL_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
 
+# Load all sheets across the entire Google Spreadsheet file
 @st.cache_data(ttl=15)
-def load_sheet_data():
-    csv_text = None
-    last_error = None
-    for url in [URL_GVIZ, URL_EXPORT]:
-        try:
-            res = requests.get(url, timeout=10)
-            if res.status_code == 200 and len(res.content) > 50:
-                csv_text = res.content.decode("utf-8")
-                break
-            else:
-                last_error = f"Status Code: {res.status_code}"
-        except Exception as e:
-            last_error = str(e)
-            
-    if not csv_text:
-        return None, last_error
-
+def load_all_sheets_data():
     try:
-        df = pd.read_csv(io.StringIO(csv_text))
-        df.columns = [str(c).strip() for c in df.columns]
-        first_col = df.columns[0]
-        df = df[df[first_col].notna()]
-        df = df[~df[first_col].astype(str).str.lower().str.contains("batch time", na=False)]
-        df = df[df[first_col].astype(str).str.strip() != ""]
-        return df, None
+        res = requests.get(EXCEL_URL, timeout=15)
+        if res.status_code == 200 and len(res.content) > 100:
+            excel_file = io.BytesIO(res.content)
+            all_dfs = pd.read_excel(excel_file, sheet_name=None)
+            combined_rows = []
+            
+            for sheet_name, df in all_dfs.items():
+                if df is not None and not df.empty:
+                    df.columns = [str(c).strip() for c in df.columns]
+                    first_col = df.columns[0]
+                    clean_df = df[df[first_col].notna()].copy()
+                    clean_df = clean_df[~clean_df[first_col].astype(str).str.lower().str.contains("batch time", na=False)]
+                    clean_df = clean_df[clean_df[first_col].astype(str).str.strip() != ""]
+                    
+                    for record in clean_df.to_dict(orient="records"):
+                        record["_Sheet_Tab"] = sheet_name
+                        combined_rows.append(record)
+                        
+            if combined_rows:
+                return pd.DataFrame(combined_rows), None
     except Exception as e:
-        return None, str(e)
+        pass
+
+    # Fallback to standard CSV export
+    csv_url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
+    try:
+        res = requests.get(csv_url, timeout=10)
+        if res.status_code == 200:
+            df = pd.read_csv(io.StringIO(res.content.decode("utf-8")))
+            df.columns = [str(c).strip() for c in df.columns]
+            first_col = df.columns[0]
+            df = df[df[first_col].notna()]
+            df = df[~df[first_col].astype(str).str.lower().str.contains("batch time", na=False)]
+            df = df[df[first_col].astype(str).str.strip() != ""]
+            return df, None
+    except Exception as err:
+        return None, str(err)
+        
+    return None, "Sheet data fetch nahi ho paya"
 
 def is_greeting(text):
     text_clean = text.lower().strip().replace("!", "").replace(".", "")
@@ -191,7 +203,7 @@ def check_is_branch_intent(text):
     ]
     return any(kw in text for kw in branch_keywords)
 
-def search_student(query_text, df):
+def search_student_all_sheets(query_text, df):
     if df is None or df.empty:
         return []
     clean_q = query_text.strip().lower()
@@ -209,9 +221,14 @@ def search_student(query_text, df):
     name_col = df.columns[0]
     name_series = df[name_col].astype(str).str.strip().str.lower()
     
+    # 1. Exact match
     matched = df[name_series == search_term]
+    
+    # 2. Substring match
     if matched.empty:
         matched = df[name_series.str.contains(search_term, regex=False, na=False)]
+        
+    # 3. Individual word match
     if matched.empty:
         for w in words:
             matched = df[name_series.str.contains(w, regex=False, na=False)]
@@ -261,7 +278,7 @@ if query:
                 st.code(query, language=None)
                 st.toast("Copied!", icon="📋")
 
-    df_sheet, err = load_sheet_data()
+    df_sheet, err = load_all_sheets_data()
     
     with st.chat_message("assistant"):
         if err:
@@ -299,34 +316,35 @@ if query:
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
             
             if is_result_query:
-                matched_records = search_student(query, df_sheet)
+                matched_records = search_student_all_sheets(query, df_sheet)
                 
                 if matched_records:
                     st.session_state.waiting_for_result_name = False
                     details_text = ""
-                    for idx, record in enumerate(matched_records[:2], 1):
-                        details_text += f"\nStudent Record:\n"
+                    for idx, record in enumerate(matched_records[:3], 1):
+                        sheet_name_found = record.get("_Sheet_Tab", "")
+                        details_text += f"\nStudent Record (Found in: {sheet_name_found}):\n"
                         for k, v in record.items():
-                            if pd.notna(v) and str(v).strip() != "" and "unnamed" not in str(k).lower():
+                            if k != "_Sheet_Tab" and pd.notna(v) and str(v).strip() != "" and "unnamed" not in str(k).lower():
                                 details_text += f"- {k}: {v}\n"
 
                     system_prompt = f"""
                     You are the AI Assistant for Bctech Computer Education.
-                    Student Exam Record:
+                    Student Exam Record from file:
                     {details_text}
 
                     Instructions:
                     1. Respond directly in the same language as user query (Gujarati, Hindi, or English).
-                    2. Keep student names exact.
-                    3. Format details with concise bullet points (Name, Exam Course, Theory Marks, Practical Marks).
-                    4. Congratulate them in 1 short line.
+                    2. Keep student names and scores exact.
+                    3. Format details with concise bullet points (Name, Course, Theory Marks, Practical Marks).
+                    4. Congratulate them warmly in 1 short line.
                     5. Output ONLY the final answer. NEVER output thinking process, notes, or analysis.
                     """
                 else:
                     st.session_state.waiting_for_result_name = True
                     system_prompt = f"""
                     You are the AI Assistant for Bctech Computer Education.
-                    The user wants to check an exam result, but no matching name was found.
+                    The user wants to check an exam result, but no matching name was found in any sheet.
                     Reply in 1 single short sentence asking for their full name in their language:
                     - If Gujarati: "પરિણામ જોવા માટે કૃપા કરીને તમારું સાચું પૂરું નામ અહીં લખો."
                     - If Hindi/Hinglish: "Apna result dekhne ke liye kripya apna pura naam yahan likhein."
