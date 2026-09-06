@@ -314,7 +314,7 @@ def load_all_sheets_data():
         
     return None, "Sheet data unavailable"
 
-# Ultra-Realistic DSLR Photo Interpreter for Supreme Quality Images
+# High-End Professional Photorealistic Interpreter matching pure DSLR quality
 def detect_image_request(text):
     text_lower = text.lower().strip()
     triggers = [
@@ -338,13 +338,13 @@ def detect_image_request(text):
     base_prompt = re.sub(r"\s+", " ", cleaned)
     
     if len(base_prompt) < 3:
-        base_prompt = "authentic candid portrait of a beautiful smiling person in natural daylight"
+        base_prompt = "authentic portrait photography of a beautiful simple person in natural soft lighting"
 
-    # Enforced high-end DSLR photography boost for ultra-realistic natural look
+    # Perfected prompt engine to ensure pristine natural DSLR look without any plastic AI feel
     hd_boosted_prompt = (
-        f"{base_prompt}, authentic candid photography, shot on 35mm lens, DSLR camera quality, "
-        "natural skin texture, soft daylight, realistic depth of field, sharp focus, professional color grading, "
-        "high resolution, pristine unedited look"
+        f"{base_prompt}, authentic professional photography, shot on 35mm lens, DSLR camera capture, "
+        "natural skin tones and texture, soft daylight background, beautiful depth of field, sharp focus, "
+        "unfiltered pristine look, magazine quality"
     )
     return True, hd_boosted_prompt
 
