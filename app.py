@@ -75,6 +75,12 @@ def load_sheet_data():
     except Exception as e:
         return None, str(e)
 
+# Quick greetings detector
+def is_greeting(text):
+    text_clean = text.lower().strip().replace("!", "").replace(".", "")
+    greetings = ["hi", "hello", "hey", "hii", "hiii", "namaste", "kem cho", "kem chho", "halo", "હેલો", "નમસ્તે"]
+    return text_clean in greetings
+
 def check_is_result_intent(text):
     text = text.lower()
     keywords = [
@@ -126,12 +132,12 @@ if "messages" not in st.session_state:
 if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
 
-# Render history with RIGHT ALIGNED copy buttons
+# Render history with right-aligned copy button
 for idx, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
-        col_left, col_right = st.columns([0.85, 0.15])
-        with col_right:
+        col_l, col_r = st.columns([0.85, 0.15])
+        with col_r:
             if st.button("📋 Copy", key=f"copy_hist_{idx}"):
                 st.code(msg["content"], language=None)
                 st.toast("Copied!", icon="📋")
@@ -142,8 +148,8 @@ if query:
     st.session_state.messages.append({"role": "user", "content": query})
     with st.chat_message("user"):
         st.write(query)
-        col_left, col_right = st.columns([0.85, 0.15])
-        with col_right:
+        col_l, col_r = st.columns([0.85, 0.15])
+        with col_r:
             if st.button("📋 Copy", key=f"copy_user_curr_{len(st.session_state.messages)}"):
                 st.code(query, language=None)
                 st.toast("Copied!", icon="📋")
@@ -153,6 +159,18 @@ if query:
     with st.chat_message("assistant"):
         if err:
             st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
+        
+        # 1. Immediate Short Reply for simple Hi / Hello
+        elif is_greeting(query):
+            reply = "Hello! Welcome to Bctech Computer Education. How can I help you today? 😊"
+            st.write(reply)
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+            col_l, col_r = st.columns([0.85, 0.15])
+            with col_r:
+                if st.button("📋 Copy", key=f"copy_greet_{len(st.session_state.messages)}"):
+                    st.code(reply, language=None)
+                    st.toast("Copied!", icon="📋")
+
         else:
             is_result_query = check_is_result_intent(query) or st.session_state.waiting_for_result_name
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
@@ -175,42 +193,41 @@ if query:
                     {details_text}
 
                     Instructions:
-                    1. Detect language (Gujarati, Hindi, or English) and reply in that same language.
-                    2. Keep student names and numbers exact. Do NOT corrupt text or create broken unicode.
-                    3. Format details clearly with bullet points:
+                    1. Respond strictly in the same language as the user query (Gujarati, Hindi, or English). Keep it brief and clear.
+                    2. Keep student names exact. Never output broken or corrupted unicode characters.
+                    3. Format details with concise bullet points:
                        - Name
                        - Exam Course
                        - Theory Marks
                        - Practical Marks
-                    4. Congratulate them politely.
+                    4. Congratulate them in 1 short line.
                     """
                 else:
                     st.session_state.waiting_for_result_name = True
                     system_prompt = f"""
                     You are the AI Assistant for Bctech Computer Education.
-                    The user wants to check an exam result, but no matching name was found in the sheet.
-                    
-                    Instructions:
-                    - If user spoke Gujarati: "પરિણામ જોવા માટે કૃપા કરીને તમારું સાચું પૂરું નામ (Student Name) અહીં લખો."
-                    - If user spoke Hindi/Hinglish: "Apna exam result dekhne ke liye kripya apna sahi Pura Naam (Student Name) yahan type karein."
-                    - If user spoke English: "Please type your full Student Name to check your exam result."
+                    The user wants to check an exam result, but no matching name was found.
+                    Reply in 1 single short sentence asking for their full name in their language:
+                    - If Gujarati: "પરિણામ જોવા માટે કૃપા કરીને તમારું સાચું પૂરું નામ અહીં લખો."
+                    - If Hindi/Hinglish: "Apna result dekhne ke liye kripya apna pura naam yahan likhein."
+                    - If English: "Please type your full Student Name to check your exam result."
                     """
             else:
                 system_prompt = f"""
-                You are the professional counselor for Bctech Computer Education institute.
+                You are the professional counselor for Bctech Computer Education.
                 
-                STRICT RESTRICTIONS:
-                1. NEVER tell, estimate, or discuss any fees or pricing. Always say to contact branch directly.
-                2. NEVER mention or use the word 'Free'.
-                3. DO NOT SHOW ANY EXAM RESULTS OR MARKS here.
-                4. If user introduces themselves (e.g. 'maru name ... chhe', 'mera naam ... hai', 'my name is ...'), greet them politely and warmly in THAT SAME LANGUAGE (Gujarati, Hindi, or English) in 1-2 friendly sentences and ask how you can assist them today.
-                5. Output only clean, proper text without corrupted characters.
+                CRITICAL INSTRUCTIONS:
+                1. Keep your answers BRIEF, DIRECT, and to the point (2 to 4 sentences maximum). Do not write long paragraphs.
+                2. NEVER tell, estimate, or discuss any fees or pricing. Always say to contact branch directly.
+                3. NEVER mention or use the word 'Free'.
+                4. Match the user's language strictly (English, Hindi, or Gujarati). Never mix languages.
+                5. If user introduces their name, greet them in only 1 friendly line.
 
                 Institute Info:
                 {KNOWLEDGE_BASE}
                 """
 
-            with st.spinner("Processing..."):
+            with st.spinner("Thinking..."):
                 try:
                     models_resp = client.models.list()
                     live_models = [m.id for m in models_resp.data if "whisper" not in m.id and "guard" not in m.id]
@@ -227,7 +244,7 @@ if query:
                                 ],
                                 model=m_name,
                                 temperature=0.2,
-                                max_tokens=400
+                                max_tokens=250
                             )
                             answer = chat_completion.choices[0].message.content
                             if answer:
