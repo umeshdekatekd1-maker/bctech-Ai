@@ -6,7 +6,7 @@ import io
 
 st.set_page_config(page_title="Bctech AI Assistant", layout="centered", initial_sidebar_state="collapsed")
 
-# Custom Clean Styling
+# Custom Styling
 st.markdown("""
 <style>
     #MainMenu, header, footer {visibility: hidden;}
@@ -29,7 +29,6 @@ st.title("🎓 Bctech AI Assistant")
 
 SHEET_ID = "1ES2A77U61GeS710Xfyc0dKIevUhzR2v7-aSjkr1R3tg"
 
-# Two reliable endpoints to pull Google Sheet data
 URL_GVIZ = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
 URL_EXPORT = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
 
@@ -38,7 +37,6 @@ def load_sheet_data():
     csv_text = None
     last_error = None
     
-    # Try fetching via gviz first, then export
     for url in [URL_GVIZ, URL_EXPORT]:
         try:
             res = requests.get(url, timeout=10)
@@ -57,7 +55,6 @@ def load_sheet_data():
         df = pd.read_csv(io.StringIO(csv_text))
         df.columns = [str(c).strip() for c in df.columns]
         
-        # Remove empty separator rows and batch headers
         first_col = df.columns[0]
         df = df[df[first_col].notna()]
         df = df[~df[first_col].astype(str).str.lower().str.contains("batch time", na=False)]
@@ -68,15 +65,23 @@ def load_sheet_data():
 
 def is_generic_result_request(text):
     text = text.lower().strip()
-    keywords = ["result check", "check result", "result dekhna", "result dekhna hai", "marks dekhna", "result batao", "result", "exam result", "marks"]
-    return any(text == kw or text.replace(" ", "") == kw.replace(" ", "") for kw in keywords)
+    keywords = [
+        "result check", "check result", "result dekhna", "result dekhna hai", "marks dekhna", 
+        "result batao", "result", "exam result", "marks", "પરિણામ", "રિઝલ્ટ", "રીઝલ્ટ", 
+        "માર્ક્સ", "રિઝલ્ટ ચેક", "પરિણામ જોવું છે"
+    ]
+    return any(kw in text for kw in keywords)
 
 def search_student(query_text, df):
     if df is None or df.empty:
         return []
     
     clean_q = query_text.strip().lower()
-    fillers = ["result", "marks", "kya", "hai", "check", "batao", "mera", "meri", "ka", "ki", "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam"]
+    fillers = [
+        "result", "marks", "kya", "hai", "check", "batao", "mera", "meri", "ka", "ki", 
+        "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam",
+        "રિઝલ્ટ", "પરિણામ", "જોવું", "છે", "મારું", "મારુ", "નામ", "આપો"
+    ]
     words = [w for w in clean_q.split() if w not in fillers and len(w) >= 2]
     
     if not words:
@@ -107,8 +112,8 @@ def search_student(query_text, df):
 KNOWLEDGE_BASE = """
 About Bctech Computer Education:
 - Institute: Bctech Computer Education (Website: https://sites.google.com/view/bctechcomputer)
-- Main Offerings: Professional computer training, practical learning, ISO certified courses, job assistance.
-- Popular Courses: Basic Computer Course, Graphic Designing, Accounting & Tally Prime, Web Development, Programming (Python, C++), Digital Marketing, Advanced Excel.
+- Location & Repute: Known for practical computer training, ISO certified courses, experienced faculty, and placement support.
+- Popular Courses: Basic Computer Course, Graphic Designing (CorelDraw, Photoshop, Illustrator), Accounting & Tally Prime, Web Development, Programming (Python, C++), Digital Marketing, Advanced Excel.
 """
 
 if "messages" not in st.session_state:
@@ -129,16 +134,16 @@ if query:
     
     with st.chat_message("assistant"):
         if err:
-            st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}). Kripya Sheet ke Share menu me jakar 'Anyone with the link' ko Viewer select karein.")
-        elif is_generic_result_request(query):
-            reply = "📋 Apna exam result dekhne ke liye kripya apna **Pura Naam (Student Name)** yahan type karein."
+            st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}). Kripya Sheet ke Share menu me 'Anyone with the link' ko Viewer set karein.")
+        elif is_generic_result_request(query) and len(query.strip().split()) <= 3 and not search_student(query, df_sheet):
+            reply = "📋 Apna exam result dekhne ke liye kripya apna **Pura Naam (Student Name)** yahan type karein.\n\nતમારું રીઝલ્ટ જોવા માટે કૃપા કરીને તમારું **પૂરું નામ (Student Name)** અહીં લખો."
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
         else:
             matched_records = search_student(query, df_sheet)
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
             
-            with st.spinner("Record check kiya ja raha hai..."):
+            with st.spinner("Jankari check ho rahi hai..."):
                 try:
                     models_data = client.models.list()
                     active_models = [m.id for m in models_data.data if "whisper" not in m.id]
@@ -152,23 +157,36 @@ if query:
                                     details_text += f"{k}: {v}\n"
 
                         system_prompt = f"""
-                        You are the AI Assistant for Bctech Computer Education.
-                        A student entered their name and here is their exam record from the sheet:
+                        You are the professional AI Assistant for Bctech Computer Education.
+                        Student exam record found in official sheet:
                         {details_text}
 
-                        Instructions:
-                        1. Display the student's name, exam course, theory marks, and practical marks in neat bullet points.
-                        2. Congratulate them on their score.
-                        3. Reply politely in natural Hinglish.
+                        Language Rules:
+                        - Detect user language: If the user asks in Gujarati (or Gujarati script), respond in fluent, grammatically correct Gujarati. If in Hindi/Hinglish, reply in clean Hinglish. If in English, reply in professional English.
+                        - Never use broken, robotic, or mixed-up grammar.
+
+                        Formatting:
+                        - Present marks neatly using bullet points (Student Name, Exam Course, Theory Marks, Practical Marks).
+                        - Congratulate them warmly on their result.
                         """
                     else:
                         system_prompt = f"""
-                        You are the official AI Counselor for Bctech Computer Education.
-                        STRICT RESTRICTIONS:
-                        1. NEVER tell, estimate, or guess any COURSE FEES or charges. Politely refuse: "Fees ki jankari ke liye kripya direct institute branch par visit karein ya diye gaye number par call karein."
-                        2. NEVER mention or use the word 'Free'.
-                        3. If user entered a name and it is not found, inform: "Ye naam result sheet me nahi mila. Kripya sahi spelling check karein."
-                        4. Reply in natural, friendly Hinglish.
+                        You are the professional AI Counselor for Bctech Computer Education.
+                        
+                        CRITICAL RESTRICTIONS:
+                        1. NEVER disclose, estimate, or discuss any COURSE FEES or charges under any circumstances. If asked about fees:
+                           - In Hinglish: "Fees ki jankari ke liye kripya direct hamare institute branch par visit karein ya diye gaye contact number par call/WhatsApp karein."
+                           - In Gujarati: "ફી અંગેની સંપૂર્ણ માહિતી માટે કૃપા કરીને રૂબરૂ સંસ્થાની મુલાકાત લો અથવા આપેલા સંપર્ક નંબર પર કોલ/વોટ્સએપ કરો."
+                        2. NEVER mention or use the word 'Free' or offer free services.
+                        3. If student is searching for result and their name is not in records:
+                           - In Hinglish: "Aapka naam result sheet me nahi mila. Kripya apne naam ki sahi spelling check karein ya branch se sampark karein."
+                           - In Gujarati: "આ નામ રીઝલ્ટ શીટમાં મળ્યું નથી. કૃપા કરીને સ્પેલિંગ ચેક કરો અથવા શાખાનો સંપર્ક કરો."
+                        
+                        Language Rules:
+                        - If the user asks in Gujarati, reply strictly in polite, natural Gujarati.
+                        - If the user asks in Hindi/Hinglish, reply in clean, natural Hinglish.
+                        - If the user asks in English, reply in clean, grammatically correct English.
+                        - Always be welcoming, polite, and helpful.
 
                         Institute Information:
                         {KNOWLEDGE_BASE}
@@ -193,6 +211,6 @@ if query:
                         st.write(answer)
                         st.session_state.messages.append({"role": "assistant", "content": answer})
                     else:
-                        st.error("Filhal AI uplabdh nahi hai. Thodi der baad try karein.")
+                        st.error("Filhal AI uplabdh nahi hai. Kripya thodi der baad prayas karein.")
                 except Exception as e:
                     st.error(f"Error: {e}")
