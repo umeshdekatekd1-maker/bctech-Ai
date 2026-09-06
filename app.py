@@ -311,6 +311,7 @@ def check_is_branch_intent(text):
     ]
     return any(kw in text for kw in branch_keywords)
 
+# Matches ONLY the specified name across all sheets with high flexibility (sorted word signatures)
 def search_student_all_sheets(query_text, df):
     if df is None or df.empty or "Name_Signature_Std" not in df.columns:
         return []
@@ -321,14 +322,19 @@ def search_student_all_sheets(query_text, df):
         "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo",
         "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ"
     ]
+    # Remove filler words to get only the name parts
     words = [w for w in clean_q.split() if w not in fillers and len(w) >= 2]
     if not words:
         return []
         
+    # Create the search signature from user input (sorted unique words)
     user_search_signature = " ".join(sorted(list(set(words))))
+    
+    # Check exact match on the Name_Signature_Std column
     name_signatures = df["Name_Signature_Std"].astype(str)
     matched = df[name_signatures == user_search_signature]
     
+    # Final check on original standardized name in case sorted signature misses nuances
     if matched.empty:
         search_term_original = " ".join(words)
         matched = df[df["Student_Name_Std"].astype(str).str.lower().str.strip() == search_term_original]
@@ -346,12 +352,31 @@ def clean_ai_response(text):
 
 BRANCH_LINK = "https://sites.google.com/view/bctechcomputer/about-us"
 
+# Counselor Knowledge Base
 KNOWLEDGE_BASE = f"""
 About Bctech Computer Education:
 - Institute: Bctech Computer Education
 - Official Branch & Location Info Link: {BRANCH_LINK}
 - Main Offerings: Professional computer training, practical learning, ISO certified courses, job assistance.
 - Popular Courses: Basic Computer Course, Graphic Designing (CorelDraw, Photoshop, Illustrator), Accounting & Tally Prime, Web Development, Programming (Python, C++), Digital Marketing, Advanced Excel.
+"""
+
+# New All-knowledge system prompt
+SYSTEM_PROMPT_ALL_KNOWLEDGE = f"""
+You are an advanced, multilingual AI expert assistant. You are not physically located anywhere.
+Your primary task is to help users by providing right, factual, and helpful answers to *ANY* question they ask.
+
+KNOWLEDGE CAPABILITIES:
+1.  **General Knowledge:** You can answer general knowledge questions about history (e.g., "google कब आया था"), science, geography, etc. Provide concise, right answers in the target language.
+2.  **Multilingual:** You can communicate perfectly in Hindi (Devanagari or Hinglish), English, or Gujarati. Use the target language provided.
+3.  **Bctech Computer Education:** If a user asks about computer courses, fees (never discuss or quote pricing), location, job assistance, or other specifics mentioned in the KNOWLEDGE BASE, answer using the following context concisely:
+    {KNOWLEDGE_BASE}
+4.  **Student Results (Sheet Data):** If the user is asking for student marks or results, you will be provided with specific verified data for *one* student. Use that data to create a clear, bulleted report based on specific rules.
+    - If provided student data shows multiple records (e.g., across courses), display ALL of them clearly with separate headings. Never mix data.
+    - Display numbers as clean whole numbers (e.g., '23', not '23.0').
+    - If data is N/A or missing, show 'N/A'.
+    - DO NOT add or mention Pass/Fail status.
+    - In Gujarati/Hindi, use pure professional language for the report.
 """
 
 # Render history
@@ -380,18 +405,11 @@ if query:
                 st.code(query, language=None)
                 st.toast("Copied!", icon="📋")
 
-    df_sheet, err = load_all_sheets_data()
-    
-    # Check language of input
-    lang = get_target_language(query)
+    # Image request handling first
     is_img_req, enhanced_prompt = detect_image_request(query)
     
-    with st.chat_message("assistant"):
-        if err:
-            st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
-        
-        # 1. 4K Ultra-HD Realistic Image
-        elif is_img_req:
+    if is_img_req:
+        with st.chat_message("assistant"):
             with st.spinner("🎨 Rendering 4K Ultra-HD Realistic Image..."):
                 encoded_prompt = urllib.parse.quote(enhanced_prompt)
                 seed = random.randint(1000, 999999)
@@ -403,128 +421,96 @@ if query:
                     "caption": "✨ 4K Ultra-HD Photorealistic Output",
                     "is_image": True
                 })
-
-        # 2. Greeting Handler
-        elif is_greeting(query):
-            if lang == "GUJARATI":
-                reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે मदद करी शकूं? 😊"
-            elif lang == "HINDI":
-                reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
-            else:
-                reply = "Hello! Welcome to BC Tech Computer Education. How can I help you today? 😊"
-            st.write(reply)
-            st.session_state.messages.append({"role": "assistant", "content": reply})
-            col_l, col_r = st.columns([0.85, 0.15])
-            with col_r:
-                if st.button("📋 Copy", key=f"copy_greet_{len(st.session_state.messages)}"):
-                    st.code(reply, language=None)
-                    st.toast("Copied!", icon="📋")
-
-        # 3. Branch Intent
-        elif check_is_branch_intent(query):
-            if lang == "GUJARATI":
-                reply = f"BC Tech Computer Education ની શાખા અને લોકેશનની સંપૂર્ણ વિગત માટે અહીં ક્લિક કરો:\n🔗 {BRANCH_LINK}"
-            elif lang == "HINDI":
-                reply = f"BC Tech Computer Education की शाखा और पता की जानकारी के लिए यहाँ क्लिक करें:\n🔗 {BRANCH_LINK}"
-            else:
-                reply = f"You can check the branch location and address details of BC Tech Computer Education here:\n🔗 {BRANCH_LINK}"
+    
+    # Text-based handling for all knowledge
+    else:
+        df_sheet, err = load_all_sheets_data()
+        lang = get_target_language(query)
+        
+        with st.chat_message("assistant"):
+            if err:
+                st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
             
-            st.write(reply)
-            st.session_state.messages.append({"role": "assistant", "content": reply})
-            col_l, col_r = st.columns([0.85, 0.15])
-            with col_r:
-                if st.button("📋 Copy", key=f"copy_branch_{len(st.session_state.messages)}"):
-                    st.code(reply, language=None)
-                    st.toast("Copied!", icon="📋")
-
-        # 4. Sheet Result Search
-        else:
-            matched_records = search_student_all_sheets(query, df_sheet)
-            client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-            is_found_result = False
-            
-            if matched_records:
-                is_found_result = True
-                st.session_state.waiting_for_result_name = False
-                
-                details_text = ""
-                found_name = matched_records[0].get("Student_Name_Std", "")
-
-                for i, record in enumerate(matched_records, 1):
-                    sheet_tab = record.get("_Sheet_Tab", f"Sheet {i}")
-                    s_exam = record.get("Exam_Std", "")
-                    
-                    details_text += f"\n--- Record {i} (Exam: {s_exam} | Sheet: {sheet_tab}) ---\n"
-                    
-                    for k, v in record.items():
-                        if k not in ["Name_Signature_Std", "Exam_Std", "_Sheet_Tab", "Student_Name_Std"]:
-                            details_text += f"- {k}: {v}\n"
-
-                # Define mandatory rules based on language
-                mandatory_rules = """
-                MANDATORY RULES:
-                - There are {len(matched_records)} record(s) found. Display ALL of them separately.
-                - DO NOT write decimal numbers like 23.0 or 41.0. Display strictly as clean whole numbers like 23, 41.
-                - DO NOT write "Result: Pass" or mention any Pass/Fail status.
-                """
+            # Identify special intents first (Greetings, Branch)
+            # 1. Greeting Handler
+            elif is_greeting(query):
                 if lang == "GUJARATI":
-                    mandatory_rules += f" - Target Language: GUJARATI. Reply strictly in Gujarati."
+                    reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ करी शकूं? 😊"
                 elif lang == "HINDI":
-                    mandatory_rules += f" - Target Language: HINDI. Reply strictly in Hindi."
+                    reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                 else:
-                    mandatory_rules += f" - Target Language: ENGLISH. Reply strictly in pure, professional English."
-
-                system_prompt = f"""
-                You are the AI Assistant for BC Tech Computer Education.
-                Verified Student Records Found from Sheets:
-                {details_text}
-
-                {mandatory_rules}
-
-                STRICT OUTPUT FORMAT for each record in target language:
-                📌 Record [Number]: [Exam Name]
-                - Name: {found_name}
-                - Exam / Course: [Exam Name]
-                - Scores / Marks:
-                  [List each Theory and Practical mark without decimals]
-
-                Add 1 short congratulatory line at the end in target language.
-                Output ONLY the result.
-                """
-            elif check_is_result_intent(query) or st.session_state.waiting_for_result_name:
-                st.session_state.waiting_for_result_name = True
-                if lang == "GUJARATI":
-                    reply = "પરિણામ જોવા માટે કૃપા કરીને તમારું સાચું પૂરું નામ અહીં લખો."
-                elif lang == "HINDI":
-                    reply = "परिणाम देखने के लिए कृपया अपना पूरा नाम यहाँ लिखें।"
-                else:
-                    reply = "Please enter your full Student Name to check your exam result."
+                    reply = "Hello! Welcome to BC Tech Computer Education. How can I help you today? 😊"
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
-                system_prompt = None
+                col_l, col_r = st.columns([0.85, 0.15])
+                with col_r:
+                    if st.button("📋 Copy", key=f"copy_greet_{len(st.session_state.messages)}"):
+                        st.code(reply, language=None)
+                        st.toast("Copied!", icon="📋")
+
+            # 2. Branch Intent
+            elif check_is_branch_intent(query):
+                if lang == "GUJARATI":
+                    reply = f"BC Tech Computer Education ની શાખા અને લોકેશનની સંપૂર્ણ વિગત માટે અહીં ક્લિક કરો:\n🔗 {BRANCH_LINK}"
+                elif lang == "HINDI":
+                    reply = f"BC Tech Computer Education की शाखा और पता की जानकारी के लिए यहाँ क्लिक करें:\n🔗 {BRANCH_LINK}"
+                else:
+                    reply = f"You can check the branch location and address details of BC Tech Computer Education here:\n🔗 {BRANCH_LINK}"
+                
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                col_l, col_r = st.columns([0.85, 0.15])
+                with col_r:
+                    if st.button("📋 Copy", key=f"copy_branch_{len(st.session_state.messages)}"):
+                        st.code(reply, language=None)
+                        st.toast("Copied!", icon="📋")
+
+            # 3. Handle Sheet Data or General/Computer Knowledge
             else:
-                # Dynamic Language Rule for Counseling
-                lang_instruction = "Reply strictly in pure, professional English."
-                if lang == "GUJARATI": lang_instruction = "Reply strictly in pure, professional Gujarati."
-                if lang == "HINDI": lang_instruction = "Reply strictly in pure, professional Hindi."
-
-                system_prompt = f"""
-                You are the counselor for BC Tech Computer Education.
+                matched_records = search_student_all_sheets(query, df_sheet)
+                client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+                is_found_result = False
                 
-                {lang_instruction}
+                final_system_prompt = SYSTEM_PROMPT_ALL_KNOWLEDGE
+                final_user_content = query
+
+                if matched_records:
+                    is_found_result = True
+                    st.session_state.waiting_for_result_name = False
+                    
+                    details_text = ""
+                    found_name = matched_records[0].get("Student_Name_Std", "")
+
+                    for i, record in enumerate(matched_records, 1):
+                        sheet_tab = record.get("_Sheet_Tab", f"Sheet {i}")
+                        s_exam = record.get("Exam_Std", "")
+                        
+                        details_text += f"\n--- Record {i} (Exam: {s_exam} | Sheet: {sheet_tab}) ---\n"
+                        
+                        for k, v in record.items():
+                            if k not in ["Name_Signature_Std", "Exam_Std", "_Sheet_Tab", "Student_Name_Std"]:
+                                details_text += f"- {k}: {v}\n"
+
+                    # Format dynamic multilingual prompt for result data
+                    lang_instr = "Apply language format: English."
+                    if lang == "GUJARATI": lang_instr = "Apply language format: Gujarati professional."
+                    if lang == "HINDI": lang_instr = "Apply language format: Hindi professional."
+
+                    final_user_content = f"""
+                        Verified data for student {found_name}:
+                        {details_text}
+
+                        Use this data to create a detailed student report.
+                        {lang_instr}
+                    """
                 
-                CRITICAL INSTRUCTIONS:
-                1. Give direct, concise answer (2 to 4 sentences max).
-                2. If asked about BRANCH or LOCATION, provide this link: {BRANCH_LINK}
-                3. NEVER discuss or quote fees/pricing.
-                4. NEVER use the word 'Free'.
-                5. Output ONLY the answer without <think> or notes.
+                # Check for other knowledge areas (all knowledge handling)
+                else:
+                    lang_instr = "Respond concisely in English."
+                    if lang == "GUJARATI": lang_instr = "Respond concisely in professional Gujarati."
+                    if lang == "HINDI": lang_instr = "Respond concisely in professional Hindi."
+                    final_user_content = f"{query} | {lang_instr}"
 
-                Institute Details:
-                {KNOWLEDGE_BASE}
-                """
-
-            if system_prompt:
                 with st.spinner("Thinking..."):
                     try:
                         models_resp = client.models.list()
@@ -543,12 +529,12 @@ if query:
                             try:
                                 chat_completion = client.chat.completions.create(
                                     messages=[
-                                        {"role": "system", "content": system_prompt},
-                                        {"role": "user", "content": query}
+                                        {"role": "system", "content": final_system_prompt},
+                                        {"role": "user", "content": final_user_content}
                                     ],
                                     model=m_name,
-                                    temperature=0.2,
-                                    max_tokens=450
+                                    temperature=0.3,
+                                    max_tokens=600
                                 )
                                 raw_answer = chat_completion.choices[0].message.content
                                 answer = clean_ai_response(raw_answer)
