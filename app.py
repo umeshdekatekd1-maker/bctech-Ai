@@ -314,7 +314,7 @@ def load_all_sheets_data():
         
     return None, "Sheet data unavailable"
 
-# High-End Professional Photorealistic Interpreter matching pure DSLR quality
+# Vertical / Portrait Ratio Interpreter for Full-Body Natural DSLR Photos
 def detect_image_request(text):
     text_lower = text.lower().strip()
     triggers = [
@@ -338,13 +338,12 @@ def detect_image_request(text):
     base_prompt = re.sub(r"\s+", " ", cleaned)
     
     if len(base_prompt) < 3:
-        base_prompt = "authentic portrait photography of a beautiful simple person in natural soft lighting"
+        base_prompt = "full length portrait photography of a beautiful simple person standing naturally"
 
-    # Perfected prompt engine to ensure pristine natural DSLR look without any plastic AI feel
+    # Enforced full body portrait composition with natural DSLR look
     hd_boosted_prompt = (
-        f"{base_prompt}, authentic professional photography, shot on 35mm lens, DSLR camera capture, "
-        "natural skin tones and texture, soft daylight background, beautiful depth of field, sharp focus, "
-        "unfiltered pristine look, magazine quality"
+        f"{base_prompt}, full length vertical portrait, shot on 35mm lens, DSLR camera capture, "
+        "natural lighting, sharp focus from head to toe, realistic skin texture, beautiful background, magazine quality"
     )
     return True, hd_boosted_prompt
 
@@ -441,8 +440,8 @@ About Bctech Computer Education:
 for idx, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"]):
         if msg.get("is_image", False):
-            st.image(msg["content"], caption=msg.get("caption", "DSLR High-Resolution Output"), use_container_width=True)
-            st.markdown(f'<a href="{msg["content"]}" target="_blank" download="bctech_dslr_image.jpg"><button style="border-radius:16px; padding:4px 14px; font-size:12px; border:1px solid #dadce0; background-color:#f8f9fa; color:#3c4043; cursor:pointer;">📥 Download Image</button></a>', unsafe_allow_html=True)
+            st.image(msg["content"], caption=msg.get("caption", "DSLR Vertical Output"), use_container_width=True)
+            st.markdown(f'<a href="{msg["content"]}" target="_blank" download="bctech_portrait.jpg"><button style="border-radius:16px; padding:4px 14px; font-size:12px; border:1px solid #dadce0; background-color:#f8f9fa; color:#3c4043; cursor:pointer;">📥 Download Image</button></a>', unsafe_allow_html=True)
         else:
             st.write(msg["content"])
             render_clean_copy_button(msg["content"], f"hist_{idx}")
@@ -460,17 +459,18 @@ if query:
     
     if is_img_req:
         with st.chat_message("assistant"):
-            with st.spinner("🎨 Rendering DSLR High-Definition Natural Image..."):
+            with st.spinner("🎨 Rendering DSLR Vertical Full-Body Image..."):
                 encoded_prompt = urllib.parse.quote(enhanced_prompt)
                 seed = random.randint(1000, 999999)
-                image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1920&height=1080&model=flux&seed={seed}&nologo=true"
-                st.image(image_url, caption="✨ DSLR High-Resolution Natural Output", use_container_width=True)
-                st.markdown(f'<a href="{image_url}" target="_blank" download="bctech_dslr_image.jpg"><button style="border-radius:16px; padding:4px 14px; font-size:12px; border:1px solid #dadce0; background-color:#f8f9fa; color:#3c4043; cursor:pointer; margin-top:5px;">📥 Download Image</button></a>', unsafe_allow_html=True)
+                # Set width=1080 and height=1920 for correct full-body vertical portrait framing
+                image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1920&model=flux&seed={seed}&nologo=true"
+                st.image(image_url, caption="✨ DSLR Vertical Full-Body Output", use_container_width=True)
+                st.markdown(f'<a href="{image_url}" target="_blank" download="bctech_portrait.jpg"><button style="border-radius:16px; padding:4px 14px; font-size:12px; border:1px solid #dadce0; background-color:#f8f9fa; color:#3c4043; cursor:pointer; margin-top:5px;">📥 Download Image</button></a>', unsafe_allow_html=True)
                 
                 st.session_state.messages.append({
                     "role": "assistant",
                     "content": image_url,
-                    "caption": "✨ DSLR High-Resolution Natural Output",
+                    "caption": "✨ DSLR Vertical Full-Body Output",
                     "is_image": True
                 })
     else:
