@@ -14,16 +14,19 @@ user_query = st.text_area("Apna sawal likhein:", placeholder="Jaise: Graphic des
 if st.button("Ask AI (Puchhein)"):
     if user_query.strip():
         with st.spinner("AI jawab taiyar kar raha hai..."):
-            prompt = f"""
-            You are a helpful AI counselor for 'Bctech Computer Education' institute.
-            Help students with clear and simple advice in Hinglish.
-            Question: {user_query}
-            """
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt
-            )
-            st.success("AI Jawab:")
-            st.write(response.text)
+            try:
+                prompt = f"""
+                You are a helpful AI counselor for 'Bctech Computer Education' institute.
+                Help students with clear and simple advice in Hinglish.
+                Question: {user_query}
+                """
+                response = client.models.generate_content(
+                    model="gemini-1.5-flash",
+                    contents=prompt
+                )
+                st.success("AI Jawab:")
+                st.write(response.text)
+            except Exception as e:
+                st.error(f"Error: {e}")
     else:
         st.warning("Pehle apna sawal type karein.")
