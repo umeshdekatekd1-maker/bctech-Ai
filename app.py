@@ -6,7 +6,7 @@ import io
 
 st.set_page_config(page_title="Bctech AI Assistant", layout="centered", initial_sidebar_state="collapsed")
 
-# Clean Styling
+# Custom Clean Styling
 st.markdown("""
 <style>
     #MainMenu, header, footer {visibility: hidden;}
@@ -21,6 +21,19 @@ st.markdown("""
     div[data-baseweb="input"]:focus-within {
         box-shadow: 0 2px 8px rgba(32,33,36,0.3) !important;
         border-color: #4285F4 !important;
+    }
+    .stButton>button {
+        border-radius: 18px;
+        padding: 2px 14px;
+        font-size: 13px;
+        border: 1px solid #dadce0;
+        background-color: #f8f9fa;
+        color: #3c4043;
+    }
+    .stButton>button:hover {
+        background-color: #f1f3f4;
+        border-color: #dadce0;
+        color: #202124;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -90,11 +103,14 @@ def search_student(query_text, df):
     name_col = df.columns[0]
     name_series = df[name_col].astype(str).str.strip().str.lower()
     
+    # 1. Exact match
     matched = df[name_series == search_term]
     
+    # 2. Contains match
     if matched.empty:
         matched = df[name_series.str.contains(search_term, regex=False, na=False)]
         
+    # 3. Individual word match
     if matched.empty:
         for w in words:
             matched = df[name_series.str.contains(w, regex=False, na=False)]
@@ -108,18 +124,26 @@ def search_student(query_text, df):
 KNOWLEDGE_BASE = """
 About Bctech Computer Education:
 - Institute: Bctech Computer Education (Website: https://sites.google.com/view/bctechcomputer)
-- Main Offerings: Professional computer training, practical learning, ISO certified courses, job assistance.
+- Main Offerings: Professional computer training, practical practical-oriented learning, ISO certified courses, job assistance.
 - Popular Courses: Basic Computer Course, Graphic Designing (CorelDraw, Photoshop, Illustrator), Accounting & Tally Prime, Web Development, Programming (Python, C++), Digital Marketing, Advanced Excel.
 """
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-for msg in st.session_state.messages:
+# Show previous messages with copy button
+for idx, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
+        if msg["role"] == "assistant":
+            col1, _ = st.columns([0.2, 0.8])
+            with col1:
+                # Copy trigger using code block helper
+                if st.button("📋 Copy", key=f"copy_hist_{idx}"):
+                    st.code(msg["content"], language=None)
+                    st.toast("Text box me copy karne ke liye ready hai!", icon="📋")
 
-query = st.chat_input("🔍 Yahan apna sawal ya Student Name likhein...")
+query = st.chat_input("🔍 Type your question or Student Name here...")
 
 if query:
     st.session_state.messages.append({"role": "user", "content": query})
@@ -132,14 +156,14 @@ if query:
         if err:
             st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
         elif is_generic_result_request(query) and len(query.strip().split()) <= 3 and not search_student(query, df_sheet):
-            reply = "📋 Apna exam result dekhne ke liye kripya apna **Pura Naam (Student Name)** yahan type karein.\n\nતમારું પરિણામ જોવા માટે કૃપા કરીને તમારું **પૂરું નામ** અહીં લખો."
+            reply = "📋 **Result Check:**\n- **Hindi/Hinglish:** Apna result dekhne ke liye kripya apna **Pura Naam (Student Name)** yahan type karein.\n- **ગુજરાતી:** તમારું પરિણામ જોવા માટે કૃપા કરીને તમારું **પૂરું નામ** અહીં લખો.\n- **English:** Please enter your **Full Student Name** to check your exam result."
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
         else:
             matched_records = search_student(query, df_sheet)
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
             
-            with st.spinner("Soch raha hai..."):
+            with st.spinner("Processing..."):
                 try:
                     if matched_records:
                         details_text = ""
@@ -154,24 +178,39 @@ if query:
                         Verified exam record from sheet:
                         {details_text}
 
-                        Rules:
-                        1. Reply strictly in the language used by user (Gujarati, Hindi/Hinglish, or English).
-                        2. Never output broken or repeating random text.
-                        3. Clearly format student marks using clean bullet points.
-                        4. Congratulate the student politely.
+                        STRICT LANGUAGE RULE:
+                        - If the user wrote in Gujarati (or Gujarati script/words like 'kem chho', 'naam'), reply 100% in natural, pure GUJARATI.
+                        - If the user wrote in Hindi or Hinglish, reply 100% in natural, polite HINDI/HINGLISH.
+                        - If the user wrote in English, reply 100% in professional, clear ENGLISH.
+                        - Never mix multiple languages or output broken words.
+
+                        Format:
+                        - Display marks in clear bullet points (Student Name, Exam Course, Theory Marks, Practical Marks).
+                        - Congratulate them warmly.
                         """
                     else:
                         system_prompt = f"""
                         You are the professional counselor for Bctech Computer Education.
                         
-                        CRITICAL RULES:
-                        1. NEVER tell, estimate, or discuss any fees or pricing. Politely direct to branch contact.
+                        CRITICAL RESTRICTIONS:
+                        1. NEVER tell, estimate, or discuss any COURSE FEES or charges.
+                           - If asked in Hindi/Hinglish: "Fees ki jankari ke liye kripya direct institute branch par visit karein ya diye gaye number par call/WhatsApp karein."
+                           - If asked in Gujarati: "ફી અંગેની સંપૂર્ણ માહિતી માટે કૃપા કરીને રૂબરૂ સંસ્થાની મુલાકાત લો અથવા સંપર્ક નંબર પર કોલ/વોટ્સએપ કરો."
+                           - If asked in English: "For complete details regarding course fees, please visit our institute branch directly or contact us via call/WhatsApp."
                         2. NEVER mention or use the word 'Free'.
-                        3. If user is introducing themselves (e.g. 'mera naam ... hai' or 'maru name ... chhe'), greet them politely in 1-2 friendly sentences in the same language and ask how you can help.
-                        4. If user asked for an exam result and that name was not found in records, tell them politely that the name was not found in the sheet.
-                        5. Speak cleanly and naturally in Gujarati, Hinglish, or English. Never generate gibberish or unrelated scripts.
+                        3. If user introduces themselves (e.g. 'mera naam ...', 'maru name ...', 'my name is ...'), greet them politely in 1-2 lines in THAT SAME LANGUAGE and ask how you can assist.
+                        4. If user searched for an exam result and the name was not found:
+                           - In Hindi: "Ye naam result sheet me nahi mila. Kripya sahi spelling check karein."
+                           - In Gujarati: "આ નામ રીઝલ્ટ શીટમાં મળ્યું નથી. કૃપા કરીને સ્પેલિંગ ચેક કરો."
+                           - In English: "This name was not found in the result sheet. Please verify the spelling."
                         
-                        Institute Info:
+                        STRICT LANGUAGE MATCHING:
+                        - User asks in English -> Respond entirely in polished English.
+                        - User asks in Hindi/Hinglish -> Respond entirely in polite Hindi/Hinglish.
+                        - User asks in Gujarati -> Respond entirely in pure Gujarati.
+                        - Do NOT mix scripts or output corrupted tokens.
+                        
+                        Institute Information:
                         {KNOWLEDGE_BASE}
                         """
 
@@ -182,7 +221,6 @@ if query:
                         if "whisper" not in m.id and "guard" not in m.id and "vision" not in m.id
                     ]
                     
-                    # Prioritize top stable chat models
                     preferred_order = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"]
                     sorted_models = [m for m in preferred_order if m in live_models] + [m for m in live_models if m not in preferred_order]
 
@@ -197,7 +235,7 @@ if query:
                                 ],
                                 model=model_name,
                                 temperature=0.3,
-                                max_tokens=400
+                                max_tokens=450
                             )
                             answer = chat_completion.choices[0].message.content
                             if answer:
@@ -209,6 +247,13 @@ if query:
                     if answer:
                         st.write(answer)
                         st.session_state.messages.append({"role": "assistant", "content": answer})
+                        
+                        # Copy button for the latest answer
+                        col_btn, _ = st.columns([0.2, 0.8])
+                        with col_btn:
+                            if st.button("📋 Copy", key=f"copy_latest_{len(st.session_state.messages)}"):
+                                st.code(answer, language=None)
+                                st.toast("Text copy karne ke liye ready hai!", icon="📋")
                     else:
                         st.error(f"Groq API Error: {last_api_err}")
                 except Exception as e:
