@@ -90,14 +90,11 @@ def search_student(query_text, df):
     name_col = df.columns[0]
     name_series = df[name_col].astype(str).str.strip().str.lower()
     
-    # Exact match
     matched = df[name_series == search_term]
     
-    # Contains match
     if matched.empty:
         matched = df[name_series.str.contains(search_term, regex=False, na=False)]
         
-    # Word match
     if matched.empty:
         for w in words:
             matched = df[name_series.str.contains(w, regex=False, na=False)]
@@ -135,14 +132,14 @@ if query:
         if err:
             st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
         elif is_generic_result_request(query) and len(query.strip().split()) <= 3 and not search_student(query, df_sheet):
-            reply = "📋 Apna result dekhne ke liye kripya apna **Pura Naam (Student Name)** yahan type karein.\n\nતમારું પરિણામ જોવા માટે કૃપા કરીને તમારું **પૂરું નામ** અહીં લખો."
+            reply = "📋 Apna exam result dekhne ke liye kripya apna **Pura Naam (Student Name)** yahan type karein.\n\nતમારું પરિણામ જોવા માટે કૃપા કરીને તમારું **પૂરું નામ** અહીં લખો."
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
         else:
             matched_records = search_student(query, df_sheet)
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
             
-            with st.spinner("Jankari check ho rahi hai..."):
+            with st.spinner("Soch raha hai..."):
                 try:
                     if matched_records:
                         details_text = ""
@@ -158,31 +155,40 @@ if query:
                         {details_text}
 
                         Rules:
-                        1. Reply in the exact same language the user typed in (Gujarati, Hindi/Hinglish, or English).
-                        2. Never output weird characters or repeating garbage.
-                        3. Clearly display student marks using clean bullet points.
+                        1. Reply strictly in the language used by user (Gujarati, Hindi/Hinglish, or English).
+                        2. Never output broken or repeating random text.
+                        3. Clearly format student marks using clean bullet points.
                         4. Congratulate the student politely.
                         """
                     else:
                         system_prompt = f"""
-                        You are the professional counselor for Bctech Computer Education institute.
+                        You are the professional counselor for Bctech Computer Education.
                         
-                        CRITICAL RESTRICTIONS:
-                        1. NEVER tell, estimate, or discuss any fees or pricing. Always say to visit branch or call directly.
+                        CRITICAL RULES:
+                        1. NEVER tell, estimate, or discuss any fees or pricing. Politely direct to branch contact.
                         2. NEVER mention or use the word 'Free'.
-                        3. If user is introducing themselves, greet them warmly in 2-3 concise sentences in their language.
-                        4. If user asked for exam result with a name that is not in records, tell them politely that the name was not found.
-                        5. Speak naturally in clean Hinglish, Gujarati, or English based on how the user wrote. Do not mix unrelated scripts or repeat gibberish characters.
+                        3. If user is introducing themselves (e.g. 'mera naam ... hai' or 'maru name ... chhe'), greet them politely in 1-2 friendly sentences in the same language and ask how you can help.
+                        4. If user asked for an exam result and that name was not found in records, tell them politely that the name was not found in the sheet.
+                        5. Speak cleanly and naturally in Gujarati, Hinglish, or English. Never generate gibberish or unrelated scripts.
                         
                         Institute Info:
                         {KNOWLEDGE_BASE}
                         """
 
-                    # Supported Groq models list with automatic fallback
-                    available_models = ["llama-3.1-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"]
-                    answer = None
+                    # Fetch currently live active chat models from Groq API directly
+                    models_resp = client.models.list()
+                    live_models = [
+                        m.id for m in models_resp.data 
+                        if "whisper" not in m.id and "guard" not in m.id and "vision" not in m.id
+                    ]
                     
-                    for model_name in available_models:
+                    # Prioritize top stable chat models
+                    preferred_order = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"]
+                    sorted_models = [m for m in preferred_order if m in live_models] + [m for m in live_models if m not in preferred_order]
+
+                    answer = None
+                    last_api_err = None
+                    for model_name in sorted_models:
                         try:
                             chat_completion = client.chat.completions.create(
                                 messages=[
@@ -191,18 +197,19 @@ if query:
                                 ],
                                 model=model_name,
                                 temperature=0.3,
-                                max_tokens=500
+                                max_tokens=400
                             )
                             answer = chat_completion.choices[0].message.content
                             if answer:
                                 break
-                        except Exception:
+                        except Exception as ex:
+                            last_api_err = ex
                             continue
                     
                     if answer:
                         st.write(answer)
                         st.session_state.messages.append({"role": "assistant", "content": answer})
                     else:
-                        st.error("Filhal AI uplabdh nahi hai. Kripya thodi der baad prayas karein.")
+                        st.error(f"Groq API Error: {last_api_err}")
                 except Exception as e:
                     st.error(f"Error: {e}")
