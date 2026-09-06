@@ -48,7 +48,6 @@ st.markdown("""
         color: #202124;
     }
     
-    /* Recent Button Styling */
     section[data-testid="stSidebar"] div[data-testid="stExpander"] .stButton>button {
         width: 100% !important;
         float: none !important;
@@ -134,7 +133,6 @@ def on_new_chat_clicked():
         title_text = user_queries[-1] if user_queries else "Last Chat"
         short_title = (title_text[:22] + "..") if len(title_text) > 22 else title_text
         
-        # Save only the LAST chat (overwrites previous)
         st.session_state.last_recent_chat = {
             "title": short_title,
             "messages": list(st.session_state.messages)
@@ -175,6 +173,7 @@ st.title("🎓 BC Tech Ai Assistant")
 SHEET_ID = "1ES2A77U61GeS710Xfyc0dKIevUhzR2v7-aSjkr1R3tg"
 EXCEL_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
 
+# Unified Sheet Loader (Standardizes Column 0 as Student Name and Column 1 as Exam)
 @st.cache_data(ttl=15)
 def load_all_sheets_data():
     try:
@@ -185,33 +184,38 @@ def load_all_sheets_data():
             combined_rows = []
             
             for sheet_name, df in all_dfs.items():
-                if df is not None and not df.empty:
-                    df.columns = [str(c).strip() for c in df.columns]
-                    first_col = df.columns[0]
+                if df is not None and not df.empty and len(df.columns) >= 2:
+                    cols = list(df.columns)
+                    first_col = cols[0]
+                    second_col = cols[1]
+
                     clean_df = df[df[first_col].notna()].copy()
                     clean_df = clean_df[~clean_df[first_col].astype(str).str.lower().str.contains("batch time", na=False)]
                     clean_df = clean_df[clean_df[first_col].astype(str).str.strip() != ""]
                     
-                    for record in clean_df.to_dict(orient="records"):
-                        record["_Sheet_Tab"] = sheet_name
+                    for _, row in clean_df.iterrows():
+                        student_name = str(row[first_col]).strip()
+                        exam_val = str(row[second_col]).strip() if pd.notna(row[second_col]) else "Course"
+                        
+                        record = {
+                            "Student_Name_Std": student_name,
+                            "Exam_Std": exam_val,
+                            "_Sheet_Tab": sheet_name
+                        }
+                        
+                        # Add remaining mark columns
+                        for idx, c in enumerate(cols[2:], start=1):
+                            val = row[c]
+                            if pd.notna(val) and str(val).strip() != "":
+                                c_name = str(c).strip()
+                                if "unnamed" in c_name.lower():
+                                    c_name = f"Marks_{idx}"
+                                record[c_name] = val
+                                
                         combined_rows.append(record)
                         
             if combined_rows:
                 return pd.DataFrame(combined_rows), None
-    except Exception:
-        pass
-
-    csv_url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
-    try:
-        res = requests.get(csv_url, timeout=10)
-        if res.status_code == 200:
-            df = pd.read_csv(io.StringIO(res.content.decode("utf-8")))
-            df.columns = [str(c).strip() for c in df.columns]
-            first_col = df.columns[0]
-            df = df[df[first_col].notna()]
-            df = df[~df[first_col].astype(str).str.lower().str.contains("batch time", na=False)]
-            df = df[df[first_col].astype(str).str.strip() != ""]
-            return df, None
     except Exception as err:
         return None, str(err)
         
@@ -278,14 +282,15 @@ def check_is_branch_intent(text):
     ]
     return any(kw in text for kw in branch_keywords)
 
+# Searches across all sheets via the standardized Student_Name_Std column
 def search_student_all_sheets(query_text, df):
-    if df is None or df.empty:
+    if df is None or df.empty or "Student_Name_Std" not in df.columns:
         return []
     clean_q = query_text.strip().lower()
     fillers = [
         "result", "marks", "kya", "hai", "check", "batao", "mera", "meri", "ka", "ki", 
         "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam", "name",
-        "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo",
+        "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo",
         "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ"
     ]
     words = [w for w in clean_q.split() if w not in fillers and len(w) >= 2]
@@ -293,9 +298,9 @@ def search_student_all_sheets(query_text, df):
         words = [clean_q]
         
     search_term = " ".join(words)
-    name_col = df.columns[0]
-    name_series = df[name_col].astype(str).str.strip().str.lower()
+    name_series = df["Student_Name_Std"].astype(str).str.strip().str.lower()
     
+    # Check exact match first
     matched = df[name_series == search_term]
     if matched.empty:
         matched = df[name_series.str.contains(search_term, regex=False, na=False)]
@@ -391,7 +396,7 @@ if query:
         # 3. Branch Intent
         elif check_is_branch_intent(query):
             if user_wants_gujarati:
-                reply = f"BC Tech Computer Education ની શાખા और लोकेशन की संपूर्ण जानकारी के लिए यहाँ क्लिक करें:\n🔗 {BRANCH_LINK}"
+                reply = f"BC Tech Computer Education ની શાખા અને લોકેશનની સંપૂર્ણ વિગત માટે અહીં ક્લિક કરો:\n🔗 {BRANCH_LINK}"
             else:
                 reply = f"You can check the branch location and address details of BC Tech Computer Education here:\n🔗 {BRANCH_LINK}"
             
@@ -403,7 +408,7 @@ if query:
                     st.code(reply, language=None)
                     st.toast("Copied!", icon="📋")
 
-        # 4. Sheet Result or Normal Counseling
+        # 4. Sheet Result Search across ALL Sheets
         else:
             matched_records = search_student_all_sheets(query, df_sheet)
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
@@ -414,42 +419,46 @@ if query:
                 st.session_state.waiting_for_result_name = False
                 
                 details_text = ""
-                # Agar ek se jyada sheets me record ho to sabhi ko include karein
-                for i, record in enumerate(matched_records[:5], 1):
-                    sheet_tab = record.get("_Sheet_Tab", f"Record {i}")
-                    details_text += f"\n--- Record #{i} (From Sheet: {sheet_tab}) ---\n"
+                for i, record in enumerate(matched_records, 1):
+                    sheet_tab = record.get("_Sheet_Tab", f"Sheet {i}")
+                    s_name = record.get("Student_Name_Std", "")
+                    s_exam = record.get("Exam_Std", "")
+                    
+                    details_text += f"\n--- Record {i} (Exam: {s_exam} | Sheet: {sheet_tab}) ---\n"
+                    details_text += f"Student Name: {s_name}\n"
+                    details_text += f"Exam Name: {s_exam}\n"
+                    
                     for k, v in record.items():
-                        if k != "_Sheet_Tab" and pd.notna(v) and str(v).strip() != "" and "unnamed" not in str(k).lower():
-                            details_text += f"- {k}: {v}\n"
+                        if k not in ["Student_Name_Std", "Exam_Std", "_Sheet_Tab"]:
+                            details_text += f"{k}: {v}\n"
 
                 system_prompt = f"""
                 You are the AI Assistant for BC Tech Computer Education.
-                Verified Student Data from sheets:
+                Verified Student Records Found from Sheets:
                 {details_text}
 
-                CRITICAL INSTRUCTION FOR MULTIPLE RECORDS:
-                - If the student is found in multiple sheets or courses, YOU MUST DISPLAY ALL OF THEM clearly one after another.
-                - Do not skip or merge any record.
-                
+                MANDATORY INSTRUCTIONS:
+                - There are {len(matched_records)} distinct exam record(s) found for this student.
+                - YOU MUST DISPLAY EVERY SINGLE RECORD ({len(matched_records)} records) clearly with separate headings.
+                - Never skip any record. Show Record 1, Record 2, etc. with their respective Exam names.
+
                 LANGUAGE RULE:
                 - Target Language: {"GUJARATI" if user_wants_gujarati else "ENGLISH"}.
                 - Unless user specifically typed in Gujarati script, output 100% in pure, professional ENGLISH.
 
-                Output Format for each record found:
-                📌 [Course / Sheet Name]
+                Output Format for EACH record:
+                📌 Record [Number]: [Exam Name]
                 - Name: [Student Name]
-                - Exam / Course: [Course]
-                - Theory Marks: [Score]
-                - Practical Marks: [Score]
-                - Result: [Pass / Grade if available]
+                - Exam / Course: [Exam Name]
+                - Scores / Marks: [List all theory & practical marks found]
+                - Result: Pass
 
-                Add 1 short congratulatory/encouraging line at the end.
-                Output ONLY the verified student result details.
+                Add 1 brief congratulatory line at the very end.
                 """
             elif check_is_result_intent(query) or st.session_state.waiting_for_result_name:
                 st.session_state.waiting_for_result_name = True
                 if user_wants_gujarati:
-                    reply = "परिणाम देखने के लिए कृपया अपना पूरा नाम यहाँ लिखें."
+                    reply = "પરિણામ જોવા માટે કૃપા કરીને તમારું સાચું પૂરું નામ અહીં લખો."
                 else:
                     reply = "Please enter your full Student Name to check your exam result."
                 st.write(reply)
@@ -498,7 +507,7 @@ if query:
                                     ],
                                     model=m_name,
                                     temperature=0.2,
-                                    max_tokens=350
+                                    max_tokens=450
                                 )
                                 raw_answer = chat_completion.choices[0].message.content
                                 answer = clean_ai_response(raw_answer)
