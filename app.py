@@ -113,12 +113,15 @@ def run_aerial_celebration():
     """
     components.html(anim_js, height=0)
 
+# Session States
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "saved_sessions" not in st.session_state:
     st.session_state.saved_sessions = []
 if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
+if "waiting_for_image_prompt" not in st.session_state:
+    st.session_state.waiting_for_image_prompt = False
 
 def start_new_chat():
     if st.session_state.messages:
@@ -135,6 +138,7 @@ def start_new_chat():
         })
     st.session_state.messages = []
     st.session_state.waiting_for_result_name = False
+    st.session_state.waiting_for_image_prompt = False
 
 def load_saved_chat(session_index):
     if 0 <= session_index < len(st.session_state.saved_sessions):
@@ -212,34 +216,38 @@ def load_all_sheets_data():
         
     return None, "Sheet data unavailable"
 
-# Comprehensive Image Intent Check
+# Image Detection with State Memory
 def detect_image_request(text):
     text_lower = text.lower().strip()
     
-    # 1. Broad detection triggers
     triggers = [
-        "image create kro", "image create karo", "image create", "create image", 
-        "generate image", "make image", "photo create", "photo banao", 
-        "image banao", "tasveer banao", "picture create", "photo of", 
-        "image of", "picture of", "draw", "તસવીર બનાવો", "ફોટો બનાવો",
-        "chhavi banao", "image chahiye", "photo chahiye"
+        "image", "photo", "picture", "wallpaper", "banao", "create", 
+        "generate", "tasveer", "chhavi", "તસવીર", "ફોટો"
     ]
     
-    is_requested = any(t in text_lower for t in triggers) or ("image" in text_lower and ("banao" in text_lower or "create" in text_lower or "generate" in text_lower))
-    
-    if not is_requested:
+    # If bot was specifically waiting for image prompt
+    if st.session_state.waiting_for_image_prompt:
+        st.session_state.waiting_for_image_prompt = False
+        return True, text_lower
+
+    # If message contains image related triggers
+    is_img_query = any(t in text_lower for t in triggers)
+    if not is_img_query:
         return False, ""
 
-    # Clean filler keywords to extract actual subject
     remove_words = [
         "mere liye", "ek", "please", "can you", "kro", "karo", "banao", "chahiye",
-        "image", "photo", "picture", "create", "generate", "make", "of", "ki", "ka", "ke liye"
+        "image", "photo", "picture", "create", "generate", "make", "of", "ki", "ka", "ke liye", "dikhao"
     ]
     pattern = r"\b(" + "|".join(remove_words) + r")\b"
-    extracted_prompt = re.sub(pattern, "", text_lower).strip()
-    extracted_prompt = re.sub(r"\s+", " ", extracted_prompt)
+    cleaned = re.sub(pattern, "", text_lower).strip()
+    cleaned = re.sub(r"\s+", " ", cleaned)
 
-    return True, extracted_prompt
+    # Default prompt if user just writes "mere liye image banao" without subject
+    if len(cleaned) < 2:
+        cleaned = "Beautiful scenic natural landscape wallpaper 4k"
+
+    return True, cleaned
 
 def is_gujarati_input(text):
     if any('\u0A80' <= ch <= '\u0AFF' for ch in text):
@@ -350,23 +358,18 @@ if query:
         if err:
             st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
         
-        # 1. Dedicated Image Generator Logic
+        # 1. Instant Image Generation
         elif is_img_req:
-            if len(subject_prompt) < 2:
-                reply = "Sure! Please describe what image you would like to generate. For example: *'A futuristic sports car'* or *'Sunset over mountains'*."
-                st.write(reply)
-                st.session_state.messages.append({"role": "assistant", "content": reply})
-            else:
-                with st.spinner(f"🎨 Generating image for: '{subject_prompt}'..."):
-                    encoded_prompt = urllib.parse.quote(subject_prompt)
-                    image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=800&height=600&nologo=true"
-                    st.image(image_url, caption=f"🎨 {subject_prompt.title()}", use_container_width=True)
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": image_url,
-                        "caption": f"🎨 {subject_prompt.title()}",
-                        "is_image": True
-                    })
+            with st.spinner(f"🎨 Generating image for: '{subject_prompt}'..."):
+                encoded_prompt = urllib.parse.quote(subject_prompt)
+                image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=800&height=600&nologo=true"
+                st.image(image_url, caption=f"🎨 {subject_prompt.title()}", use_container_width=True)
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": image_url,
+                    "caption": f"🎨 {subject_prompt.title()}",
+                    "is_image": True
+                })
 
         # 2. Greeting Handler
         elif is_greeting(query):
