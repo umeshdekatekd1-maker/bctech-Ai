@@ -183,7 +183,7 @@ def run_aerial_celebration():
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "recent_chats" not in st.session_state:
-    st.session_state.recent_chats = []  # Holds up to 3 recent sessions
+    st.session_state.recent_chats = []  # List holding up to 3 saved chats
 if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
 if "waiting_for_image_prompt" not in st.session_state:
@@ -191,10 +191,10 @@ if "waiting_for_image_prompt" not in st.session_state:
 if "current_language" not in st.session_state:
     st.session_state.current_language = "ENGLISH"
 
-def save_current_chat_to_recent():
+def on_new_chat_clicked():
     if st.session_state.messages:
         user_queries = [m["content"] for m in st.session_state.messages if m["role"] == "user"]
-        title_text = user_queries[-1] if user_queries else "Search"
+        title_text = user_queries[-1] if user_queries else "Chat"
         short_title = (title_text[:22] + "..") if len(title_text) > 22 else title_text
         
         new_entry = {
@@ -202,13 +202,10 @@ def save_current_chat_to_recent():
             "messages": list(st.session_state.messages)
         }
         
-        # Avoid duplicate top entry
-        filtered = [c for c in st.session_state.recent_chats if c["title"] != short_title]
-        filtered.insert(0, new_entry)
-        st.session_state.recent_chats = filtered[:3]  # Limit strictly to 3
+        # Insert at the beginning and keep only last 3
+        st.session_state.recent_chats.insert(0, new_entry)
+        st.session_state.recent_chats = st.session_state.recent_chats[:3]
 
-def on_new_chat_clicked():
-    save_current_chat_to_recent()
     st.session_state.messages = []
     st.session_state.waiting_for_result_name = False
     st.session_state.waiting_for_image_prompt = False
@@ -247,7 +244,7 @@ with st.sidebar:
                     args=(i,)
                 )
         else:
-            st.caption("No recent searches yet.")
+            st.caption("No recent chats yet.")
             
     st.markdown("---")
     st.markdown("**📌 Quick Links:**")
@@ -462,7 +459,6 @@ if query:
                     "caption": "✨ 4K Ultra-HD Photorealistic Output",
                     "is_image": True
                 })
-        save_current_chat_to_recent()
     else:
         df_sheet, err = load_all_sheets_data()
         lang = update_language_state(query)
@@ -605,6 +601,3 @@ if query:
                             st.error(f"API Error: {last_api_err}")
                     except Exception as e:
                         st.error(f"Error: {e}")
-
-        # Auto-update recent list (keeps last 3 searches ready in sidebar)
-        save_current_chat_to_recent()
