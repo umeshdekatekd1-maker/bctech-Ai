@@ -146,6 +146,18 @@ def restore_last_chat():
     if st.session_state.last_recent_chat:
         st.session_state.messages = list(st.session_state.last_recent_chat["messages"])
 
+# Helper function to remove .0 from numbers
+def clean_val_display(val):
+    if pd.isna(val) or str(val).strip() == "" or str(val).strip().lower() == "nan":
+        return "N/A"
+    try:
+        f = float(val)
+        if f.is_integer():
+            return str(int(f))
+        return str(f)
+    except Exception:
+        return str(val).strip()
+
 # Sidebar
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
@@ -174,7 +186,7 @@ st.title("🎓 BC Tech Ai Assistant")
 SHEET_ID = "1ES2A77U61GeS710Xfyc0dKIevUhzR2v7-aSjkr1R3tg"
 EXCEL_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
 
-# Unified Sheet Loader (Standardizes Column 0 as Student Name and Column 1 as Exam)
+# Unified Sheet Loader (Cleans .0 decimals)
 @st.cache_data(ttl=15)
 def load_all_sheets_data():
     try:
@@ -196,10 +208,8 @@ def load_all_sheets_data():
                     
                     for _, row in clean_df.iterrows():
                         student_name = str(row[first_col]).strip()
-                        # Create unique name signature (sorted lower words) for flexible matching
                         name_words = sorted(student_name.lower().split())
                         name_signature = " ".join(name_words)
-
                         exam_val = str(row[second_col]).strip() if pd.notna(row[second_col]) else "Course"
                         
                         record = {
@@ -209,14 +219,12 @@ def load_all_sheets_data():
                             "_Sheet_Tab": sheet_name
                         }
                         
-                        # Add remaining mark columns
                         for idx, c in enumerate(cols[2:], start=1):
                             val = row[c]
-                            if pd.notna(val) and str(val).strip() != "":
-                                c_name = str(c).strip()
-                                if "unnamed" in c_name.lower():
-                                    c_name = f"Marks_{idx}"
-                                record[c_name] = val
+                            c_name = str(c).strip()
+                            if "unnamed" in c_name.lower():
+                                c_name = f"Marks_{idx}"
+                            record[c_name] = clean_val_display(val)
                                 
                         combined_rows.append(record)
                         
@@ -288,7 +296,6 @@ def check_is_branch_intent(text):
     ]
     return any(kw in text for kw in branch_keywords)
 
-# Matches ONLY the specified name across all sheets with high flexibility (sorted word signatures)
 def search_student_all_sheets(query_text, df):
     if df is None or df.empty or "Name_Signature_Std" not in df.columns:
         return []
@@ -299,19 +306,14 @@ def search_student_all_sheets(query_text, df):
         "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo",
         "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ"
     ]
-    # Remove filler words to get only the name parts
     words = [w for w in clean_q.split() if w not in fillers and len(w) >= 2]
     if not words:
         return []
         
-    # Create the search signature from user input (sorted unique words)
     user_search_signature = " ".join(sorted(list(set(words))))
-    
-    # Check exact match on the Name_Signature_Std column
     name_signatures = df["Name_Signature_Std"].astype(str)
     matched = df[name_signatures == user_search_signature]
     
-    # Final check on original standardized name in case sorted signature misses nuances
     if matched.empty:
         search_term_original = " ".join(words)
         matched = df[df["Student_Name_Std"].astype(str).str.lower().str.strip() == search_term_original]
@@ -414,7 +416,7 @@ if query:
                     st.code(reply, language=None)
                     st.toast("Copied!", icon="📋")
 
-        # 4. Sheet Result Search ONLY for the matched student name
+        # 4. Sheet Result Search
         else:
             matched_records = search_student_all_sheets(query, df_sheet)
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
@@ -425,12 +427,7 @@ if query:
                 st.session_state.waiting_for_result_name = False
                 
                 details_text = ""
-                # Add Sheet Header with unique exam names
-                found_exams = list(set([r.get("Exam_Std", "") for r in matched_records]))
                 found_name = matched_records[0].get("Student_Name_Std", "")
-                
-                details_text += f"\nStudent Records Found for: {found_name}\n"
-                details_text += f"Exams: {', '.join(found_exams)}\n"
 
                 for i, record in enumerate(matched_records, 1):
                     sheet_tab = record.get("_Sheet_Tab", f"Sheet {i}")
@@ -447,24 +444,23 @@ if query:
                 Verified Student Records Found from Sheets:
                 {details_text}
 
-                MANDATORY INSTRUCTIONS:
-                - There are {len(matched_records)} distinct exam record(s) found for THIS student only.
-                - YOU MUST DISPLAY EVERY SINGLE RECORD ({len(matched_records)} records) clearly with separate headings.
-                - Do not mix data. Record 1, Record 2, etc. must show their respective Exam names.
-
+                MANDATORY RULES:
+                - There are {len(matched_records)} record(s) found. Display ALL of them separately.
+                - DO NOT write decimal numbers like 23.0 or 41.0. Display strictly as clean whole numbers like 23, 41.
+                - DO NOT write "Result: Pass" or mention any Pass/Fail status.
+                
                 LANGUAGE RULE:
                 - Target Language: {"GUJARATI" if user_wants_gujarati else "ENGLISH"}.
                 - Unless user specifically typed in Gujarati script, output 100% in pure, professional ENGLISH.
 
-                Output Format for EACH record found:
+                STRICT OUTPUT FORMAT for each record:
                 📌 Record [Number]: [Exam Name]
                 - Name: {found_name}
                 - Exam / Course: [Exam Name]
-                - Scores / Marks: [List all theory & practical marks found]
-                - Result: Pass
+                - Scores / Marks:
+                  [List each Theory and Practical mark without decimals]
 
-                Add 1 brief congratulatory/encouraging line at the very end.
-                Output ONLY the result.
+                Add 1 short congratulatory line at the end.
                 """
             elif check_is_result_intent(query) or st.session_state.waiting_for_result_name:
                 st.session_state.waiting_for_result_name = True
