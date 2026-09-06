@@ -120,7 +120,6 @@ def search_student(query_text, df):
         return matched.to_dict(orient="records")
     return []
 
-# Strip <think> tags completely
 def clean_ai_response(text):
     if not text:
         return ""
@@ -128,11 +127,19 @@ def clean_ai_response(text):
     cleaned = re.sub(r"<think>.*", "", cleaned, flags=re.DOTALL)
     return cleaned.strip()
 
+# Official Website Data directly linked
 KNOWLEDGE_BASE = """
-About Bctech Computer Education:
-- Institute: Bctech Computer Education (Website: https://sites.google.com/view/bctechcomputer)
-- Main Offerings: Professional computer training, practical learning, ISO certified courses, job assistance.
-- Popular Courses: Basic Computer Course, Graphic Designing (CorelDraw, Photoshop, Illustrator), Accounting & Tally Prime, Web Development, Programming (Python, C++), Digital Marketing, Advanced Excel.
+Official Institute Details (Source: https://sites.google.com/view/bctechcomputer):
+- Name: Bctech Computer Education
+- City: Surat, Gujarat, India
+- Branch Address / Location: Plot No. 16, Behind Mahadev Mandir / Near Mahadev Temple, Godadara Road, Godadara, Surat, Gujarat - 395010
+- Main Offerings: Practical training, Govt./ISO recognized certification, job assistance.
+- Popular Courses: 
+  * Basic Computer Course (Windows, MS Office Word, Excel, PowerPoint)
+  * Graphic Designing (CorelDraw, Photoshop, Illustrator, Adobe Express)
+  * Financial Accounting (Tally Prime, GST filing)
+  * Web Designing & Programming (HTML, CSS, JavaScript, Python)
+  * Digital Marketing & Advanced Excel
 """
 
 if "messages" not in st.session_state:
@@ -202,11 +209,7 @@ if query:
                     Instructions:
                     1. Respond directly in the same language as user query (Gujarati, Hindi, or English).
                     2. Keep student names exact.
-                    3. Format details with concise bullet points:
-                       - Name
-                       - Exam Course
-                       - Theory Marks
-                       - Practical Marks
+                    3. Format details with concise bullet points (Name, Exam Course, Theory Marks, Practical Marks).
                     4. Congratulate them in 1 short line.
                     5. Output ONLY the final answer. NEVER output thinking process, notes, or analysis.
                     """
@@ -227,11 +230,16 @@ if query:
                 
                 CRITICAL INSTRUCTIONS:
                 1. Give ONLY direct, final answer (2 to 4 sentences maximum).
-                2. NEVER output <think>, chain of thought, notes, or internal reasoning steps.
-                3. NEVER tell, estimate, or discuss any fees or pricing. Always direct to branch contact.
-                4. NEVER mention or use the word 'Free'.
-                5. Match the user's language strictly (Hindi/Hinglish, Gujarati, or English).
-                6. If user introduces their name, greet them in 1 short line.
+                2. If asked about BRANCH, LOCATION, or ADDRESS:
+                   - Hindi/Hinglish: Bctech Computer Education ka branch Godadara, Surat (Behind Mahadev Mandir, Godadara Road, Surat - 395010) par sthit hai.
+                   - Gujarati: Bctech Computer Education શાખા ગોડાદરા, સુરત (મહાદેવ મંદિર પાછળ, ગોડાદરા રોડ, સુરત - 395010) ખાતે આવેલી છે.
+                   - English: Bctech Computer Education is located at Godadara Road, Behind Mahadev Temple, Godadara, Surat, Gujarat - 395010.
+                   NEVER invent fake addresses like '123 Main Street'.
+                3. NEVER output <think>, chain of thought, notes, or internal reasoning steps.
+                4. NEVER tell, estimate, or discuss any fees or pricing. Always direct to visit branch directly.
+                5. NEVER mention or use the word 'Free'.
+                6. Match the user's language strictly (Hindi/Hinglish, Gujarati, or English).
+                7. If user introduces their name, greet them in 1 short line.
 
                 Institute Info:
                 {KNOWLEDGE_BASE}
@@ -239,14 +247,12 @@ if query:
 
             with st.spinner("Thinking..."):
                 try:
-                    # Dynamically get active models from Groq
                     models_resp = client.models.list()
                     active_ids = [
                         m.id for m in models_resp.data 
                         if "whisper" not in m.id and "guard" not in m.id and "vision" not in m.id
                     ]
                     
-                    # Sort prioritizing top stable non-reasoning chat models
                     preferred = ["llama-3.1-8b-instant", "llama3-8b-8192", "gemma2-9b-it"]
                     models_to_try = [m for m in preferred if m in active_ids] + [m for m in active_ids if m not in preferred]
 
