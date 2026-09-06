@@ -1,9 +1,9 @@
 import streamlit as st
-from google import genai
+from groq import Groq
 
 st.set_page_config(page_title="Bctech AI Assistant", layout="centered", initial_sidebar_state="collapsed")
 
-# Custom Styling
+# Custom Google Styling
 st.markdown("""
 <style>
     #MainMenu, header, footer {visibility: hidden;}
@@ -27,7 +27,7 @@ st.title("🎓 Bctech AI Assistant")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Show previous history
+# Purani history upar dikhana
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
@@ -39,26 +39,26 @@ if query:
     with st.chat_message("user"):
         st.write(query)
 
-    client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
     
     with st.chat_message("assistant"):
         with st.spinner("AI jawab taiyar kar raha hai..."):
-            prompt = f"""
-            You are a helpful AI counselor for Bctech Computer Education.
-            Answer in friendly, helpful Hinglish.
-            Question: {query}
-            """
             try:
-                res = client.models.generate_content(
-                    model="gemini-3.6-flash",
-                    contents=prompt
+                chat_completion = client.chat.completions.create(
+                    messages=[
+                        {
+                            "role": "system",
+                            "content": "You are a helpful and friendly AI counselor for Bctech Computer Education. Guide students on courses, fees, syllabus, and computer career advice in simple Hinglish."
+                        },
+                        {
+                            "role": "user",
+                            "content": query,
+                        }
+                    ],
+                    model="llama-3.3-70b-versatile",
                 )
-                answer = res.text
+                answer = chat_completion.choices[0].message.content
                 st.write(answer)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
             except Exception as e:
-                err_text = str(e)
-                if "429" in err_text or "RESOURCE_EXHAUSTED" in err_text:
-                    st.warning("Aaj ki free sawal puchne ki limit poori ho gayi hai. Kripya thodi der baad ya kal koshish karein.")
-                else:
-                    st.error(f"Error: {e}")
+                st.error(f"Error: {e}")
