@@ -24,11 +24,12 @@ st.markdown("""
     }
     .stButton>button {
         border-radius: 16px;
-        padding: 1px 10px;
+        padding: 2px 12px;
         font-size: 12px;
         border: 1px solid #dadce0;
         background-color: #f8f9fa;
         color: #3c4043;
+        float: right;
         margin-top: 4px;
     }
     .stButton>button:hover {
@@ -125,25 +126,24 @@ if "messages" not in st.session_state:
 if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
 
-# Render history: Copy button for BOTH user query and assistant answer
+# Render history with RIGHT ALIGNED copy buttons
 for idx, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
-        col_c, _ = st.columns([0.2, 0.8])
-        with col_c:
-            if st.button("📋 Copy", key=f"copy_msg_{idx}"):
+        col_left, col_right = st.columns([0.85, 0.15])
+        with col_right:
+            if st.button("📋 Copy", key=f"copy_hist_{idx}"):
                 st.code(msg["content"], language=None)
-                st.toast("Text box me copy ke liye ready hai!", icon="📋")
+                st.toast("Copied!", icon="📋")
 
-# Completely empty input box (no example/placeholder text)
 query = st.chat_input("")
 
 if query:
     st.session_state.messages.append({"role": "user", "content": query})
     with st.chat_message("user"):
         st.write(query)
-        col_u, _ = st.columns([0.2, 0.8])
-        with col_u:
+        col_left, col_right = st.columns([0.85, 0.15])
+        with col_right:
             if st.button("📋 Copy", key=f"copy_user_curr_{len(st.session_state.messages)}"):
                 st.code(query, language=None)
                 st.toast("Copied!", icon="📋")
@@ -238,8 +238,8 @@ if query:
                     if answer:
                         st.write(answer)
                         st.session_state.messages.append({"role": "assistant", "content": answer})
-                        col_bot, _ = st.columns([0.2, 0.8])
-                        with col_bot:
+                        col_l, col_r = st.columns([0.85, 0.15])
+                        with col_r:
                             if st.button("📋 Copy", key=f"copy_ast_curr_{len(st.session_state.messages)}"):
                                 st.code(answer, language=None)
                                 st.toast("Copied!", icon="📋")
