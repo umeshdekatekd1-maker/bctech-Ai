@@ -69,35 +69,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Persistent Session Storage Script to Prevent Chat Erasure on Reload
-persistence_js = """
-<script>
-    const STORAGE_KEY_MSGS = "bctech_chat_messages_v1";
-    const STORAGE_KEY_RECENT = "bctech_recent_chats_v1";
-
-    // On Load: If python session is empty but localStorage has data, sync it back via URL/params or reload state
-    window.addEventListener('DOMContentLoaded', () => {
-        try {
-            const savedMsgs = localStorage.getItem(STORAGE_KEY_MSGS);
-            const savedRecent = localStorage.getItem(STORAGE_KEY_RECENT);
-            
-            if (savedMsgs && (!window.parent.streamlitPersistChecked)) {
-                window.parent.streamlitPersistChecked = true;
-                // Session sync check can be handled by keeping streamlit state active
-            }
-        } catch(e) {}
-    });
-
-    function persistData(messages, recentChats) {
-        try {
-            localStorage.setItem(STORAGE_KEY_MSGS, JSON.stringify(messages));
-            localStorage.setItem(STORAGE_KEY_RECENT, JSON.stringify(recentChats));
-        } catch(e) {}
-    }
-</script>
-"""
-components.html(persistence_js, height=0)
-
 # Clean One-Click Clipboard Button
 def render_clean_copy_button(text_to_copy, unique_id):
     json_text = json.dumps(text_to_copy)
@@ -208,7 +179,7 @@ def run_aerial_celebration():
     """
     components.html(anim_js, height=0)
 
-# Session States with LocalStorage Persistence Hook
+# Session States
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "recent_chats" not in st.session_state:
@@ -343,6 +314,7 @@ def load_all_sheets_data():
         
     return None, "Sheet data unavailable"
 
+# Ultra-Realistic DSLR Photo Interpreter for Supreme Quality Images
 def detect_image_request(text):
     text_lower = text.lower().strip()
     triggers = [
@@ -359,18 +331,20 @@ def detect_image_request(text):
         "mere liye", "ek", "please", "can you", "kro", "karo", "banao", "chahiye",
         "image", "photo", "picture", "create", "generate", "make", "of", "ki", "ka", 
         "ke liye", "dikhao", "draw", "kare", "yesi", "aisi", "wala", "wali",
-        "badlo", "change", "edit", "modify", "isame", "is me"
+        "badlo", "change", "edit", "modify", "isame", "is me", "bana do"
     ]
     pattern = r"\b(" + "|".join(remove_words) + r")\b"
     cleaned = re.sub(pattern, "", text_lower).strip()
     base_prompt = re.sub(r"\s+", " ", cleaned)
     
     if len(base_prompt) < 3:
-        base_prompt = "professional graphic design artwork cinematic high quality"
+        base_prompt = "authentic candid portrait of a beautiful smiling person in natural daylight"
 
+    # Enforced high-end DSLR photography boost for ultra-realistic natural look
     hd_boosted_prompt = (
-        f"{base_prompt}, ultra photorealistic, 8k resolution, 4k uhd, masterpiece, "
-        "hyperrealistic photography, professional studio lighting, highly detailed textures, octane render"
+        f"{base_prompt}, authentic candid photography, shot on 35mm lens, DSLR camera quality, "
+        "natural skin texture, soft daylight, realistic depth of field, sharp focus, professional color grading, "
+        "high resolution, pristine unedited look"
     )
     return True, hd_boosted_prompt
 
@@ -467,8 +441,8 @@ About Bctech Computer Education:
 for idx, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"]):
         if msg.get("is_image", False):
-            st.image(msg["content"], caption=msg.get("caption", "4K Ultra-HD Output"), use_container_width=True)
-            st.markdown(f'<a href="{msg["content"]}" target="_blank" download="bctech_image.jpg"><button style="border-radius:16px; padding:4px 14px; font-size:12px; border:1px solid #dadce0; background-color:#f8f9fa; color:#3c4043; cursor:pointer;">📥 Download Image</button></a>', unsafe_allow_html=True)
+            st.image(msg["content"], caption=msg.get("caption", "DSLR High-Resolution Output"), use_container_width=True)
+            st.markdown(f'<a href="{msg["content"]}" target="_blank" download="bctech_dslr_image.jpg"><button style="border-radius:16px; padding:4px 14px; font-size:12px; border:1px solid #dadce0; background-color:#f8f9fa; color:#3c4043; cursor:pointer;">📥 Download Image</button></a>', unsafe_allow_html=True)
         else:
             st.write(msg["content"])
             render_clean_copy_button(msg["content"], f"hist_{idx}")
@@ -486,17 +460,17 @@ if query:
     
     if is_img_req:
         with st.chat_message("assistant"):
-            with st.spinner("🎨 Generating High-Resolution Image & Applying Edits..."):
+            with st.spinner("🎨 Rendering DSLR High-Definition Natural Image..."):
                 encoded_prompt = urllib.parse.quote(enhanced_prompt)
                 seed = random.randint(1000, 999999)
                 image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1920&height=1080&model=flux&seed={seed}&nologo=true"
-                st.image(image_url, caption="✨ 4K Ultra-HD Photorealistic Output", use_container_width=True)
-                st.markdown(f'<a href="{image_url}" target="_blank" download="bctech_image.jpg"><button style="border-radius:16px; padding:4px 14px; font-size:12px; border:1px solid #dadce0; background-color:#f8f9fa; color:#3c4043; cursor:pointer; margin-top:5px;">📥 Download Image</button></a>', unsafe_allow_html=True)
+                st.image(image_url, caption="✨ DSLR High-Resolution Natural Output", use_container_width=True)
+                st.markdown(f'<a href="{image_url}" target="_blank" download="bctech_dslr_image.jpg"><button style="border-radius:16px; padding:4px 14px; font-size:12px; border:1px solid #dadce0; background-color:#f8f9fa; color:#3c4043; cursor:pointer; margin-top:5px;">📥 Download Image</button></a>', unsafe_allow_html=True)
                 
                 st.session_state.messages.append({
                     "role": "assistant",
                     "content": image_url,
-                    "caption": "✨ 4K Ultra-HD Photorealistic Output",
+                    "caption": "✨ DSLR High-Resolution Natural Output",
                     "is_image": True
                 })
     else:
