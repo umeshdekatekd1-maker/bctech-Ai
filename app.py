@@ -76,7 +76,6 @@ def load_sheet_data():
     except Exception as e:
         return None, str(e)
 
-# Quick greetings detector
 def is_greeting(text):
     text_clean = text.lower().strip().replace("!", "").replace(".", "")
     greetings = ["hi", "hello", "hey", "hii", "hiii", "namaste", "kem cho", "kem chho", "halo", "હેલો", "નમસ્તે"]
@@ -201,8 +200,8 @@ if query:
                     {details_text}
 
                     Instructions:
-                    1. Respond directly in the same language as the user query (Gujarati, Hindi, or English).
-                    2. Keep student names exact without corrupting characters.
+                    1. Respond directly in the same language as user query (Gujarati, Hindi, or English).
+                    2. Keep student names exact.
                     3. Format details with concise bullet points:
                        - Name
                        - Exam Course
@@ -240,10 +239,20 @@ if query:
 
             with st.spinner("Thinking..."):
                 try:
-                    # Non-reasoning standard models
-                    models_to_try = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"]
+                    # Dynamically get active models from Groq
+                    models_resp = client.models.list()
+                    active_ids = [
+                        m.id for m in models_resp.data 
+                        if "whisper" not in m.id and "guard" not in m.id and "vision" not in m.id
+                    ]
+                    
+                    # Sort prioritizing top stable non-reasoning chat models
+                    preferred = ["llama-3.1-8b-instant", "llama3-8b-8192", "gemma2-9b-it"]
+                    models_to_try = [m for m in preferred if m in active_ids] + [m for m in active_ids if m not in preferred]
 
                     answer = None
+                    last_api_err = None
+
                     for m_name in models_to_try:
                         try:
                             chat_completion = client.chat.completions.create(
@@ -253,13 +262,14 @@ if query:
                                 ],
                                 model=m_name,
                                 temperature=0.3,
-                                max_tokens=300
+                                max_tokens=350
                             )
                             raw_answer = chat_completion.choices[0].message.content
                             answer = clean_ai_response(raw_answer)
                             if answer:
                                 break
-                        except Exception:
+                        except Exception as ex:
+                            last_api_err = str(ex)
                             continue
                     
                     if answer:
@@ -271,6 +281,6 @@ if query:
                                 st.code(answer, language=None)
                                 st.toast("Copied!", icon="📋")
                     else:
-                        st.error("Filhal AI uplabdh nahi hai. Thodi der baad prayas karein.")
+                        st.error(f"API Error: {last_api_err}")
                 except Exception as e:
                     st.error(f"Error: {e}")
