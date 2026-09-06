@@ -268,12 +268,27 @@ def detect_image_request(text):
     )
     return True, hd_boosted_prompt
 
-def is_gujarati_input(text):
-    if any('\u0A80' <= ch <= '\u0AFF' for ch in text):
-        return True
-    guj_words = ["maru", "maro", "chhe", "che", "kem", "tamaro", "tamare", "jovu"]
-    words = text.lower().split()
-    return any(w in words for w in guj_words)
+# Advanced Multilingual Detection
+def get_target_language(text):
+    text = text.strip()
+    
+    # 1. Check Devanagari (Hindi) or Gujarati script directly
+    if any('\u0900' <= ch <= '\u097F' for ch in text): return "HINDI"
+    if any('\u0A80' <= ch <= '\u0AFF' for ch in text): return "GUJARATI"
+    
+    text_lower = text.lower()
+    
+    # 2. Check Gujarati Hinglish keywords
+    guj_hinglish_words = ["kem chho", "kem cho", "halo", "maru", "maro", "chhe", "che", "tamaru", "tame"]
+    if any(w in text_lower for w in guj_hinglish_words):
+        return "GUJARATI"
+        
+    # 3. Check Hindi Hinglish keywords or direct requests
+    hindi_hinglish_words = ["namaste", "halo", "mera", "meri", "kya hai", "kaise", "batao", "chahiye", "bat kro", "हिंदी", "हिंदी में", "इन हिंदी"]
+    if any(w in text_lower for w in hindi_hinglish_words):
+        return "HINDI"
+        
+    return "ENGLISH"
 
 def is_greeting(text):
     text_clean = text.lower().strip().replace("!", "").replace(".", "")
@@ -284,7 +299,7 @@ def check_is_result_intent(text):
     text = text.lower()
     keywords = [
         "result", "marks", "marx", "score", "grade", "pass", "fail", 
-        "પરિણામ", "રિઝલ્ટ", "રીઝલ્ટ", "માર્ક્સ", "નંબર"
+        "પરિણામ", "રિઝલ્ટ", "રીઝલ્ટ", "માર્ક્સ", "નંબર", "परिणाम", "नंबर", "मार्क्स", "रिजल्ट"
     ]
     return any(kw in text for kw in keywords)
 
@@ -292,7 +307,7 @@ def check_is_branch_intent(text):
     text = text.lower()
     branch_keywords = [
         "branch", "address", "location", "kaha par hai", "kaha hai", "kidhar hai", 
-        "kahan hai", "bctech kaha", "bc tech kaha", "ક્યાં છે", "ક્યાં આવેલું", "સરનામું", "લોકેશન", "શાખા"
+        "kahan hai", "bctech kaha", "bc tech kaha", "ક્યાં છે", "ક્યાં આવેલું", "સરનામું", "લોકેશન", "શાખા", "पता", "कहाँ है", "लोकेशन", "शाखा"
     ]
     return any(kw in text for kw in branch_keywords)
 
@@ -366,7 +381,9 @@ if query:
                 st.toast("Copied!", icon="📋")
 
     df_sheet, err = load_all_sheets_data()
-    user_wants_gujarati = is_gujarati_input(query)
+    
+    # Check language of input
+    lang = get_target_language(query)
     is_img_req, enhanced_prompt = detect_image_request(query)
     
     with st.chat_message("assistant"):
@@ -389,8 +406,10 @@ if query:
 
         # 2. Greeting Handler
         elif is_greeting(query):
-            if user_wants_gujarati:
+            if lang == "GUJARATI":
                 reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે मदद करी शकूं? 😊"
+            elif lang == "HINDI":
+                reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
             else:
                 reply = "Hello! Welcome to BC Tech Computer Education. How can I help you today? 😊"
             st.write(reply)
@@ -403,8 +422,10 @@ if query:
 
         # 3. Branch Intent
         elif check_is_branch_intent(query):
-            if user_wants_gujarati:
+            if lang == "GUJARATI":
                 reply = f"BC Tech Computer Education ની શાખા અને લોકેશનની સંપૂર્ણ વિગત માટે અહીં ક્લિક કરો:\n🔗 {BRANCH_LINK}"
+            elif lang == "HINDI":
+                reply = f"BC Tech Computer Education की शाखा और पता की जानकारी के लिए यहाँ क्लिक करें:\n🔗 {BRANCH_LINK}"
             else:
                 reply = f"You can check the branch location and address details of BC Tech Computer Education here:\n🔗 {BRANCH_LINK}"
             
@@ -439,45 +460,58 @@ if query:
                         if k not in ["Name_Signature_Std", "Exam_Std", "_Sheet_Tab", "Student_Name_Std"]:
                             details_text += f"- {k}: {v}\n"
 
+                # Define mandatory rules based on language
+                mandatory_rules = """
+                MANDATORY RULES:
+                - There are {len(matched_records)} record(s) found. Display ALL of them separately.
+                - DO NOT write decimal numbers like 23.0 or 41.0. Display strictly as clean whole numbers like 23, 41.
+                - DO NOT write "Result: Pass" or mention any Pass/Fail status.
+                """
+                if lang == "GUJARATI":
+                    mandatory_rules += f" - Target Language: GUJARATI. Reply strictly in Gujarati."
+                elif lang == "HINDI":
+                    mandatory_rules += f" - Target Language: HINDI. Reply strictly in Hindi."
+                else:
+                    mandatory_rules += f" - Target Language: ENGLISH. Reply strictly in pure, professional English."
+
                 system_prompt = f"""
                 You are the AI Assistant for BC Tech Computer Education.
                 Verified Student Records Found from Sheets:
                 {details_text}
 
-                MANDATORY RULES:
-                - There are {len(matched_records)} record(s) found. Display ALL of them separately.
-                - DO NOT write decimal numbers like 23.0 or 41.0. Display strictly as clean whole numbers like 23, 41.
-                - DO NOT write "Result: Pass" or mention any Pass/Fail status.
-                
-                LANGUAGE RULE:
-                - Target Language: {"GUJARATI" if user_wants_gujarati else "ENGLISH"}.
-                - Unless user specifically typed in Gujarati script, output 100% in pure, professional ENGLISH.
+                {mandatory_rules}
 
-                STRICT OUTPUT FORMAT for each record:
+                STRICT OUTPUT FORMAT for each record in target language:
                 📌 Record [Number]: [Exam Name]
                 - Name: {found_name}
                 - Exam / Course: [Exam Name]
                 - Scores / Marks:
                   [List each Theory and Practical mark without decimals]
 
-                Add 1 short congratulatory line at the end.
+                Add 1 short congratulatory line at the end in target language.
+                Output ONLY the result.
                 """
             elif check_is_result_intent(query) or st.session_state.waiting_for_result_name:
                 st.session_state.waiting_for_result_name = True
-                if user_wants_gujarati:
+                if lang == "GUJARATI":
                     reply = "પરિણામ જોવા માટે કૃપા કરીને તમારું સાચું પૂરું નામ અહીં લખો."
+                elif lang == "HINDI":
+                    reply = "परिणाम देखने के लिए कृपया अपना पूरा नाम यहाँ लिखें।"
                 else:
                     reply = "Please enter your full Student Name to check your exam result."
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 system_prompt = None
             else:
+                # Dynamic Language Rule for Counseling
+                lang_instruction = "Reply strictly in pure, professional English."
+                if lang == "GUJARATI": lang_instruction = "Reply strictly in pure, professional Gujarati."
+                if lang == "HINDI": lang_instruction = "Reply strictly in pure, professional Hindi."
+
                 system_prompt = f"""
                 You are the counselor for BC Tech Computer Education.
                 
-                LANGUAGE RULE:
-                - Target Language: {"GUJARATI" if user_wants_gujarati else "ENGLISH"}.
-                - Unless user specifically typed in Gujarati script, reply strictly in ENGLISH.
+                {lang_instruction}
                 
                 CRITICAL INSTRUCTIONS:
                 1. Give direct, concise answer (2 to 4 sentences max).
