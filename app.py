@@ -7,7 +7,7 @@ import io
 import re
 
 st.set_page_config(
-    page_title="Bctech AI Assistant", 
+    page_title="BC Tech Ai Assistant", 
     layout="centered", 
     initial_sidebar_state="expanded"
 )
@@ -86,7 +86,6 @@ def run_aerial_celebration():
     anim_js = """
     <script>
     const parentDoc = window.parent.document;
-    const colors = ['#FF4500', '#FFD700', '#00FF7F', '#1E90FF', '#FF1493', '#9400D3'];
     for(let i = 0; i < 45; i++) {
         let el = parentDoc.createElement('div');
         el.innerText = ['🎆', '✨', '🏮', '🚀', '⭐', '🎉'][Math.floor(Math.random() * 6)];
@@ -147,7 +146,7 @@ def load_saved_chat(session_index):
 
 # --- Left Sidebar: New Chat & Recent Chats ---
 with st.sidebar:
-    st.markdown("### 🎓 Bctech AI")
+    st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
     if st.button("➕ New Chat", key="side_new_chat_btn", on_click=start_new_chat):
         st.rerun()
@@ -171,7 +170,8 @@ with st.sidebar:
     st.markdown("🌐 [Official Website](https://sites.google.com/view/bctechcomputer)")
     st.markdown("📍 [Branch Location](https://sites.google.com/view/bctechcomputer/about-us)")
 
-st.title("🎓 Bctech AI Assistant")
+# Updated Header
+st.title("🎓 BC Tech Ai Assistant")
 
 SHEET_ID = "1ES2A77U61GeS710Xfyc0dKIevUhzR2v7-aSjkr1R3tg"
 EXCEL_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
@@ -326,9 +326,9 @@ if query:
         
         elif is_greeting(query):
             if user_wants_gujarati:
-                reply = "નમસ્તે! Bctech Computer Education માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
             else:
-                reply = "Hello! Welcome to Bctech Computer Education. How can I help you today? 😊"
+                reply = "Hello! Welcome to BC Tech Computer Education. How can I help you today? 😊"
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
             col_l, col_r = st.columns([0.85, 0.15])
@@ -339,9 +339,9 @@ if query:
 
         elif check_is_branch_intent(query):
             if user_wants_gujarati:
-                reply = f"Bctech Computer Education ની શાખા અને લોકેશનની સંપૂર્ણ વિગત માટે અહીં ક્લિક કરો:\n🔗 {BRANCH_LINK}"
+                reply = f"BC Tech Computer Education ની શાખા અને લોકેશનની સંપૂર્ણ વિગત માટે અહીં ક્લિક કરો:\n🔗 {BRANCH_LINK}"
             else:
-                reply = f"You can check the branch location and address details of Bctech Computer Education here:\n🔗 {BRANCH_LINK}"
+                reply = f"You can check the branch location and address details of BC Tech Computer Education here:\n🔗 {BRANCH_LINK}"
             
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
@@ -368,7 +368,7 @@ if query:
                             details_text += f"- {k}: {v}\n"
 
                 system_prompt = f"""
-                You are the AI Assistant for Bctech Computer Education.
+                You are the AI Assistant for BC Tech Computer Education.
                 Verified Student Data from sheet:
                 {details_text}
 
@@ -396,7 +396,7 @@ if query:
                 system_prompt = None
             else:
                 system_prompt = f"""
-                You are the counselor for Bctech Computer Education.
+                You are the counselor for BC Tech Computer Education.
                 
                 LANGUAGE RULE:
                 - Target Language: {"GUJARATI" if user_wants_gujarati else "ENGLISH"}.
