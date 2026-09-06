@@ -79,7 +79,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# State initialization (Only stays alive while tab is open; wipes when closed)
+# State initialization
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "saved_sessions" not in st.session_state:
@@ -88,10 +88,15 @@ if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
 
 def start_new_chat():
-    # Save previous conversation to Recent only if there was a conversation
+    # Save conversation using the LAST user query as the title
     if st.session_state.messages:
-        first_user_msg = next((m["content"] for m in st.session_state.messages if m["role"] == "user"), "Chat")
-        title = (first_user_msg[:24] + "..") if len(first_user_msg) > 24 else first_user_msg
+        user_messages = [m["content"] for m in st.session_state.messages if m["role"] == "user"]
+        if user_messages:
+            last_msg = user_messages[-1]
+            title = (last_msg[:24] + "..") if len(last_msg) > 24 else last_msg
+        else:
+            title = "Chat"
+
         st.session_state.saved_sessions.append({
             "title": title,
             "messages": list(st.session_state.messages)
@@ -111,7 +116,7 @@ with st.sidebar:
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
     
-    # Recent Section: Shows previously closed chats
+    # Recent Section: Shows previously closed chats with last query title
     with st.expander("Recent", expanded=True):
         if st.session_state.saved_sessions:
             for idx, session_item in enumerate(reversed(st.session_state.saved_sessions)):
@@ -123,7 +128,7 @@ with st.sidebar:
                     args=(actual_idx,)
                 )
         else:
-            st.caption("New chat lene ke baad yahan purani chat dikhegi.")
+            st.caption("New chat lene ke baad yahan aakhri sawal dikhega.")
             
     st.markdown("---")
     st.markdown("**📌 Quick Links:**")
