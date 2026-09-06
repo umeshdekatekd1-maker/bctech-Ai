@@ -6,7 +6,7 @@ import io
 
 st.set_page_config(page_title="Bctech AI Assistant", layout="centered", initial_sidebar_state="collapsed")
 
-# Custom Styling
+# Custom Clean Styling
 st.markdown("""
 <style>
     #MainMenu, header, footer {visibility: hidden;}
@@ -28,26 +28,40 @@ st.markdown("""
 st.title("🎓 Bctech AI Assistant")
 
 SHEET_ID = "1ES2A77U61GeS710Xfyc0dKIevUhzR2v7-aSjkr1R3tg"
-CSV_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
+
+# Two reliable endpoints to pull Google Sheet data
+URL_GVIZ = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
+URL_EXPORT = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
 
 @st.cache_data(ttl=15)
 def load_sheet_data():
+    csv_text = None
+    last_error = None
+    
+    # Try fetching via gviz first, then export
+    for url in [URL_GVIZ, URL_EXPORT]:
+        try:
+            res = requests.get(url, timeout=10)
+            if res.status_code == 200 and len(res.content) > 50:
+                csv_text = res.content.decode("utf-8")
+                break
+            else:
+                last_error = f"Status Code: {res.status_code}"
+        except Exception as e:
+            last_error = str(e)
+            
+    if not csv_text:
+        return None, last_error
+
     try:
-        response = requests.get(CSV_URL, timeout=10)
-        if response.status_code != 200:
-            return None, f"Google Sheet एक्सेस नहीं हो पाई (Status: {response.status_code}). Kripya Sheet ko 'Anyone with link can view' karein."
-        
-        csv_text = response.content.decode("utf-8")
         df = pd.read_csv(io.StringIO(csv_text))
-        
-        # Column names clean karein
         df.columns = [str(c).strip() for c in df.columns]
         
-        # Khali rows aur 'Batch Times' wali rows filter karein
-        name_col = df.columns[0]
-        df = df[df[name_col].notna()]
-        df = df[~df[name_col].astype(str).str.lower().str.contains("batch time", na=False)]
-        df = df[df[name_col].astype(str).str.strip() != ""]
+        # Remove empty separator rows and batch headers
+        first_col = df.columns[0]
+        df = df[df[first_col].notna()]
+        df = df[~df[first_col].astype(str).str.lower().str.contains("batch time", na=False)]
+        df = df[df[first_col].astype(str).str.strip() != ""]
         return df, None
     except Exception as e:
         return None, str(e)
@@ -70,18 +84,19 @@ def search_student(query_text, df):
         
     search_term = " ".join(words)
     name_col = df.columns[0]
+    name_series = df[name_col].astype(str).str.strip().str.lower()
     
-    # 1. Exact match in Student Name column
-    matched = df[df[name_col].astype(str).str.strip().str.lower() == search_term]
+    # 1. Exact match
+    matched = df[name_series == search_term]
     
-    # 2. Contains match in Student Name
+    # 2. Contains match
     if matched.empty:
-        matched = df[df[name_col].astype(str).str.strip().str.lower().str.contains(search_term, regex=False, na=False)]
+        matched = df[name_series.str.contains(search_term, regex=False, na=False)]
         
-    # 3. Single word match (jaise sirf 'pooja' ya 'ramesh')
+    # 3. Individual word match
     if matched.empty:
         for w in words:
-            matched = df[df[name_col].astype(str).str.strip().str.lower().str.contains(w, regex=False, na=False)]
+            matched = df[name_series.str.contains(w, regex=False, na=False)]
             if not matched.empty:
                 break
                 
@@ -114,7 +129,7 @@ if query:
     
     with st.chat_message("assistant"):
         if err:
-            st.error(f"Sheet Error: {err}")
+            st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}). Kripya Sheet ke Share menu me jakar 'Anyone with the link' ko Viewer select karein.")
         elif is_generic_result_request(query):
             reply = "📋 Apna exam result dekhne ke liye kripya apna **Pura Naam (Student Name)** yahan type karein."
             st.write(reply)
@@ -142,7 +157,7 @@ if query:
                         {details_text}
 
                         Instructions:
-                        1. Display the student's name, exam course, theory marks, and practical marks in clean bullet points.
+                        1. Display the student's name, exam course, theory marks, and practical marks in neat bullet points.
                         2. Congratulate them on their score.
                         3. Reply politely in natural Hinglish.
                         """
