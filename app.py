@@ -126,7 +126,7 @@ with st.sidebar:
                     args=(actual_idx,)
                 )
         else:
-            st.caption("New chat lene ke baad yahan aakhri sawal dikhega.")
+            st.caption("No recent chats yet.")
             
     st.markdown("---")
     st.markdown("**📌 Quick Links:**")
@@ -138,7 +138,7 @@ st.title("🎓 Bctech AI Assistant")
 SHEET_ID = "1ES2A77U61GeS710Xfyc0dKIevUhzR2v7-aSjkr1R3tg"
 EXCEL_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
 
-# Load all sheets across the entire Google Spreadsheet file
+# Multi-sheet fetcher
 @st.cache_data(ttl=15)
 def load_all_sheets_data():
     try:
@@ -162,10 +162,10 @@ def load_all_sheets_data():
                         
             if combined_rows:
                 return pd.DataFrame(combined_rows), None
-    except Exception as e:
+    except Exception:
         pass
 
-    # Fallback to standard CSV export
+    # Fallback to standard CSV
     csv_url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
     try:
         res = requests.get(csv_url, timeout=10)
@@ -180,7 +180,17 @@ def load_all_sheets_data():
     except Exception as err:
         return None, str(err)
         
-    return None, "Sheet data fetch nahi ho paya"
+    return None, "Sheet data unavailable"
+
+# Strictly detect Gujarati
+def is_gujarati_input(text):
+    # Detect Gujarati script range
+    if any('\u0A80' <= ch <= '\u0AFF' for ch in text):
+        return True
+    # Detect common phonetic Gujarati keywords
+    guj_words = ["maru", "maro", "chhe", "che", "kem", "tamaro", "tamare", "jovu"]
+    words = text.lower().split()
+    return any(w in words for w in guj_words)
 
 def is_greeting(text):
     text_clean = text.lower().strip().replace("!", "").replace(".", "")
@@ -279,13 +289,17 @@ if query:
                 st.toast("Copied!", icon="📋")
 
     df_sheet, err = load_all_sheets_data()
+    user_wants_gujarati = is_gujarati_input(query)
     
     with st.chat_message("assistant"):
         if err:
             st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
         
         elif is_greeting(query):
-            reply = "Hello! Welcome to Bctech Computer Education. How can I help you today? 😊"
+            if user_wants_gujarati:
+                reply = "નમસ્તે! Bctech Computer Education માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+            else:
+                reply = "Hello! Welcome to Bctech Computer Education. How can I help you today? 😊"
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
             col_l, col_r = st.columns([0.85, 0.15])
@@ -295,13 +309,10 @@ if query:
                     st.toast("Copied!", icon="📋")
 
         elif check_is_branch_intent(query):
-            q_lower = query.lower()
-            if any(w in q_lower for w in ["ક્યાં", "સરનામું", "શાખા"]):
+            if user_wants_gujarati:
                 reply = f"Bctech Computer Education ની શાખા અને લોકેશનની સંપૂર્ણ વિગત માટે અહીં ક્લિક કરો:\n🔗 {BRANCH_LINK}"
-            elif any(w in q_lower for w in ["where", "location", "address"]):
-                reply = f"You can check the exact branch location and address details of Bctech Computer Education here:\n🔗 {BRANCH_LINK}"
             else:
-                reply = f"Bctech Computer Education ki branch aur location ki puri jankari ke liye kripya hamari website par visit karein:\n🔗 {BRANCH_LINK}"
+                reply = f"You can check the branch location and address details of Bctech Computer Education here:\n🔗 {BRANCH_LINK}"
             
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
@@ -312,104 +323,109 @@ if query:
                     st.toast("Copied!", icon="📋")
 
         else:
-            is_result_query = check_is_result_intent(query) or st.session_state.waiting_for_result_name
+            # Check student sheet records
+            matched_records = search_student_all_sheets(query, df_sheet)
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
             
-            if is_result_query:
-                matched_records = search_student_all_sheets(query, df_sheet)
-                
-                if matched_records:
-                    st.session_state.waiting_for_result_name = False
-                    details_text = ""
-                    for idx, record in enumerate(matched_records[:3], 1):
-                        sheet_name_found = record.get("_Sheet_Tab", "")
-                        details_text += f"\nStudent Record (Found in: {sheet_name_found}):\n"
-                        for k, v in record.items():
-                            if k != "_Sheet_Tab" and pd.notna(v) and str(v).strip() != "" and "unnamed" not in str(k).lower():
-                                details_text += f"- {k}: {v}\n"
+            if matched_records:
+                st.session_state.waiting_for_result_name = False
+                details_text = ""
+                for record in matched_records[:2]:
+                    sheet_tab = record.get("_Sheet_Tab", "")
+                    details_text += f"\nStudent Record ({sheet_tab}):\n"
+                    for k, v in record.items():
+                        if k != "_Sheet_Tab" and pd.notna(v) and str(v).strip() != "" and "unnamed" not in str(k).lower():
+                            details_text += f"- {k}: {v}\n"
 
-                    system_prompt = f"""
-                    You are the AI Assistant for Bctech Computer Education.
-                    Student Exam Record from file:
-                    {details_text}
+                system_prompt = f"""
+                You are the AI Assistant for Bctech Computer Education.
+                Verified Student Data from sheet:
+                {details_text}
 
-                    Instructions:
-                    1. Respond directly in the same language as user query (Gujarati, Hindi, or English).
-                    2. Keep student names and scores exact.
-                    3. Format details with concise bullet points (Name, Course, Theory Marks, Practical Marks).
-                    4. Congratulate them warmly in 1 short line.
-                    5. Output ONLY the final answer. NEVER output thinking process, notes, or analysis.
-                    """
+                LANGUAGE RULE:
+                - Target Language: {"GUJARATI" if user_wants_gujarati else "ENGLISH"}.
+                - Unless the user specifically wrote in Gujarati script, output 100% in pure, professional ENGLISH.
+                - Never output broken machine translation.
+
+                Format:
+                - Name: [Student Name]
+                - Exam / Course: [Course]
+                - Theory Marks: [Score]
+                - Practical Marks: [Score]
+                Add 1 short line congratulating them.
+                Output ONLY this result.
+                """
+            elif check_is_result_intent(query) or st.session_state.waiting_for_result_name:
+                st.session_state.waiting_for_result_name = True
+                if user_wants_gujarati:
+                    reply = "પરિણામ જોવા માટે કૃપા કરીને તમારું સાચું પૂરું નામ અહીં લખો."
                 else:
-                    st.session_state.waiting_for_result_name = True
-                    system_prompt = f"""
-                    You are the AI Assistant for Bctech Computer Education.
-                    The user wants to check an exam result, but no matching name was found in any sheet.
-                    Reply in 1 single short sentence asking for their full name in their language:
-                    - If Gujarati: "પરિણામ જોવા માટે કૃપા કરીને તમારું સાચું પૂરું નામ અહીં લખો."
-                    - If Hindi/Hinglish: "Apna result dekhne ke liye kripya apna pura naam yahan likhein."
-                    - If English: "Please type your full Student Name to check your exam result."
-                    Output ONLY this sentence.
-                    """
+                    reply = "Please enter your full Student Name to check your exam result."
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                system_prompt = None
             else:
                 system_prompt = f"""
-                You are the professional counselor for Bctech Computer Education.
+                You are the counselor for Bctech Computer Education.
+                
+                LANGUAGE RULE:
+                - Target Language: {"GUJARATI" if user_wants_gujarati else "ENGLISH"}.
+                - Unless user specifically typed in Gujarati script, reply strictly in ENGLISH.
                 
                 CRITICAL INSTRUCTIONS:
-                1. Give ONLY direct, final answer (2 to 4 sentences maximum).
-                2. If asked about BRANCH, LOCATION, or WHERE BCTECH IS, provide this link: {BRANCH_LINK}
-                3. NEVER output <think>, chain of thought, notes, or internal reasoning steps.
-                4. NEVER tell, estimate, or discuss any fees or pricing. Always direct to visit branch or check the website.
-                5. NEVER mention or use the word 'Free'.
-                6. Match the user's language strictly (Hindi/Hinglish, Gujarati, or English).
-                7. If user introduces their name, greet them in 1 short line.
+                1. Give direct, concise answer (2 to 4 sentences max).
+                2. If asked about BRANCH or LOCATION, provide this link: {BRANCH_LINK}
+                3. NEVER discuss or quote fees/pricing.
+                4. NEVER use the word 'Free'.
+                5. Output ONLY the answer without <think> or notes.
 
-                Institute Info:
+                Institute Details:
                 {KNOWLEDGE_BASE}
                 """
 
-            with st.spinner("Thinking..."):
-                try:
-                    models_resp = client.models.list()
-                    active_ids = [
-                        m.id for m in models_resp.data 
-                        if "whisper" not in m.id and "guard" not in m.id and "vision" not in m.id
-                    ]
-                    
-                    preferred = ["llama-3.1-8b-instant", "llama3-8b-8192", "gemma2-9b-it"]
-                    models_to_try = [m for m in preferred if m in active_ids] + [m for m in active_ids if m not in preferred]
+            if system_prompt:
+                with st.spinner("Thinking..."):
+                    try:
+                        models_resp = client.models.list()
+                        active_ids = [
+                            m.id for m in models_resp.data 
+                            if "whisper" not in m.id and "guard" not in m.id and "vision" not in m.id
+                        ]
+                        
+                        preferred = ["llama-3.1-8b-instant", "llama3-8b-8192", "gemma2-9b-it"]
+                        models_to_try = [m for m in preferred if m in active_ids] + [m for m in active_ids if m not in preferred]
 
-                    answer = None
-                    last_api_err = None
+                        answer = None
+                        last_api_err = None
 
-                    for m_name in models_to_try:
-                        try:
-                            chat_completion = client.chat.completions.create(
-                                messages=[
-                                    {"role": "system", "content": system_prompt},
-                                    {"role": "user", "content": query}
-                                ],
-                                model=m_name,
-                                temperature=0.3,
-                                max_tokens=350
-                            )
-                            raw_answer = chat_completion.choices[0].message.content
-                            answer = clean_ai_response(raw_answer)
-                            if answer:
-                                break
-                        except Exception as ex:
-                            last_api_err = str(ex)
-                            continue
-                    
-                    if answer:
-                        st.write(answer)
-                        st.session_state.messages.append({"role": "assistant", "content": answer})
-                        col_l, col_r = st.columns([0.85, 0.15])
-                        with col_r:
-                            if st.button("📋 Copy", key=f"copy_ast_curr_{len(st.session_state.messages)}"):
-                                st.code(answer, language=None)
-                                st.toast("Copied!", icon="📋")
-                    else:
-                        st.error(f"API Error: {last_api_err}")
-                except Exception as e:
-                    st.error(f"Error: {e}")
+                        for m_name in models_to_try:
+                            try:
+                                chat_completion = client.chat.completions.create(
+                                    messages=[
+                                        {"role": "system", "content": system_prompt},
+                                        {"role": "user", "content": query}
+                                    ],
+                                    model=m_name,
+                                    temperature=0.2,
+                                    max_tokens=350
+                                )
+                                raw_answer = chat_completion.choices[0].message.content
+                                answer = clean_ai_response(raw_answer)
+                                if answer:
+                                    break
+                            except Exception as ex:
+                                last_api_err = str(ex)
+                                continue
+                        
+                        if answer:
+                            st.write(answer)
+                            st.session_state.messages.append({"role": "assistant", "content": answer})
+                            col_l, col_r = st.columns([0.85, 0.15])
+                            with col_r:
+                                if st.button("📋 Copy", key=f"copy_ast_curr_{len(st.session_state.messages)}"):
+                                    st.code(answer, language=None)
+                                    st.toast("Copied!", icon="📋")
+                        else:
+                            st.error(f"API Error: {last_api_err}")
+                    except Exception as e:
+                        st.error(f"Error: {e}")
