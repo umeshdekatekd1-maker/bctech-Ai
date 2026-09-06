@@ -48,6 +48,7 @@ st.markdown("""
         color: #202124;
     }
     
+    /* Recent Button Styling */
     section[data-testid="stSidebar"] div[data-testid="stExpander"] .stButton>button {
         width: 100% !important;
         float: none !important;
@@ -195,10 +196,15 @@ def load_all_sheets_data():
                     
                     for _, row in clean_df.iterrows():
                         student_name = str(row[first_col]).strip()
+                        # Create unique name signature (sorted lower words) for flexible matching
+                        name_words = sorted(student_name.lower().split())
+                        name_signature = " ".join(name_words)
+
                         exam_val = str(row[second_col]).strip() if pd.notna(row[second_col]) else "Course"
                         
                         record = {
                             "Student_Name_Std": student_name,
+                            "Name_Signature_Std": name_signature,
                             "Exam_Std": exam_val,
                             "_Sheet_Tab": sheet_name
                         }
@@ -282,34 +288,34 @@ def check_is_branch_intent(text):
     ]
     return any(kw in text for kw in branch_keywords)
 
-# Searches across all sheets via the standardized Student_Name_Std column
+# Matches ONLY the specified name across all sheets with high flexibility (sorted word signatures)
 def search_student_all_sheets(query_text, df):
-    if df is None or df.empty or "Student_Name_Std" not in df.columns:
+    if df is None or df.empty or "Name_Signature_Std" not in df.columns:
         return []
     clean_q = query_text.strip().lower()
     fillers = [
-        "result", "marks", "kya", "hai", "check", "batao", "mera", "meri", "ka", "ki", 
+        "result", "marks", "marx", "kya", "hai", "check", "batao", "mera", "meri", "ka", "ki", 
         "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam", "name",
         "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo",
         "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ"
     ]
+    # Remove filler words to get only the name parts
     words = [w for w in clean_q.split() if w not in fillers and len(w) >= 2]
     if not words:
-        words = [clean_q]
+        return []
         
-    search_term = " ".join(words)
-    name_series = df["Student_Name_Std"].astype(str).str.strip().str.lower()
+    # Create the search signature from user input (sorted unique words)
+    user_search_signature = " ".join(sorted(list(set(words))))
     
-    # Check exact match first
-    matched = df[name_series == search_term]
+    # Check exact match on the Name_Signature_Std column
+    name_signatures = df["Name_Signature_Std"].astype(str)
+    matched = df[name_signatures == user_search_signature]
+    
+    # Final check on original standardized name in case sorted signature misses nuances
     if matched.empty:
-        matched = df[name_series.str.contains(search_term, regex=False, na=False)]
-    if matched.empty:
-        for w in words:
-            matched = df[name_series.str.contains(w, regex=False, na=False)]
-            if not matched.empty:
-                break
-                
+        search_term_original = " ".join(words)
+        matched = df[df["Student_Name_Std"].astype(str).str.lower().str.strip() == search_term_original]
+
     if not matched.empty:
         return matched.to_dict(orient="records")
     return []
@@ -382,7 +388,7 @@ if query:
         # 2. Greeting Handler
         elif is_greeting(query):
             if user_wants_gujarati:
-                reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે मदद करी शकूं? 😊"
             else:
                 reply = "Hello! Welcome to BC Tech Computer Education. How can I help you today? 😊"
             st.write(reply)
@@ -408,7 +414,7 @@ if query:
                     st.code(reply, language=None)
                     st.toast("Copied!", icon="📋")
 
-        # 4. Sheet Result Search across ALL Sheets
+        # 4. Sheet Result Search ONLY for the matched student name
         else:
             matched_records = search_student_all_sheets(query, df_sheet)
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
@@ -419,18 +425,22 @@ if query:
                 st.session_state.waiting_for_result_name = False
                 
                 details_text = ""
+                # Add Sheet Header with unique exam names
+                found_exams = list(set([r.get("Exam_Std", "") for r in matched_records]))
+                found_name = matched_records[0].get("Student_Name_Std", "")
+                
+                details_text += f"\nStudent Records Found for: {found_name}\n"
+                details_text += f"Exams: {', '.join(found_exams)}\n"
+
                 for i, record in enumerate(matched_records, 1):
                     sheet_tab = record.get("_Sheet_Tab", f"Sheet {i}")
-                    s_name = record.get("Student_Name_Std", "")
                     s_exam = record.get("Exam_Std", "")
                     
                     details_text += f"\n--- Record {i} (Exam: {s_exam} | Sheet: {sheet_tab}) ---\n"
-                    details_text += f"Student Name: {s_name}\n"
-                    details_text += f"Exam Name: {s_exam}\n"
                     
                     for k, v in record.items():
-                        if k not in ["Student_Name_Std", "Exam_Std", "_Sheet_Tab"]:
-                            details_text += f"{k}: {v}\n"
+                        if k not in ["Name_Signature_Std", "Exam_Std", "_Sheet_Tab", "Student_Name_Std"]:
+                            details_text += f"- {k}: {v}\n"
 
                 system_prompt = f"""
                 You are the AI Assistant for BC Tech Computer Education.
@@ -438,22 +448,23 @@ if query:
                 {details_text}
 
                 MANDATORY INSTRUCTIONS:
-                - There are {len(matched_records)} distinct exam record(s) found for this student.
+                - There are {len(matched_records)} distinct exam record(s) found for THIS student only.
                 - YOU MUST DISPLAY EVERY SINGLE RECORD ({len(matched_records)} records) clearly with separate headings.
-                - Never skip any record. Show Record 1, Record 2, etc. with their respective Exam names.
+                - Do not mix data. Record 1, Record 2, etc. must show their respective Exam names.
 
                 LANGUAGE RULE:
                 - Target Language: {"GUJARATI" if user_wants_gujarati else "ENGLISH"}.
                 - Unless user specifically typed in Gujarati script, output 100% in pure, professional ENGLISH.
 
-                Output Format for EACH record:
+                Output Format for EACH record found:
                 📌 Record [Number]: [Exam Name]
-                - Name: [Student Name]
+                - Name: {found_name}
                 - Exam / Course: [Exam Name]
                 - Scores / Marks: [List all theory & practical marks found]
                 - Result: Pass
 
-                Add 1 brief congratulatory line at the very end.
+                Add 1 brief congratulatory/encouraging line at the very end.
+                Output ONLY the result.
                 """
             elif check_is_result_intent(query) or st.session_state.waiting_for_result_name:
                 st.session_state.waiting_for_result_name = True
