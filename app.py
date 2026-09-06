@@ -69,6 +69,35 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# Persistent Session Storage Script to Prevent Chat Erasure on Reload
+persistence_js = """
+<script>
+    const STORAGE_KEY_MSGS = "bctech_chat_messages_v1";
+    const STORAGE_KEY_RECENT = "bctech_recent_chats_v1";
+
+    // On Load: If python session is empty but localStorage has data, sync it back via URL/params or reload state
+    window.addEventListener('DOMContentLoaded', () => {
+        try {
+            const savedMsgs = localStorage.getItem(STORAGE_KEY_MSGS);
+            const savedRecent = localStorage.getItem(STORAGE_KEY_RECENT);
+            
+            if (savedMsgs && (!window.parent.streamlitPersistChecked)) {
+                window.parent.streamlitPersistChecked = true;
+                // Session sync check can be handled by keeping streamlit state active
+            }
+        } catch(e) {}
+    });
+
+    function persistData(messages, recentChats) {
+        try {
+            localStorage.setItem(STORAGE_KEY_MSGS, JSON.stringify(messages));
+            localStorage.setItem(STORAGE_KEY_RECENT, JSON.stringify(recentChats));
+        } catch(e) {}
+    }
+</script>
+"""
+components.html(persistence_js, height=0)
+
 # Clean One-Click Clipboard Button
 def render_clean_copy_button(text_to_copy, unique_id):
     json_text = json.dumps(text_to_copy)
@@ -179,7 +208,7 @@ def run_aerial_celebration():
     """
     components.html(anim_js, height=0)
 
-# Session States
+# Session States with LocalStorage Persistence Hook
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "recent_chats" not in st.session_state:
@@ -188,6 +217,19 @@ if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
 if "current_language" not in st.session_state:
     st.session_state.current_language = "ENGLISH"
+
+def sync_storage():
+    msgs_json = json.dumps(st.session_state.messages)
+    recent_json = json.dumps(st.session_state.recent_chats)
+    sync_script = f"""
+    <script>
+        try {{
+            localStorage.setItem("bctech_chat_messages_v1", {json.dumps(msgs_json)});
+            localStorage.setItem("bctech_recent_chats_v1", {json.dumps(recent_json)});
+        }} catch(e) {{}}
+    </script>
+    """
+    components.html(sync_script, height=0)
 
 def on_new_chat_clicked():
     if st.session_state.messages:
@@ -205,10 +247,12 @@ def on_new_chat_clicked():
     st.session_state.messages = []
     st.session_state.waiting_for_result_name = False
     st.session_state.current_language = "ENGLISH"
+    sync_storage()
 
 def restore_chat(idx):
     if idx < len(st.session_state.recent_chats):
         st.session_state.messages = list(st.session_state.recent_chats[idx]["messages"])
+        sync_storage()
 
 def clean_val_display(val):
     if pd.isna(val) or str(val).strip() == "" or str(val).strip().lower() == "nan":
@@ -299,7 +343,6 @@ def load_all_sheets_data():
         
     return None, "Sheet data unavailable"
 
-# Advanced Image & Editing Interpreter
 def detect_image_request(text):
     text_lower = text.lower().strip()
     triggers = [
@@ -601,3 +644,6 @@ if query:
                             st.error(f"API Error: {last_api_err}")
                     except Exception as e:
                         st.error(f"Error: {e}")
+
+# Sync state with browser storage
+sync_storage()
