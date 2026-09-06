@@ -3,6 +3,7 @@ from groq import Groq
 import pandas as pd
 import requests
 import io
+import re
 
 st.set_page_config(page_title="Bctech AI Assistant", layout="centered", initial_sidebar_state="collapsed")
 
@@ -120,6 +121,14 @@ def search_student(query_text, df):
         return matched.to_dict(orient="records")
     return []
 
+# Strip <think> tags completely
+def clean_ai_response(text):
+    if not text:
+        return ""
+    cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+    cleaned = re.sub(r"<think>.*", "", cleaned, flags=re.DOTALL)
+    return cleaned.strip()
+
 KNOWLEDGE_BASE = """
 About Bctech Computer Education:
 - Institute: Bctech Computer Education (Website: https://sites.google.com/view/bctechcomputer)
@@ -160,7 +169,6 @@ if query:
         if err:
             st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
         
-        # 1. Immediate Short Reply for simple Hi / Hello
         elif is_greeting(query):
             reply = "Hello! Welcome to Bctech Computer Education. How can I help you today? 😊"
             st.write(reply)
@@ -193,14 +201,15 @@ if query:
                     {details_text}
 
                     Instructions:
-                    1. Respond strictly in the same language as the user query (Gujarati, Hindi, or English). Keep it brief and clear.
-                    2. Keep student names exact. Never output broken or corrupted unicode characters.
+                    1. Respond directly in the same language as the user query (Gujarati, Hindi, or English).
+                    2. Keep student names exact without corrupting characters.
                     3. Format details with concise bullet points:
                        - Name
                        - Exam Course
                        - Theory Marks
                        - Practical Marks
                     4. Congratulate them in 1 short line.
+                    5. Output ONLY the final answer. NEVER output thinking process, notes, or analysis.
                     """
                 else:
                     st.session_state.waiting_for_result_name = True
@@ -211,17 +220,19 @@ if query:
                     - If Gujarati: "પરિણામ જોવા માટે કૃપા કરીને તમારું સાચું પૂરું નામ અહીં લખો."
                     - If Hindi/Hinglish: "Apna result dekhne ke liye kripya apna pura naam yahan likhein."
                     - If English: "Please type your full Student Name to check your exam result."
+                    Output ONLY this sentence.
                     """
             else:
                 system_prompt = f"""
                 You are the professional counselor for Bctech Computer Education.
                 
                 CRITICAL INSTRUCTIONS:
-                1. Keep your answers BRIEF, DIRECT, and to the point (2 to 4 sentences maximum). Do not write long paragraphs.
-                2. NEVER tell, estimate, or discuss any fees or pricing. Always say to contact branch directly.
-                3. NEVER mention or use the word 'Free'.
-                4. Match the user's language strictly (English, Hindi, or Gujarati). Never mix languages.
-                5. If user introduces their name, greet them in only 1 friendly line.
+                1. Give ONLY direct, final answer (2 to 4 sentences maximum).
+                2. NEVER output <think>, chain of thought, notes, or internal reasoning steps.
+                3. NEVER tell, estimate, or discuss any fees or pricing. Always direct to branch contact.
+                4. NEVER mention or use the word 'Free'.
+                5. Match the user's language strictly (Hindi/Hinglish, Gujarati, or English).
+                6. If user introduces their name, greet them in 1 short line.
 
                 Institute Info:
                 {KNOWLEDGE_BASE}
@@ -229,13 +240,11 @@ if query:
 
             with st.spinner("Thinking..."):
                 try:
-                    models_resp = client.models.list()
-                    live_models = [m.id for m in models_resp.data if "whisper" not in m.id and "guard" not in m.id]
-                    preferred = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
-                    candidate_models = [m for m in preferred if m in live_models] + [m for m in live_models if m not in preferred]
+                    # Non-reasoning standard models
+                    models_to_try = ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"]
 
                     answer = None
-                    for m_name in candidate_models:
+                    for m_name in models_to_try:
                         try:
                             chat_completion = client.chat.completions.create(
                                 messages=[
@@ -243,10 +252,11 @@ if query:
                                     {"role": "user", "content": query}
                                 ],
                                 model=m_name,
-                                temperature=0.2,
-                                max_tokens=250
+                                temperature=0.3,
+                                max_tokens=300
                             )
-                            answer = chat_completion.choices[0].message.content
+                            raw_answer = chat_completion.choices[0].message.content
+                            answer = clean_ai_response(raw_answer)
                             if answer:
                                 break
                         except Exception:
