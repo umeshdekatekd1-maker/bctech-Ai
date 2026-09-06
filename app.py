@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Modern Chat Bubbles Styling (User on Right, AI on Left)
+# Custom Modern Chat Bubbles Styling (User Right, AI Left)
 st.markdown("""
 <style>
     #MainMenu, footer {visibility: hidden;}
@@ -34,14 +34,13 @@ st.markdown("""
         border-color: #4285F4 !important;
     }
     
-    /* Streamlit Chat Message alignment modifications */
-    /* User Message Container */
-    [data-testid="stChatMessage"]:has(div.st-emotion-cache-1c7y2kd) {
+    /* Target User messages to align to Right */
+    [data-testid="stChatMessage"]:has(div.st-emotion-cache-1c7y2kd),
+    [data-testid="stChatMessage"]:has(img[alt="user"]) {
         flex-direction: row-reverse;
         text-align: right;
     }
     
-    /* General message bubble layout adjustments */
     [data-testid="stChatMessage"] {
         padding: 1rem;
         border-radius: 12px;
@@ -88,8 +87,8 @@ st.markdown("""
 def render_persistence_script():
     persistence_js = """
     <script>
-        const STORAGE_KEY_MSGS = "bctech_chat_messages_v7";
-        const STORAGE_KEY_RECENT = "bctech_recent_chats_v7";
+        const STORAGE_KEY_MSGS = "bctech_chat_messages_v8";
+        const STORAGE_KEY_RECENT = "bctech_recent_chats_v8";
 
         window.addEventListener('DOMContentLoaded', () => {
             try {
@@ -523,7 +522,7 @@ About Bctech Computer Education:
 - Popular Courses: Basic Computer Course, Graphic Designing (CorelDraw, Photoshop, Illustrator), Accounting & Tally Prime, Web Development, Programming (Python, C++), Digital Marketing, Advanced Excel.
 """
 
-# Render chat history with explicit user/assistant styling
+# Render chat history with explicit user/assistant styling (User right, AI left)
 for idx, msg in enumerate(st.session_state.messages):
     is_user = (msg["role"] == "user")
     with st.chat_message(msg["role"], avatar="👤" if is_user else "🤖"):
