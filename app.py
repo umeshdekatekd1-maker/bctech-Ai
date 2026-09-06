@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Modern Chat Bubbles Styling (User Right, AI Left with distinct spacing)
+# Custom Modern Chat Bubbles & Persistence Styles
 st.markdown("""
 <style>
     #MainMenu, footer {visibility: hidden;}
@@ -83,25 +83,64 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Persistence Script
-def render_persistence_script():
-    persistence_js = """
-    <script>
-        const STORAGE_KEY_MSGS = "bctech_chat_messages_v9";
-        const STORAGE_KEY_RECENT = "bctech_recent_chats_v9";
+# Session States initialization
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "recent_chats" not in st.session_state:
+    st.session_state.recent_chats = []
+if "waiting_for_result_name" not in st.session_state:
+    st.session_state.waiting_for_result_name = False
+if "current_language" not in st.session_state:
+    st.session_state.current_language = "ENGLISH"
 
-        window.addEventListener('DOMContentLoaded', () => {
-            try {
-                const savedMsgs = localStorage.getItem(STORAGE_KEY_MSGS);
-                const savedRecent = localStorage.getItem(STORAGE_KEY_RECENT);
-                if (savedMsgs && (!window.parent.sessionRestored)) {
-                    window.parent.sessionRestored = true;
-                }
-            } catch(e) {}
-        });
+# Bulletproof LocalStorage Sync Component
+def render_localstorage_persistence():
+    msgs_json = json.dumps(st.session_state.messages)
+    recent_json = json.dumps(st.session_state.recent_chats)
+    
+    persistence_html = f"""
+    <html>
+    <body>
+    <script>
+        const STORAGE_KEY_MSGS = "bctech_persistent_msgs_v10";
+        const STORAGE_KEY_RECENT = "bctech_persistent_recent_v10";
+
+        // Save current session to localStorage
+        try {{
+            localStorage.setItem(STORAGE_KEY_MSGS, {json.dumps(msgs_json)});
+            localStorage.setItem(STORAGE_KEY_RECENT, {json.dumps(recent_json)});
+        }} catch(e) {{}}
     </script>
+    </body>
+    </html>
     """
-    components.html(persistence_js, height=0)
+    components.html(persistence_html, height=0)
+
+# Check if we need to restore from localStorage on first load via query params or initialization
+if "restored_from_storage" not in st.session_state:
+    st.session_state.restored_from_storage = False
+
+restore_js = """
+<script>
+    const STORAGE_KEY_MSGS = "bctech_persistent_msgs_v10";
+    const STORAGE_KEY_RECENT = "bctech_persistent_recent_v10";
+    
+    try {
+        const savedMsgs = localStorage.getItem(STORAGE_KEY_MSGS);
+        const savedRecent = localStorage.getItem(STORAGE_KEY_RECENT);
+        
+        if (savedMsgs && (!window.parent.alreadyRestored)) {
+            window.parent.alreadyRestored = true;
+            // If python state is empty but storage has data, push to URL params to reload state
+            const urlParams = new URLSearchParams(window.parent.location.search);
+            if (!urlParams.has('restored')) {
+                window.parent.location.search = "?restored=true";
+            }
+        }
+    } catch(e) {}
+</script>
+"""
+components.html(restore_js, height=0)
 
 # Clean One-Click Clipboard Button
 def render_clean_copy_button(text_to_copy, unique_id):
@@ -279,18 +318,6 @@ def run_aerial_celebration():
     </script>
     """
     components.html(anim_js, height=0)
-
-# Session States initialization
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "recent_chats" not in st.session_state:
-    st.session_state.recent_chats = []
-if "waiting_for_result_name" not in st.session_state:
-    st.session_state.waiting_for_result_name = False
-if "current_language" not in st.session_state:
-    st.session_state.current_language = "ENGLISH"
-
-render_persistence_script()
 
 def on_new_chat_clicked():
     if st.session_state.messages:
@@ -708,3 +735,6 @@ if query:
                             st.error(f"API Error: {last_api_err}")
                     except Exception as e:
                         st.error(f"Error: {e}")
+
+# Trigger LocalStorage sync to keep messages persistent across refreshes
+render_localstorage_persistence()
