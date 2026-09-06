@@ -30,11 +30,6 @@ st.markdown("""
         background-color: #f8f9fa;
         color: #3c4043;
     }
-    .stButton>button:hover {
-        background-color: #f1f3f4;
-        border-color: #dadce0;
-        color: #202124;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -48,7 +43,6 @@ URL_EXPORT = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=c
 def load_sheet_data():
     csv_text = None
     last_error = None
-    
     for url in [URL_GVIZ, URL_EXPORT]:
         try:
             res = requests.get(url, timeout=10)
@@ -66,7 +60,6 @@ def load_sheet_data():
     try:
         df = pd.read_csv(io.StringIO(csv_text))
         df.columns = [str(c).strip() for c in df.columns]
-        
         first_col = df.columns[0]
         df = df[df[first_col].notna()]
         df = df[~df[first_col].astype(str).str.lower().str.contains("batch time", na=False)]
@@ -75,27 +68,26 @@ def load_sheet_data():
     except Exception as e:
         return None, str(e)
 
-def is_generic_result_request(text):
-    text = text.lower().strip()
+# Check if query asks for result
+def check_is_result_intent(text):
+    text = text.lower()
     keywords = [
-        "result check", "check result", "result dekhna", "result dekhna hai", "marks dekhna", 
-        "result batao", "result", "exam result", "marks", "પરિણામ", "રિઝલ્ટ", "રીઝલ્ટ", 
-        "માર્ક્સ", "રિઝલ્ટ ચેક", "પરિણામ જોવું છે"
+        "result", "marks", "marx", "score", "grade", "pass", "fail", 
+        "પરિણામ", "રિઝલ્ટ", "રીઝલ્ટ", "માર્ક્સ", "નંબર"
     ]
     return any(kw in text for kw in keywords)
 
 def search_student(query_text, df):
     if df is None or df.empty:
         return []
-    
     clean_q = query_text.strip().lower()
     fillers = [
         "result", "marks", "kya", "hai", "check", "batao", "mera", "meri", "ka", "ki", 
         "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam", "name",
-        "chhe", "che", "maru", "maro", "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું"
+        "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo",
+        "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ"
     ]
     words = [w for w in clean_q.split() if w not in fillers and len(w) >= 2]
-    
     if not words:
         words = [clean_q]
         
@@ -103,14 +95,9 @@ def search_student(query_text, df):
     name_col = df.columns[0]
     name_series = df[name_col].astype(str).str.strip().str.lower()
     
-    # 1. Exact match
     matched = df[name_series == search_term]
-    
-    # 2. Contains match
     if matched.empty:
         matched = df[name_series.str.contains(search_term, regex=False, na=False)]
-        
-    # 3. Individual word match
     if matched.empty:
         for w in words:
             matched = df[name_series.str.contains(w, regex=False, na=False)]
@@ -124,26 +111,27 @@ def search_student(query_text, df):
 KNOWLEDGE_BASE = """
 About Bctech Computer Education:
 - Institute: Bctech Computer Education (Website: https://sites.google.com/view/bctechcomputer)
-- Main Offerings: Professional computer training, practical practical-oriented learning, ISO certified courses, job assistance.
+- Main Offerings: Professional computer training, practical learning, ISO certified courses, job assistance.
 - Popular Courses: Basic Computer Course, Graphic Designing (CorelDraw, Photoshop, Illustrator), Accounting & Tally Prime, Web Development, Programming (Python, C++), Digital Marketing, Advanced Excel.
 """
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "waiting_for_result_name" not in st.session_state:
+    st.session_state.waiting_for_result_name = False
 
-# Show previous messages with copy button
+# Render conversation history with copy button
 for idx, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
         if msg["role"] == "assistant":
-            col1, _ = st.columns([0.2, 0.8])
-            with col1:
-                # Copy trigger using code block helper
+            col_b, _ = st.columns([0.2, 0.8])
+            with col_b:
                 if st.button("📋 Copy", key=f"copy_hist_{idx}"):
                     st.code(msg["content"], language=None)
-                    st.toast("Text box me copy karne ke liye ready hai!", icon="📋")
+                    st.toast("Copied to clipboard!", icon="📋")
 
-query = st.chat_input("🔍 Type your question or Student Name here...")
+query = st.chat_input("🔍 Yahan apna sawal likhein / અહીં તમારો પ્રશ્ન લખો...")
 
 if query:
     st.session_state.messages.append({"role": "user", "content": query})
@@ -155,106 +143,100 @@ if query:
     with st.chat_message("assistant"):
         if err:
             st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
-        elif is_generic_result_request(query) and len(query.strip().split()) <= 3 and not search_student(query, df_sheet):
-            reply = "📋 **Result Check:**\n- **Hindi/Hinglish:** Apna result dekhne ke liye kripya apna **Pura Naam (Student Name)** yahan type karein.\n- **ગુજરાતી:** તમારું પરિણામ જોવા માટે કૃપા કરીને તમારું **પૂરું નામ** અહીં લખો.\n- **English:** Please enter your **Full Student Name** to check your exam result."
-            st.write(reply)
-            st.session_state.messages.append({"role": "assistant", "content": reply})
         else:
-            matched_records = search_student(query, df_sheet)
+            is_result_query = check_is_result_intent(query) or st.session_state.waiting_for_result_name
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
             
+            # Case 1: Student is asking for exam result
+            if is_result_query:
+                matched_records = search_student(query, df_sheet)
+                
+                if matched_records:
+                    st.session_state.waiting_for_result_name = False
+                    details_text = ""
+                    for idx, record in enumerate(matched_records[:2], 1):
+                        details_text += f"\nStudent Record:\n"
+                        for k, v in record.items():
+                            if pd.notna(v) and str(v).strip() != "" and "unnamed" not in str(k).lower():
+                                details_text += f"- {k}: {v}\n"
+
+                    system_prompt = f"""
+                    You are the AI Assistant for Bctech Computer Education.
+                    Student Exam Record:
+                    {details_text}
+
+                    Instructions:
+                    1. Detect the user's language (Gujarati, Hindi, or English) and reply in that same language.
+                    2. IMPORTANT: Keep English student names and numbers exact. Do NOT corrupt characters or generate . Write names cleanly (e.g., 'Ganesh' or 'ગણેશ').
+                    3. Format details clearly with bullet points:
+                       - Name
+                       - Exam Course
+                       - Theory Marks
+                       - Practical Marks
+                    4. Congratulate them politely.
+                    """
+                else:
+                    # User asked for result but didn't provide name yet, or name wasn't found
+                    st.session_state.waiting_for_result_name = True
+                    system_prompt = f"""
+                    You are the AI Assistant for Bctech Computer Education.
+                    The user wants to check an exam result, but no matching name was found in the sheet.
+                    
+                    Instructions:
+                    - If user spoke Gujarati: "પરિણામ જોવા માટે કૃપા કરીને તમારું સાચું પૂરું નામ (Student Name) અહીં લખો."
+                    - If user spoke Hindi/Hinglish: "Apna exam result dekhne ke liye kripya apna sahi Pura Naam (Student Name) yahan type karein."
+                    - If user spoke English: "Please type your full Student Name to check your exam result."
+                    """
+            else:
+                # Case 2: Normal conversation or introduction (NOT a result request)
+                system_prompt = f"""
+                You are the professional counselor for Bctech Computer Education institute.
+                
+                STRICT RESTRICTIONS:
+                1. NEVER tell, estimate, or discuss any fees or pricing. Always say to contact branch directly.
+                2. NEVER mention or use the word 'Free'.
+                3. DO NOT SHOW ANY EXAM RESULTS OR MARKS here.
+                4. If the user introduces themselves (e.g., 'maru name ... chhe', 'mera naam ... hai', 'my name is ...'), greet them politely and warmly in THAT SAME LANGUAGE (Gujarati, Hindi, or English) in 1-2 friendly sentences and ask how you can assist them today.
+                5. Output only clean, proper text without corrupted characters ().
+
+                Institute Info:
+                {KNOWLEDGE_BASE}
+                """
+
             with st.spinner("Processing..."):
                 try:
-                    if matched_records:
-                        details_text = ""
-                        for idx, record in enumerate(matched_records[:3], 1):
-                            details_text += f"\n--- Student Record {idx} ---\n"
-                            for k, v in record.items():
-                                if pd.notna(v) and str(v).strip() != "" and "unnamed" not in str(k).lower():
-                                    details_text += f"{k}: {v}\n"
-
-                        system_prompt = f"""
-                        You are the professional AI Assistant for Bctech Computer Education.
-                        Verified exam record from sheet:
-                        {details_text}
-
-                        STRICT LANGUAGE RULE:
-                        - If the user wrote in Gujarati (or Gujarati script/words like 'kem chho', 'naam'), reply 100% in natural, pure GUJARATI.
-                        - If the user wrote in Hindi or Hinglish, reply 100% in natural, polite HINDI/HINGLISH.
-                        - If the user wrote in English, reply 100% in professional, clear ENGLISH.
-                        - Never mix multiple languages or output broken words.
-
-                        Format:
-                        - Display marks in clear bullet points (Student Name, Exam Course, Theory Marks, Practical Marks).
-                        - Congratulate them warmly.
-                        """
-                    else:
-                        system_prompt = f"""
-                        You are the professional counselor for Bctech Computer Education.
-                        
-                        CRITICAL RESTRICTIONS:
-                        1. NEVER tell, estimate, or discuss any COURSE FEES or charges.
-                           - If asked in Hindi/Hinglish: "Fees ki jankari ke liye kripya direct institute branch par visit karein ya diye gaye number par call/WhatsApp karein."
-                           - If asked in Gujarati: "ફી અંગેની સંપૂર્ણ માહિતી માટે કૃપા કરીને રૂબરૂ સંસ્થાની મુલાકાત લો અથવા સંપર્ક નંબર પર કોલ/વોટ્સએપ કરો."
-                           - If asked in English: "For complete details regarding course fees, please visit our institute branch directly or contact us via call/WhatsApp."
-                        2. NEVER mention or use the word 'Free'.
-                        3. If user introduces themselves (e.g. 'mera naam ...', 'maru name ...', 'my name is ...'), greet them politely in 1-2 lines in THAT SAME LANGUAGE and ask how you can assist.
-                        4. If user searched for an exam result and the name was not found:
-                           - In Hindi: "Ye naam result sheet me nahi mila. Kripya sahi spelling check karein."
-                           - In Gujarati: "આ નામ રીઝલ્ટ શીટમાં મળ્યું નથી. કૃપા કરીને સ્પેલિંગ ચેક કરો."
-                           - In English: "This name was not found in the result sheet. Please verify the spelling."
-                        
-                        STRICT LANGUAGE MATCHING:
-                        - User asks in English -> Respond entirely in polished English.
-                        - User asks in Hindi/Hinglish -> Respond entirely in polite Hindi/Hinglish.
-                        - User asks in Gujarati -> Respond entirely in pure Gujarati.
-                        - Do NOT mix scripts or output corrupted tokens.
-                        
-                        Institute Information:
-                        {KNOWLEDGE_BASE}
-                        """
-
-                    # Fetch currently live active chat models from Groq API directly
                     models_resp = client.models.list()
-                    live_models = [
-                        m.id for m in models_resp.data 
-                        if "whisper" not in m.id and "guard" not in m.id and "vision" not in m.id
-                    ]
-                    
-                    preferred_order = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "gemma2-9b-it"]
-                    sorted_models = [m for m in preferred_order if m in live_models] + [m for m in live_models if m not in preferred_order]
+                    live_models = [m.id for m in models_resp.data if "whisper" not in m.id and "guard" not in m.id]
+                    preferred = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+                    candidate_models = [m for m in preferred if m in live_models] + [m for m in live_models if m not in preferred]
 
                     answer = None
-                    last_api_err = None
-                    for model_name in sorted_models:
+                    for m_name in candidate_models:
                         try:
                             chat_completion = client.chat.completions.create(
                                 messages=[
                                     {"role": "system", "content": system_prompt},
                                     {"role": "user", "content": query}
                                 ],
-                                model=model_name,
-                                temperature=0.3,
-                                max_tokens=450
+                                model=m_name,
+                                temperature=0.2,
+                                max_tokens=400
                             )
                             answer = chat_completion.choices[0].message.content
                             if answer:
                                 break
-                        except Exception as ex:
-                            last_api_err = ex
+                        except Exception:
                             continue
                     
                     if answer:
                         st.write(answer)
                         st.session_state.messages.append({"role": "assistant", "content": answer})
-                        
-                        # Copy button for the latest answer
                         col_btn, _ = st.columns([0.2, 0.8])
                         with col_btn:
                             if st.button("📋 Copy", key=f"copy_latest_{len(st.session_state.messages)}"):
                                 st.code(answer, language=None)
-                                st.toast("Text copy karne ke liye ready hai!", icon="📋")
+                                st.toast("Copied to clipboard!", icon="📋")
                     else:
-                        st.error(f"Groq API Error: {last_api_err}")
+                        st.error("Filhal AI uplabdh nahi hai. Thodi der baad prayas karein.")
                 except Exception as e:
                     st.error(f"Error: {e}")
