@@ -25,71 +25,76 @@ st.markdown("""
 
 st.title("🎓 Bctech AI Assistant")
 
-# Aapki Google Sheet ka live data link
 SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1ES2A77U61GeS710Xfyc0dKIevUhzR2v7-aSjkr1R3tg/gviz/tq?tqx=out:csv"
 
 @st.cache_data(ttl=15)
 def load_sheet_data():
     try:
+        # Load CSV and clean columns
         df = pd.read_csv(SHEET_CSV_URL)
         df.columns = [str(c).strip() for c in df.columns]
-        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+        # Ignore empty or separator rows like 'Batch Times'
+        first_col = df.columns[0]
+        df = df[df[first_col].notna()]
+        df = df[~df[first_col].astype(str).str.lower().str.contains("batch time", na=False)]
         return df
     except Exception:
         return None
 
-# Check if student is asking generally to check result
 def is_generic_result_request(text):
     text = text.lower().strip()
     keywords = ["result check", "check result", "result dekhna", "result dekhna hai", "marks dekhna", "result batao", "result", "exam result", "marks"]
     return any(text == kw or text.replace(" ", "") == kw.replace(" ", "") for kw in keywords)
 
-# Sirf Name se khojne ka smart search function
 def search_student_by_name(query_text, df):
     if df is None or df.empty:
         return []
     
     clean_q = query_text.strip().lower()
-    stop_words = {"result", "marks", "kya", "hai", "check", "batao", "mera", "meri", "ka", "ki", "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam"}
+    # Remove conversation filler words, but KEEP names
+    fillers = ["result", "marks", "kya", "hai", "check", "batao", "mera", "meri", "ka", "ki", "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam"]
+    words = [w for w in clean_q.split() if w not in fillers and len(w) >= 2]
     
-    words = [w for w in clean_q.split() if w not in stop_words and len(w) >= 2]
     if not words:
-        return []
+        words = [clean_q]
 
-    matched_indices = set()
-    full_name_query = " ".join(words)
+    search_term = " ".join(words)
+    first_col = df.columns[0] # Student Name column
 
-    # 1. Sheet ke har column me pura naam check karna
-    for col in df.columns:
-        col_series = df[col].astype(str).str.strip().str.lower()
-        hits = df[col_series == full_name_query].index
-        matched_indices.update(hits)
+    # 1. Direct name match in first column (Student Name)
+    name_series = df[first_col].astype(str).str.strip().str.lower()
+    
+    # Exact full name match
+    matched = df[name_series == search_term]
+    
+    # Partial / First name match if exact not found
+    if matched.empty:
+        for w in words:
+            matched = df[name_series.str.contains(w, regex=False, na=False)]
+            if not matched.empty:
+                break
+                
+    # Fallback: Search in entire table
+    if matched.empty:
+        for col in df.columns:
+            matched = df[df[col].astype(str).str.strip().str.lower().str.contains(search_term, regex=False, na=False)]
+            if not matched.empty:
+                break
 
-    # 2. Agar pura naam na mile to first name ya single word match karna
-    if not matched_indices:
-        for word in words:
-            for col in df.columns:
-                col_series = df[col].astype(str).str.strip().str.lower()
-                hits = df[col_series.str.contains(word, regex=False, na=False)].index
-                matched_indices.update(hits)
-
-    if matched_indices:
-        results_df = df.loc[list(matched_indices)]
-        return results_df.dropna(how='all').to_dict(orient="records")
+    if not matched.empty:
+        return matched.dropna(how="all").to_dict(orient="records")
     return []
 
-# Website Knowledge Base
 KNOWLEDGE_BASE = """
 About Bctech Computer Education:
 - Institute: Bctech Computer Education (Website: https://sites.google.com/view/bctechcomputer)
-- Main Offerings: Professional computer training, practical practical-oriented learning, ISO certified courses, job assistance.
-- Popular Courses: Basic Computer Course, Graphic Designing (CorelDraw, Photoshop, Illustrator), Accounting & Tally Prime, Web Development, Programming (Python, C++), Digital Marketing, Advanced Excel.
+- Main Offerings: Professional computer training, practical learning, ISO certified courses, job assistance.
+- Popular Courses: Basic Computer Course, Graphic Designing, Accounting & Tally Prime, Web Development, Programming (Python, C++), Digital Marketing, Advanced Excel.
 """
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Show previous history
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
@@ -104,13 +109,11 @@ if query:
     df_sheet = load_sheet_data()
     
     with st.chat_message("assistant"):
-        # Step 1: Agar koi sirf "result check" likhe
         if is_generic_result_request(query):
-            reply = "📋 Apna exam result dekhne ke liye kripya apna **Pura Naam (Full Name)** yahan type karein."
+            reply = "📋 Apna exam result dekhne ke liye kripya apna **Pura Naam (Student Name)** yahan type karein."
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
         else:
-            # Step 2: Sheet me Name search karna
             matched_records = search_student_by_name(query, df_sheet)
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
             
@@ -129,14 +132,13 @@ if query:
 
                         system_prompt = f"""
                         You are the AI Assistant for Bctech Computer Education.
-                        A student entered their name and here is their verified record directly from the institute's Google Sheet:
+                        A student entered their name and here is their exam record from the sheet:
                         {details_text}
 
                         Instructions:
-                        1. Present their details clearly (Student Name, Course, Marks/Grade, Result Status).
-                        2. If they passed, congratulate them warmly.
-                        3. Do not ask for their name again since it was found.
-                        4. Reply politely in natural Hinglish.
+                        1. Display the student's name, exam name, theory marks, and practical marks in a neat bulleted list or small table.
+                        2. Congratulate them on their performance.
+                        3. Reply in natural, polite Hinglish.
                         """
                     else:
                         system_prompt = f"""
@@ -144,7 +146,7 @@ if query:
                         STRICT RESTRICTIONS:
                         1. NEVER tell, estimate, or guess any COURSE FEES or charges. Politely refuse: "Fees ki jankari ke liye kripya direct institute branch par visit karein ya diye gaye number par call karein."
                         2. NEVER mention or use the word 'Free'.
-                        3. If user is asking for result with a name that is not in the sheet, inform them: "Aapka naam sheet record me nahi mila. Kripya apne naam ki sahi spelling check karein ya branch se contact karein."
+                        3. If user entered a name and it is not found, inform: "Ye naam result sheet me nahi mila. Kripya sahi spelling check karein."
                         4. Reply in natural, friendly Hinglish.
 
                         Institute Information:
