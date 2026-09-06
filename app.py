@@ -6,7 +6,7 @@ import io
 
 st.set_page_config(page_title="Bctech AI Assistant", layout="centered", initial_sidebar_state="collapsed")
 
-# Custom Clean Styling
+# Custom Clean Google-like Styling
 st.markdown("""
 <style>
     #MainMenu, header, footer {visibility: hidden;}
@@ -23,12 +23,18 @@ st.markdown("""
         border-color: #4285F4 !important;
     }
     .stButton>button {
-        border-radius: 18px;
-        padding: 2px 14px;
-        font-size: 13px;
+        border-radius: 16px;
+        padding: 1px 10px;
+        font-size: 12px;
         border: 1px solid #dadce0;
         background-color: #f8f9fa;
         color: #3c4043;
+        margin-top: 4px;
+    }
+    .stButton>button:hover {
+        background-color: #e8eaed;
+        border-color: #dadce0;
+        color: #202124;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -68,7 +74,6 @@ def load_sheet_data():
     except Exception as e:
         return None, str(e)
 
-# Check if query asks for result
 def check_is_result_intent(text):
     text = text.lower()
     keywords = [
@@ -120,23 +125,28 @@ if "messages" not in st.session_state:
 if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
 
-# Render conversation history with copy button
+# Render history: Copy button for BOTH user query and assistant answer
 for idx, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
-        if msg["role"] == "assistant":
-            col_b, _ = st.columns([0.2, 0.8])
-            with col_b:
-                if st.button("📋 Copy", key=f"copy_hist_{idx}"):
-                    st.code(msg["content"], language=None)
-                    st.toast("Copied to clipboard!", icon="📋")
+        col_c, _ = st.columns([0.2, 0.8])
+        with col_c:
+            if st.button("📋 Copy", key=f"copy_msg_{idx}"):
+                st.code(msg["content"], language=None)
+                st.toast("Text box me copy ke liye ready hai!", icon="📋")
 
-query = st.chat_input("🔍 Yahan apna sawal likhein / અહીં તમારો પ્રશ્ન લખો...")
+# Completely empty input box (no example/placeholder text)
+query = st.chat_input("")
 
 if query:
     st.session_state.messages.append({"role": "user", "content": query})
     with st.chat_message("user"):
         st.write(query)
+        col_u, _ = st.columns([0.2, 0.8])
+        with col_u:
+            if st.button("📋 Copy", key=f"copy_user_curr_{len(st.session_state.messages)}"):
+                st.code(query, language=None)
+                st.toast("Copied!", icon="📋")
 
     df_sheet, err = load_sheet_data()
     
@@ -147,7 +157,6 @@ if query:
             is_result_query = check_is_result_intent(query) or st.session_state.waiting_for_result_name
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
             
-            # Case 1: Student is asking for exam result
             if is_result_query:
                 matched_records = search_student(query, df_sheet)
                 
@@ -166,8 +175,8 @@ if query:
                     {details_text}
 
                     Instructions:
-                    1. Detect the user's language (Gujarati, Hindi, or English) and reply in that same language.
-                    2. IMPORTANT: Keep English student names and numbers exact. Do NOT corrupt characters or generate . Write names cleanly (e.g., 'Ganesh' or 'ગણેશ').
+                    1. Detect language (Gujarati, Hindi, or English) and reply in that same language.
+                    2. Keep student names and numbers exact. Do NOT corrupt text or create broken unicode.
                     3. Format details clearly with bullet points:
                        - Name
                        - Exam Course
@@ -176,7 +185,6 @@ if query:
                     4. Congratulate them politely.
                     """
                 else:
-                    # User asked for result but didn't provide name yet, or name wasn't found
                     st.session_state.waiting_for_result_name = True
                     system_prompt = f"""
                     You are the AI Assistant for Bctech Computer Education.
@@ -188,7 +196,6 @@ if query:
                     - If user spoke English: "Please type your full Student Name to check your exam result."
                     """
             else:
-                # Case 2: Normal conversation or introduction (NOT a result request)
                 system_prompt = f"""
                 You are the professional counselor for Bctech Computer Education institute.
                 
@@ -196,8 +203,8 @@ if query:
                 1. NEVER tell, estimate, or discuss any fees or pricing. Always say to contact branch directly.
                 2. NEVER mention or use the word 'Free'.
                 3. DO NOT SHOW ANY EXAM RESULTS OR MARKS here.
-                4. If the user introduces themselves (e.g., 'maru name ... chhe', 'mera naam ... hai', 'my name is ...'), greet them politely and warmly in THAT SAME LANGUAGE (Gujarati, Hindi, or English) in 1-2 friendly sentences and ask how you can assist them today.
-                5. Output only clean, proper text without corrupted characters ().
+                4. If user introduces themselves (e.g. 'maru name ... chhe', 'mera naam ... hai', 'my name is ...'), greet them politely and warmly in THAT SAME LANGUAGE (Gujarati, Hindi, or English) in 1-2 friendly sentences and ask how you can assist them today.
+                5. Output only clean, proper text without corrupted characters.
 
                 Institute Info:
                 {KNOWLEDGE_BASE}
@@ -231,11 +238,11 @@ if query:
                     if answer:
                         st.write(answer)
                         st.session_state.messages.append({"role": "assistant", "content": answer})
-                        col_btn, _ = st.columns([0.2, 0.8])
-                        with col_btn:
-                            if st.button("📋 Copy", key=f"copy_latest_{len(st.session_state.messages)}"):
+                        col_bot, _ = st.columns([0.2, 0.8])
+                        with col_bot:
+                            if st.button("📋 Copy", key=f"copy_ast_curr_{len(st.session_state.messages)}"):
                                 st.code(answer, language=None)
-                                st.toast("Copied to clipboard!", icon="📋")
+                                st.toast("Copied!", icon="📋")
                     else:
                         st.error("Filhal AI uplabdh nahi hai. Thodi der baad prayas karein.")
                 except Exception as e:
