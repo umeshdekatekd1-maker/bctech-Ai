@@ -33,7 +33,7 @@ st.markdown("""
         border-color: #4285F4 !important;
     }
     
-    /* Sidebar Recent Button */
+    /* Sidebar Recent Buttons */
     section[data-testid="stSidebar"] div[data-testid="stExpander"] .stButton>button {
         width: 100% !important;
         float: none !important;
@@ -50,6 +50,7 @@ st.markdown("""
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+        margin-bottom: 6px;
     }
     section[data-testid="stSidebar"] div[data-testid="stExpander"] .stButton>button:hover {
         background-color: #e8f0fe !important;
@@ -68,7 +69,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Clean One-Click Clipboard Button (No Code Box)
+# Clean One-Click Clipboard Button
 def render_clean_copy_button(text_to_copy, unique_id):
     json_text = json.dumps(text_to_copy)
     html_btn = f"""
@@ -181,8 +182,8 @@ def run_aerial_celebration():
 # Session States
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "last_recent_chat" not in st.session_state:
-    st.session_state.last_recent_chat = None
+if "recent_chats" not in st.session_state:
+    st.session_state.recent_chats = []  # Holds up to 3 recent sessions
 if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
 if "waiting_for_image_prompt" not in st.session_state:
@@ -190,24 +191,32 @@ if "waiting_for_image_prompt" not in st.session_state:
 if "current_language" not in st.session_state:
     st.session_state.current_language = "ENGLISH"
 
-def on_new_chat_clicked():
+def save_current_chat_to_recent():
     if st.session_state.messages:
         user_queries = [m["content"] for m in st.session_state.messages if m["role"] == "user"]
-        title_text = user_queries[-1] if user_queries else "Last Chat"
+        title_text = user_queries[-1] if user_queries else "Search"
         short_title = (title_text[:22] + "..") if len(title_text) > 22 else title_text
         
-        st.session_state.last_recent_chat = {
+        new_entry = {
             "title": short_title,
             "messages": list(st.session_state.messages)
         }
+        
+        # Avoid duplicate top entry
+        filtered = [c for c in st.session_state.recent_chats if c["title"] != short_title]
+        filtered.insert(0, new_entry)
+        st.session_state.recent_chats = filtered[:3]  # Limit strictly to 3
+
+def on_new_chat_clicked():
+    save_current_chat_to_recent()
     st.session_state.messages = []
     st.session_state.waiting_for_result_name = False
     st.session_state.waiting_for_image_prompt = False
     st.session_state.current_language = "ENGLISH"
 
-def restore_last_chat():
-    if st.session_state.last_recent_chat:
-        st.session_state.messages = list(st.session_state.last_recent_chat["messages"])
+def restore_chat(idx):
+    if idx < len(st.session_state.recent_chats):
+        st.session_state.messages = list(st.session_state.recent_chats[idx]["messages"])
 
 def clean_val_display(val):
     if pd.isna(val) or str(val).strip() == "" or str(val).strip().lower() == "nan":
@@ -228,15 +237,17 @@ with st.sidebar:
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
     
-    with st.expander("🕒 Recent", expanded=True):
-        if st.session_state.last_recent_chat:
-            st.button(
-                f"💬 {st.session_state.last_recent_chat['title']}", 
-                key="btn_restore_last_search",
-                on_click=restore_last_chat
-            )
+    with st.expander("🕒 Recent (Last 3)", expanded=True):
+        if st.session_state.recent_chats:
+            for i, item in enumerate(st.session_state.recent_chats):
+                st.button(
+                    f"💬 {item['title']}", 
+                    key=f"btn_restore_{i}",
+                    on_click=restore_chat,
+                    args=(i,)
+                )
         else:
-            st.caption("No recent search yet.")
+            st.caption("No recent searches yet.")
             
     st.markdown("---")
     st.markdown("**📌 Quick Links:**")
@@ -451,6 +462,7 @@ if query:
                     "caption": "✨ 4K Ultra-HD Photorealistic Output",
                     "is_image": True
                 })
+        save_current_chat_to_recent()
     else:
         df_sheet, err = load_all_sheets_data()
         lang = update_language_state(query)
@@ -593,3 +605,6 @@ if query:
                             st.error(f"API Error: {last_api_err}")
                     except Exception as e:
                         st.error(f"Error: {e}")
+
+        # Auto-update recent list (keeps last 3 searches ready in sidebar)
+        save_current_chat_to_recent()
