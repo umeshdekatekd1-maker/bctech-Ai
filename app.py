@@ -5,14 +5,20 @@ import requests
 import io
 import re
 
-st.set_page_config(page_title="Bctech AI Assistant", layout="centered", initial_sidebar_state="expanded")
+st.set_page_config(
+    page_title="Bctech AI Assistant", 
+    layout="centered", 
+    initial_sidebar_state="expanded"
+)
 
-# Custom Clean Google-like Styling
+# Custom Clean Styling & Visible Sidebar Controls
 st.markdown("""
 <style>
-    #MainMenu, header, footer {visibility: hidden;}
-    .block-container {padding-top: 1.5rem; max-width: 720px;}
+    #MainMenu, footer {visibility: hidden;}
+    header {visibility: visible !important;}
+    .block-container {padding-top: 1rem; max-width: 720px;}
     
+    /* Search box rounded */
     div[data-baseweb="input"] {
         border-radius: 28px !important;
         box-shadow: 0 1px 6px rgba(32,33,36,0.18) !important;
@@ -23,6 +29,8 @@ st.markdown("""
         box-shadow: 0 2px 8px rgba(32,33,36,0.3) !important;
         border-color: #4285F4 !important;
     }
+    
+    /* Copy Button Right-Aligned */
     .stButton>button {
         border-radius: 16px;
         padding: 2px 12px;
@@ -38,7 +46,8 @@ st.markdown("""
         border-color: #dadce0;
         color: #202124;
     }
-    /* Left sidebar new chat button styling */
+    
+    /* Left Sidebar Buttons */
     section[data-testid="stSidebar"] .stButton>button {
         width: 100%;
         float: none;
@@ -50,24 +59,55 @@ st.markdown("""
         border: 1px solid #dadce0;
         box-shadow: 0 1px 3px rgba(0,0,0,0.08);
         color: #1f1f1f;
-        margin-top: 10px;
+        margin-top: 6px;
     }
     section[data-testid="stSidebar"] .stButton>button:hover {
         background-color: #f1f3f4;
         border-color: #c6c6c6;
     }
+
+    /* Top bar quick reset button */
+    .top-bar-btn button {
+        float: left !important;
+        border-radius: 20px !important;
+        background-color: #ffffff !important;
+        border: 1px solid #dadce0 !important;
+        padding: 4px 14px !important;
+        font-size: 13px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# --- Left Sidebar: New Chat Option ---
-with st.sidebar:
-    st.markdown("### 🎓 Bctech AI")
-    if st.button("➕ New Chat", use_container_width=True):
+# State initialization
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+if "waiting_for_result_name" not in st.session_state:
+    st.session_state.waiting_for_result_name = False
+
+# --- Top Navigation Bar for Quick Access (When sidebar is hidden) ---
+col_top_left, col_top_title = st.columns([0.35, 0.65])
+with col_top_left:
+    st.markdown('<div class="top-bar-btn">', unsafe_allow_html=True)
+    if st.button("➕ New Chat", key="top_new_chat_btn"):
         st.session_state.messages = []
         st.session_state.waiting_for_result_name = False
         st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# --- Left Sidebar Menu ---
+with st.sidebar:
+    st.markdown("### 🎓 Bctech Education")
+    if st.button("➕ New Chat", key="side_new_chat_btn", use_container_width=True):
+        st.session_state.messages = []
+        st.session_state.waiting_for_result_name = False
+        st.rerun()
+    
     st.markdown("---")
-    st.caption("Official AI Counselor for Bctech Computer Education.")
+    st.markdown("**📌 Quick Links:**")
+    st.markdown("🌐 [Official Website](https://sites.google.com/view/bctechcomputer)")
+    st.markdown("📍 [Branch Location](https://sites.google.com/view/bctechcomputer/about-us)")
+    st.markdown("---")
+    st.caption("AI Assistant for Bctech Computer Education.")
 
 st.title("🎓 Bctech AI Assistant")
 
@@ -172,11 +212,6 @@ About Bctech Computer Education:
 - Main Offerings: Professional computer training, practical learning, ISO certified courses, job assistance.
 - Popular Courses: Basic Computer Course, Graphic Designing (CorelDraw, Photoshop, Illustrator), Accounting & Tally Prime, Web Development, Programming (Python, C++), Digital Marketing, Advanced Excel.
 """
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "waiting_for_result_name" not in st.session_state:
-    st.session_state.waiting_for_result_name = False
 
 # Render history with right-aligned copy button
 for idx, msg in enumerate(st.session_state.messages):
