@@ -8,7 +8,7 @@ import re
 import json
 import urllib.parse
 import random
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
     page_title="BC Tech Ai Assistant", 
@@ -74,8 +74,8 @@ st.markdown("""
 def render_persistence_script():
     persistence_js = """
     <script>
-        const STORAGE_KEY_MSGS = "bctech_chat_messages_v5";
-        const STORAGE_KEY_RECENT = "bctech_recent_chats_v5";
+        const STORAGE_KEY_MSGS = "bctech_chat_messages_v6";
+        const STORAGE_KEY_RECENT = "bctech_recent_chats_v6";
 
         window.addEventListener('DOMContentLoaded', () => {
             try {
@@ -627,13 +627,16 @@ if query:
                       - Marks: [Marks list]
                     """
                 else:
-                    current_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S (%A)")
+                    # Enforce strict IST Time (UTC +5:30)
+                    ist_tz = timezone(timedelta(hours=5, minutes=30))
+                    current_time_str = datetime.now(ist_tz).strftime("%Y-%m-%d %I:%M:%S %p (%A)")
+                    
                     lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                     system_prompt = f"""
                     You are BC Tech AI Assistant, a smart, professional assistant for BC Tech Computer Education and general queries.
                     
-                    EXACT CURRENT REAL-TIME CONTEXT:
-                    - Current Date and Time: {current_time_str} (IST / Local Time).
+                    EXACT CURRENT INDIAN STANDARD TIME (IST):
+                    - Current Date and Time: {current_time_str}
                     
                     CRITICAL LANGUAGE RULE:
                     - Reply strictly in {lang_name}.
