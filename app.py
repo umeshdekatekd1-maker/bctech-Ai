@@ -2,99 +2,75 @@ import streamlit as st
 from google import genai
 import time
 
-st.set_page_config(page_title="Bctech AI", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Bctech AI Assistant", layout="centered", initial_sidebar_state="collapsed")
 
-# Google Style CSS
+# Google Style Search Bar CSS
 st.markdown("""
 <style>
-    /* Hide Streamlit default header/footer */
     #MainMenu, header, footer {visibility: hidden;}
-    .block-container {padding-top: 2rem; max-width: 680px;}
+    .block-container {padding-top: 2rem; max-width: 700px;}
     
-    /* Google style logo */
-    .google-title {
-        text-align: center;
-        font-family: 'Product Sans', Roboto, sans-serif;
-        font-size: 42px;
-        font-weight: 700;
-        margin-bottom: 2px;
-    }
-    .google-title span:nth-child(1) { color: #4285F4; }
-    .google-title span:nth-child(2) { color: #EA4335; }
-    .google-title span:nth-child(3) { color: #FBBC05; }
-    .google-title span:nth-child(4) { color: #4285F4; }
-    .google-title span:nth-child(5) { color: #34A853; }
-    .google-title span:nth-child(6) { color: #EA4335; }
-    
-    .subtitle {
-        text-align: center;
-        color: #5f6368;
-        font-size: 14px;
-        margin-bottom: 24px;
-    }
-    
-    /* Search box styling */
+    /* Clean rounded search box */
     div[data-baseweb="input"] {
         border-radius: 28px !important;
-        box-shadow: 0 1px 6px rgba(32,33,36,0.28) !important;
+        box-shadow: 0 1px 6px rgba(32,33,36,0.20) !important;
         border: 1px solid #dfe1e5 !important;
-        padding-left: 10px;
+        padding-left: 12px;
     }
     div[data-baseweb="input"]:focus-within {
-        box-shadow: 0 1px 6px rgba(32,33,36,0.4) !important;
+        box-shadow: 0 2px 8px rgba(32,33,36,0.35) !important;
+        border-color: #4285F4 !important;
     }
     
-    /* Google Search Button */
+    /* Search button */
     .stButton button {
-        background-color: #f8f9fa !important;
-        color: #3c4043 !important;
-        border: 1px solid #f8f9fa !important;
-        border-radius: 4px !important;
-        font-size: 14px !important;
-        padding: 8px 18px !important;
-        margin: 0 auto;
-        display: block;
-    }
-    .stButton button:hover {
-        border: 1px solid #dadce0 !important;
-        background-color: #f1f3f4 !important;
-        box-shadow: 0 1px 1px rgba(0,0,0,0.1) !important;
+        border-radius: 20px !important;
+        padding: 8px 24px !important;
+        font-weight: 500;
+        margin-top: 4px;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Logo
-st.markdown('<div class="google-title"><span>B</span><span>c</span><span>t</span><span>e</span><span>c</span><span>h</span></div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Ask any question about Courses, Fees & Careers</div>', unsafe_allow_html=True)
+# Purana Title aur Subtitle
+st.title("🎓 Bctech AI Assistant")
+st.write("Bctech Computer Education ke courses, syllabus ya design/accounting doubts yahan puchein!")
 
-# Input
-query = st.text_input("", placeholder="Search courses or ask anything...", label_visibility="collapsed")
+# Google Style Search Bar
+query = st.text_input("Search", placeholder="🔍 Yahan apna sawal search karein...", label_visibility="collapsed")
 
 col1, col2, col3 = st.columns([1, 1, 1])
 with col2:
-    search_clicked = st.button("Google Search")
+    search_btn = st.button("Search with AI")
 
-if (search_clicked or query) and query.strip():
+if (search_btn or query) and query.strip():
     client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
     
-    with st.spinner("Searching..."):
+    with st.spinner("Dhoondh raha hai..."):
         prompt = f"""
-        You are an intelligent counselor for 'Bctech Computer Education'.
-        Give direct, accurate, and friendly answers in Hinglish.
+        You are a helpful AI counselor for 'Bctech Computer Education' institute.
+        Help students with clear and simple advice in Hinglish.
         Question: {query}
         """
+        
         MODELS_TO_TRY = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-3.6-flash"]
         answer = None
-        
+        last_err = None
+
         for m in MODELS_TO_TRY:
             try:
-                res = client.models.generate_content(model=m, contents=prompt)
+                res = client.models.generate_content(
+                    model=m,
+                    contents=prompt
+                )
                 answer = res.text
                 break
-            except Exception:
+            except Exception as e:
+                last_err = e
                 time.sleep(1)
         
         if answer:
-            st.markdown("---")
-            st.markdown(f"**Result for:** *{query}*")
+            st.success("AI Jawab:")
             st.write(answer)
+        else:
+            st.error(f"Traffic error: {last_err}")
