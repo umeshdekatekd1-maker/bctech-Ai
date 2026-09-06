@@ -48,7 +48,6 @@ st.markdown("""
         color: #202124;
     }
     
-    /* Recent Button Styling */
     section[data-testid="stSidebar"] div[data-testid="stExpander"] .stButton>button {
         width: 100% !important;
         float: none !important;
@@ -127,6 +126,8 @@ if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
 if "waiting_for_image_prompt" not in st.session_state:
     st.session_state.waiting_for_image_prompt = False
+if "current_language" not in st.session_state:
+    st.session_state.current_language = "ENGLISH"
 
 def on_new_chat_clicked():
     if st.session_state.messages:
@@ -141,12 +142,12 @@ def on_new_chat_clicked():
     st.session_state.messages = []
     st.session_state.waiting_for_result_name = False
     st.session_state.waiting_for_image_prompt = False
+    st.session_state.current_language = "ENGLISH"
 
 def restore_last_chat():
     if st.session_state.last_recent_chat:
         st.session_state.messages = list(st.session_state.last_recent_chat["messages"])
 
-# Helper function to remove .0 from numbers
 def clean_val_display(val):
     if pd.isna(val) or str(val).strip() == "" or str(val).strip().lower() == "nan":
         return "N/A"
@@ -186,7 +187,6 @@ st.title("🎓 BC Tech Ai Assistant")
 SHEET_ID = "1ES2A77U61GeS710Xfyc0dKIevUhzR2v7-aSjkr1R3tg"
 EXCEL_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
 
-# Unified Sheet Loader (Cleans .0 decimals)
 @st.cache_data(ttl=15)
 def load_all_sheets_data():
     try:
@@ -268,50 +268,57 @@ def detect_image_request(text):
     )
     return True, hd_boosted_prompt
 
-# Advanced Multilingual Detection
-def get_target_language(text):
-    text = text.strip()
+# Accurate language tracking that remembers user choice
+def update_language_state(text):
+    text_clean = text.strip().lower()
     
-    # 1. Check Devanagari (Hindi) or Gujarati script directly
-    if any('\u0900' <= ch <= '\u097F' for ch in text): return "HINDI"
-    if any('\u0A80' <= ch <= '\u0AFF' for ch in text): return "GUJARATI"
+    # 1. Direct Script Check
+    if any('\u0A80' <= ch <= '\u0AFF' for ch in text):
+        st.session_state.current_language = "GUJARATI"
+        return "GUJARATI"
+    if any('\u0900' <= ch <= '\u097F' for ch in text):
+        st.session_state.current_language = "HINDI"
+        return "HINDI"
     
-    text_lower = text.lower()
-    
-    # 2. Check Gujarati Hinglish keywords
-    guj_hinglish_words = ["kem chho", "kem cho", "halo", "maru", "maro", "chhe", "che", "tamaru", "tame"]
-    if any(w in text_lower for w in guj_hinglish_words):
+    # 2. Explicit Gujarati Requests
+    guj_triggers = [
+        "gujarati", "gujrati", "gujaratin", "in gujarati", "gujarati ma", "gujarati mein",
+        "kem cho", "kem chho", "halo", "maru", "maro", "chhe", "che", "tamaru", "tame", "karo ne"
+    ]
+    if any(re.search(r"\b" + re.escape(w) + r"\b", text_clean) for w in guj_triggers):
+        st.session_state.current_language = "GUJARATI"
         return "GUJARATI"
         
-    # 3. Check Hindi Hinglish keywords or direct requests
-    hindi_hinglish_words = ["namaste", "halo", "mera", "meri", "kya hai", "kaise", "batao", "chahiye", "bat kro", "हिंदी", "हिंदी में", "इन हिंदी"]
-    if any(w in text_lower for w in hindi_hinglish_words):
+    # 3. Explicit Hindi Requests
+    hindi_triggers = [
+        "hindi", "in hindi", "hindi me", "hindi main", "bat kro", "baat karo", "batao",
+        "namaste", "mera", "meri", "kaise", "chahiye", "kya hai", "kaha hai", "kab aaya tha"
+    ]
+    if any(re.search(r"\b" + re.escape(w) + r"\b", text_clean) for w in hindi_triggers):
+        st.session_state.current_language = "HINDI"
         return "HINDI"
         
-    return "ENGLISH"
+    # 4. Explicit English Requests
+    english_triggers = ["english", "in english", "speak english"]
+    if any(re.search(r"\b" + re.escape(w) + r"\b", text_clean) for w in english_triggers):
+        st.session_state.current_language = "ENGLISH"
+        return "ENGLISH"
+
+    return st.session_state.current_language
 
 def is_greeting(text):
     text_clean = text.lower().strip().replace("!", "").replace(".", "")
     greetings = ["hi", "hello", "hey", "hii", "hiii", "namaste", "kem cho", "kem chho", "halo", "હેલો", "નમસ્તે"]
     return text_clean in greetings
 
-def check_is_result_intent(text):
-    text = text.lower()
-    keywords = [
-        "result", "marks", "marx", "score", "grade", "pass", "fail", 
-        "પરિણામ", "રિઝલ્ટ", "રીઝલ્ટ", "માર્ક્સ", "નંબર", "परिणाम", "नंबर", "मार्क्स", "रिजल्ट"
-    ]
-    return any(kw in text for kw in keywords)
-
 def check_is_branch_intent(text):
     text = text.lower()
     branch_keywords = [
         "branch", "address", "location", "kaha par hai", "kaha hai", "kidhar hai", 
-        "kahan hai", "bctech kaha", "bc tech kaha", "ક્યાં છે", "ક્યાં આવેલું", "સરનામું", "લોકેશન", "શાખા", "पता", "कहाँ है", "लोकेशन", "शाखा"
+        "kahan hai", "bctech kaha", "bc tech kaha", "ક્યાં છે", "ક્યાં આવેલું", "સરનામું", "લોકેશન", "શાખા", "पता", "कहाँ है", "लोकेशन"
     ]
     return any(kw in text for kw in branch_keywords)
 
-# Matches ONLY the specified name across all sheets with high flexibility (sorted word signatures)
 def search_student_all_sheets(query_text, df):
     if df is None or df.empty or "Name_Signature_Std" not in df.columns:
         return []
@@ -322,19 +329,14 @@ def search_student_all_sheets(query_text, df):
         "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo",
         "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ"
     ]
-    # Remove filler words to get only the name parts
     words = [w for w in clean_q.split() if w not in fillers and len(w) >= 2]
     if not words:
         return []
         
-    # Create the search signature from user input (sorted unique words)
     user_search_signature = " ".join(sorted(list(set(words))))
-    
-    # Check exact match on the Name_Signature_Std column
     name_signatures = df["Name_Signature_Std"].astype(str)
     matched = df[name_signatures == user_search_signature]
     
-    # Final check on original standardized name in case sorted signature misses nuances
     if matched.empty:
         search_term_original = " ".join(words)
         matched = df[df["Student_Name_Std"].astype(str).str.lower().str.strip() == search_term_original]
@@ -352,31 +354,12 @@ def clean_ai_response(text):
 
 BRANCH_LINK = "https://sites.google.com/view/bctechcomputer/about-us"
 
-# Counselor Knowledge Base
 KNOWLEDGE_BASE = f"""
 About Bctech Computer Education:
 - Institute: Bctech Computer Education
 - Official Branch & Location Info Link: {BRANCH_LINK}
 - Main Offerings: Professional computer training, practical learning, ISO certified courses, job assistance.
 - Popular Courses: Basic Computer Course, Graphic Designing (CorelDraw, Photoshop, Illustrator), Accounting & Tally Prime, Web Development, Programming (Python, C++), Digital Marketing, Advanced Excel.
-"""
-
-# New All-knowledge system prompt
-SYSTEM_PROMPT_ALL_KNOWLEDGE = f"""
-You are an advanced, multilingual AI expert assistant. You are not physically located anywhere.
-Your primary task is to help users by providing right, factual, and helpful answers to *ANY* question they ask.
-
-KNOWLEDGE CAPABILITIES:
-1.  **General Knowledge:** You can answer general knowledge questions about history (e.g., "google कब आया था"), science, geography, etc. Provide concise, right answers in the target language.
-2.  **Multilingual:** You can communicate perfectly in Hindi (Devanagari or Hinglish), English, or Gujarati. Use the target language provided.
-3.  **Bctech Computer Education:** If a user asks about computer courses, fees (never discuss or quote pricing), location, job assistance, or other specifics mentioned in the KNOWLEDGE BASE, answer using the following context concisely:
-    {KNOWLEDGE_BASE}
-4.  **Student Results (Sheet Data):** If the user is asking for student marks or results, you will be provided with specific verified data for *one* student. Use that data to create a clear, bulleted report based on specific rules.
-    - If provided student data shows multiple records (e.g., across courses), display ALL of them clearly with separate headings. Never mix data.
-    - Display numbers as clean whole numbers (e.g., '23', not '23.0').
-    - If data is N/A or missing, show 'N/A'.
-    - DO NOT add or mention Pass/Fail status.
-    - In Gujarati/Hindi, use pure professional language for the report.
 """
 
 # Render history
@@ -405,7 +388,6 @@ if query:
                 st.code(query, language=None)
                 st.toast("Copied!", icon="📋")
 
-    # Image request handling first
     is_img_req, enhanced_prompt = detect_image_request(query)
     
     if is_img_req:
@@ -421,21 +403,38 @@ if query:
                     "caption": "✨ 4K Ultra-HD Photorealistic Output",
                     "is_image": True
                 })
-    
-    # Text-based handling for all knowledge
     else:
         df_sheet, err = load_all_sheets_data()
-        lang = get_target_language(query)
+        lang = update_language_state(query)
         
         with st.chat_message("assistant"):
             if err:
                 st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
             
-            # Identify special intents first (Greetings, Branch)
-            # 1. Greeting Handler
+            # Simple direct language acknowledgments
+            elif query.strip().lower() in ["gujarati", "gujrati", "gujarati ma", "gujarati mein baat karte hai", "gujarati main baat karte hai ok", "gujarati ma vaat kariye"]:
+                reply = "ચોક્કસ! હવે આપણે ગુજરાતીમાં વાત કરીશું. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                col_l, col_r = st.columns([0.85, 0.15])
+                with col_r:
+                    if st.button("📋 Copy", key=f"copy_ack_{len(st.session_state.messages)}"):
+                        st.code(reply, language=None)
+                        st.toast("Copied!", icon="📋")
+
+            elif query.strip().lower() in ["hindi", "in hindi", "hindi me", "hindi main baat karo", "hindi me baat karte hai"]:
+                reply = "ज़रूर! अब हम हिंदी में बात करेंगे। मैं आपकी क्या सहायता कर सकता हूँ? 😊"
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                col_l, col_r = st.columns([0.85, 0.15])
+                with col_r:
+                    if st.button("📋 Copy", key=f"copy_ack_{len(st.session_state.messages)}"):
+                        st.code(reply, language=None)
+                        st.toast("Copied!", icon="📋")
+
             elif is_greeting(query):
                 if lang == "GUJARATI":
-                    reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ करी शकूं? 😊"
+                    reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                 elif lang == "HINDI":
                     reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                 else:
@@ -448,7 +447,6 @@ if query:
                         st.code(reply, language=None)
                         st.toast("Copied!", icon="📋")
 
-            # 2. Branch Intent
             elif check_is_branch_intent(query):
                 if lang == "GUJARATI":
                     reply = f"BC Tech Computer Education ની શાખા અને લોકેશનની સંપૂર્ણ વિગત માટે અહીં ક્લિક કરો:\n🔗 {BRANCH_LINK}"
@@ -465,15 +463,11 @@ if query:
                         st.code(reply, language=None)
                         st.toast("Copied!", icon="📋")
 
-            # 3. Handle Sheet Data or General/Computer Knowledge
             else:
                 matched_records = search_student_all_sheets(query, df_sheet)
                 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
                 is_found_result = False
                 
-                final_system_prompt = SYSTEM_PROMPT_ALL_KNOWLEDGE
-                final_user_content = query
-
                 if matched_records:
                     is_found_result = True
                     st.session_state.waiting_for_result_name = False
@@ -484,32 +478,47 @@ if query:
                     for i, record in enumerate(matched_records, 1):
                         sheet_tab = record.get("_Sheet_Tab", f"Sheet {i}")
                         s_exam = record.get("Exam_Std", "")
-                        
                         details_text += f"\n--- Record {i} (Exam: {s_exam} | Sheet: {sheet_tab}) ---\n"
-                        
                         for k, v in record.items():
                             if k not in ["Name_Signature_Std", "Exam_Std", "_Sheet_Tab", "Student_Name_Std"]:
                                 details_text += f"- {k}: {v}\n"
 
-                    # Format dynamic multilingual prompt for result data
-                    lang_instr = "Apply language format: English."
-                    if lang == "GUJARATI": lang_instr = "Apply language format: Gujarati professional."
-                    if lang == "HINDI": lang_instr = "Apply language format: Hindi professional."
+                    lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
 
-                    final_user_content = f"""
-                        Verified data for student {found_name}:
-                        {details_text}
+                    system_prompt = f"""
+                    You are the AI Assistant for BC Tech Computer Education.
+                    Student verified records:
+                    {details_text}
 
-                        Use this data to create a detailed student report.
-                        {lang_instr}
+                    CRITICAL RULES:
+                    - Target Language: {lang_name}. Output 100% strictly in pure {lang_name}.
+                    - Display all {len(matched_records)} records separately.
+                    - Show numbers without decimals (e.g., 23, 41).
+                    - DO NOT mention 'Result: Pass' or any status.
+                    - Format:
+                      📌 Record [Number]: [Exam Name]
+                      - Name: {found_name}
+                      - Exam: [Exam Name]
+                      - Marks: [Marks list]
                     """
-                
-                # Check for other knowledge areas (all knowledge handling)
                 else:
-                    lang_instr = "Respond concisely in English."
-                    if lang == "GUJARATI": lang_instr = "Respond concisely in professional Gujarati."
-                    if lang == "HINDI": lang_instr = "Respond concisely in professional Hindi."
-                    final_user_content = f"{query} | {lang_instr}"
+                    lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
+                    system_prompt = f"""
+                    You are a helpful, knowledgeable AI Assistant for BC Tech Computer Education and general queries.
+                    
+                    CRITICAL LANGUAGE RULE:
+                    - You MUST reply strictly in {lang_name} language.
+                    - If target language is Gujarati, reply 100% in natural Gujarati script.
+                    - If target language is Hindi, reply 100% in natural Hindi script.
+                    - Never reply in English unless target language is English.
+                    
+                    CRITICAL INSTRUCTIONS:
+                    1. Answer general knowledge and fact questions directly and accurately in 2-3 sentences.
+                    2. If asked about BC Tech computer courses, use:
+                    {KNOWLEDGE_BASE}
+                    3. If asked about location, provide: {BRANCH_LINK}
+                    4. Output ONLY the clean answer without <think> tags or setup statements.
+                    """
 
                 with st.spinner("Thinking..."):
                     try:
@@ -518,7 +527,6 @@ if query:
                             m.id for m in models_resp.data 
                             if "whisper" not in m.id and "guard" not in m.id and "vision" not in m.id
                         ]
-                        
                         preferred = ["llama-3.1-8b-instant", "llama3-8b-8192", "gemma2-9b-it"]
                         models_to_try = [m for m in preferred if m in active_ids] + [m for m in active_ids if m not in preferred]
 
@@ -529,12 +537,12 @@ if query:
                             try:
                                 chat_completion = client.chat.completions.create(
                                     messages=[
-                                        {"role": "system", "content": final_system_prompt},
-                                        {"role": "user", "content": final_user_content}
+                                        {"role": "system", "content": system_prompt},
+                                        {"role": "user", "content": query}
                                     ],
                                     model=m_name,
-                                    temperature=0.3,
-                                    max_tokens=600
+                                    temperature=0.2,
+                                    max_tokens=450
                                 )
                                 raw_answer = chat_completion.choices[0].message.content
                                 answer = clean_ai_response(raw_answer)
@@ -547,7 +555,6 @@ if query:
                         if answer:
                             st.write(answer)
                             st.session_state.messages.append({"role": "assistant", "content": answer})
-                            
                             if is_found_result:
                                 run_aerial_celebration()
 
