@@ -5,7 +5,7 @@ import requests
 import io
 import re
 
-st.set_page_config(page_title="Bctech AI Assistant", layout="centered", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Bctech AI Assistant", layout="centered", initial_sidebar_state="expanded")
 
 # Custom Clean Google-like Styling
 st.markdown("""
@@ -38,8 +38,36 @@ st.markdown("""
         border-color: #dadce0;
         color: #202124;
     }
+    /* Left sidebar new chat button styling */
+    section[data-testid="stSidebar"] .stButton>button {
+        width: 100%;
+        float: none;
+        border-radius: 20px;
+        padding: 8px 16px;
+        font-size: 14px;
+        font-weight: 500;
+        background-color: #ffffff;
+        border: 1px solid #dadce0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        color: #1f1f1f;
+        margin-top: 10px;
+    }
+    section[data-testid="stSidebar"] .stButton>button:hover {
+        background-color: #f1f3f4;
+        border-color: #c6c6c6;
+    }
 </style>
 """, unsafe_allow_html=True)
+
+# --- Left Sidebar: New Chat Option ---
+with st.sidebar:
+    st.markdown("### 🎓 Bctech AI")
+    if st.button("➕ New Chat", use_container_width=True):
+        st.session_state.messages = []
+        st.session_state.waiting_for_result_name = False
+        st.rerun()
+    st.markdown("---")
+    st.caption("Official AI Counselor for Bctech Computer Education.")
 
 st.title("🎓 Bctech AI Assistant")
 
@@ -89,7 +117,6 @@ def check_is_result_intent(text):
     ]
     return any(kw in text for kw in keywords)
 
-# Check if query asks for branch / location / address
 def check_is_branch_intent(text):
     text = text.lower()
     branch_keywords = [
@@ -179,7 +206,6 @@ if query:
         if err:
             st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
         
-        # 1. Simple Greeting Check
         elif is_greeting(query):
             reply = "Hello! Welcome to Bctech Computer Education. How can I help you today? 😊"
             st.write(reply)
@@ -190,7 +216,6 @@ if query:
                     st.code(reply, language=None)
                     st.toast("Copied!", icon="📋")
 
-        # 2. Branch / Location Link Check
         elif check_is_branch_intent(query):
             q_lower = query.lower()
             if any(w in q_lower for w in ["ક્યાં", "સરનામું", "શાખા"]):
