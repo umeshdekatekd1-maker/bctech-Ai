@@ -89,6 +89,15 @@ def check_is_result_intent(text):
     ]
     return any(kw in text for kw in keywords)
 
+# Check if query asks for branch / location / address
+def check_is_branch_intent(text):
+    text = text.lower()
+    branch_keywords = [
+        "branch", "address", "location", "kaha par hai", "kaha hai", "kidhar hai", 
+        "kahan hai", "bctech kaha", "bc tech kaha", "ક્યાં છે", "ક્યાં આવેલું", "સરનામું", "લોકેશન", "શાખા"
+    ]
+    return any(kw in text for kw in branch_keywords)
+
 def search_student(query_text, df):
     if df is None or df.empty:
         return []
@@ -127,19 +136,14 @@ def clean_ai_response(text):
     cleaned = re.sub(r"<think>.*", "", cleaned, flags=re.DOTALL)
     return cleaned.strip()
 
-# Official Website Data directly linked
-KNOWLEDGE_BASE = """
-Official Institute Details (Source: https://sites.google.com/view/bctechcomputer):
-- Name: Bctech Computer Education
-- City: Surat, Gujarat, India
-- Branch Address / Location: Plot No. 16, Behind Mahadev Mandir / Near Mahadev Temple, Godadara Road, Godadara, Surat, Gujarat - 395010
-- Main Offerings: Practical training, Govt./ISO recognized certification, job assistance.
-- Popular Courses: 
-  * Basic Computer Course (Windows, MS Office Word, Excel, PowerPoint)
-  * Graphic Designing (CorelDraw, Photoshop, Illustrator, Adobe Express)
-  * Financial Accounting (Tally Prime, GST filing)
-  * Web Designing & Programming (HTML, CSS, JavaScript, Python)
-  * Digital Marketing & Advanced Excel
+BRANCH_LINK = "https://sites.google.com/view/bctechcomputer/about-us"
+
+KNOWLEDGE_BASE = f"""
+About Bctech Computer Education:
+- Institute: Bctech Computer Education
+- Official Branch & Location Info Link: {BRANCH_LINK}
+- Main Offerings: Professional computer training, practical learning, ISO certified courses, job assistance.
+- Popular Courses: Basic Computer Course, Graphic Designing (CorelDraw, Photoshop, Illustrator), Accounting & Tally Prime, Web Development, Programming (Python, C++), Digital Marketing, Advanced Excel.
 """
 
 if "messages" not in st.session_state:
@@ -175,6 +179,7 @@ if query:
         if err:
             st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
         
+        # 1. Simple Greeting Check
         elif is_greeting(query):
             reply = "Hello! Welcome to Bctech Computer Education. How can I help you today? 😊"
             st.write(reply)
@@ -182,6 +187,24 @@ if query:
             col_l, col_r = st.columns([0.85, 0.15])
             with col_r:
                 if st.button("📋 Copy", key=f"copy_greet_{len(st.session_state.messages)}"):
+                    st.code(reply, language=None)
+                    st.toast("Copied!", icon="📋")
+
+        # 2. Branch / Location Link Check
+        elif check_is_branch_intent(query):
+            q_lower = query.lower()
+            if any(w in q_lower for w in ["ક્યાં", "સરનામું", "શાખા"]):
+                reply = f"Bctech Computer Education ની શાખા અને લોકેશનની સંપૂર્ણ વિગત માટે અહીં ક્લિક કરો:\n🔗 {BRANCH_LINK}"
+            elif any(w in q_lower for w in ["where", "location", "address"]):
+                reply = f"You can check the exact branch location and address details of Bctech Computer Education here:\n🔗 {BRANCH_LINK}"
+            else:
+                reply = f"Bctech Computer Education ki branch aur location ki puri jankari ke liye kripya hamari website par visit karein:\n🔗 {BRANCH_LINK}"
+            
+            st.write(reply)
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+            col_l, col_r = st.columns([0.85, 0.15])
+            with col_r:
+                if st.button("📋 Copy", key=f"copy_branch_{len(st.session_state.messages)}"):
                     st.code(reply, language=None)
                     st.toast("Copied!", icon="📋")
 
@@ -230,13 +253,9 @@ if query:
                 
                 CRITICAL INSTRUCTIONS:
                 1. Give ONLY direct, final answer (2 to 4 sentences maximum).
-                2. If asked about BRANCH, LOCATION, or ADDRESS:
-                   - Hindi/Hinglish: Bctech Computer Education ka branch Godadara, Surat (Behind Mahadev Mandir, Godadara Road, Surat - 395010) par sthit hai.
-                   - Gujarati: Bctech Computer Education શાખા ગોડાદરા, સુરત (મહાદેવ મંદિર પાછળ, ગોડાદરા રોડ, સુરત - 395010) ખાતે આવેલી છે.
-                   - English: Bctech Computer Education is located at Godadara Road, Behind Mahadev Temple, Godadara, Surat, Gujarat - 395010.
-                   NEVER invent fake addresses like '123 Main Street'.
+                2. If asked about BRANCH, LOCATION, or WHERE BCTECH IS, provide this link: {BRANCH_LINK}
                 3. NEVER output <think>, chain of thought, notes, or internal reasoning steps.
-                4. NEVER tell, estimate, or discuss any fees or pricing. Always direct to visit branch directly.
+                4. NEVER tell, estimate, or discuss any fees or pricing. Always direct to visit branch or check the website.
                 5. NEVER mention or use the word 'Free'.
                 6. Match the user's language strictly (Hindi/Hinglish, Gujarati, or English).
                 7. If user introduces their name, greet them in 1 short line.
