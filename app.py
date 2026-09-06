@@ -1,9 +1,11 @@
 import streamlit as st
+import streamlit.components.v1 as components
 from groq import Groq
 import pandas as pd
 import requests
 import io
 import re
+import json
 
 st.set_page_config(
     page_title="Bctech AI Assistant", 
@@ -75,16 +77,42 @@ if "recent_queries" not in st.session_state:
     st.session_state.recent_queries = []
 if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
+if "storage_synced" not in st.session_state:
+    st.session_state.storage_synced = False
+
+# --- Auto Save / Restore via Browser LocalStorage ---
+# Query params check for reload persistence
+qp = st.query_params
+if not st.session_state.storage_synced:
+    if "chat_data" in qp:
+        try:
+            saved_data = json.loads(qp["chat_data"])
+            st.session_state.messages = saved_data.get("messages", [])
+            st.session_state.recent_queries = saved_data.get("recent", [])
+        except Exception:
+            pass
+    st.session_state.storage_synced = True
+
+def sync_to_browser():
+    try:
+        data_to_save = {
+            "messages": st.session_state.messages,
+            "recent": st.session_state.recent_queries
+        }
+        st.query_params["chat_data"] = json.dumps(data_to_save)
+    except Exception:
+        pass
 
 # --- Left Sidebar: New Chat & Recent Dropdown ---
 with st.sidebar:
     st.markdown("### 🎓 Bctech AI")
     if st.button("➕ New Chat", key="side_new_chat_btn", use_container_width=True):
         st.session_state.messages = []
+        st.session_state.recent_queries = []
         st.session_state.waiting_for_result_name = False
+        st.query_params.clear()
         st.rerun()
     
-    # Recent Section (Collapsible dropdown)
     with st.expander("Recent", expanded=True):
         if st.session_state.recent_queries:
             for q_item in reversed(st.session_state.recent_queries[-8:]):
@@ -214,7 +242,6 @@ for idx, msg in enumerate(st.session_state.messages):
 query = st.chat_input("")
 
 if query:
-    # Save to recent queries list
     trimmed_query = (query[:30] + '...') if len(query) > 30 else query
     if trimmed_query not in st.session_state.recent_queries:
         st.session_state.recent_queries.append(trimmed_query)
@@ -238,6 +265,7 @@ if query:
             reply = "Hello! Welcome to Bctech Computer Education. How can I help you today? 😊"
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
+            sync_to_browser()
             col_l, col_r = st.columns([0.85, 0.15])
             with col_r:
                 if st.button("📋 Copy", key=f"copy_greet_{len(st.session_state.messages)}"):
@@ -255,6 +283,7 @@ if query:
             
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
+            sync_to_browser()
             col_l, col_r = st.columns([0.85, 0.15])
             with col_r:
                 if st.button("📋 Copy", key=f"copy_branch_{len(st.session_state.messages)}"):
@@ -353,6 +382,7 @@ if query:
                     if answer:
                         st.write(answer)
                         st.session_state.messages.append({"role": "assistant", "content": answer})
+                        sync_to_browser()
                         col_l, col_r = st.columns([0.85, 0.15])
                         with col_r:
                             if st.button("📋 Copy", key=f"copy_ast_curr_{len(st.session_state.messages)}"):
