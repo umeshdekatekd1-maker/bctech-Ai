@@ -4,7 +4,7 @@ import pandas as pd
 
 st.set_page_config(page_title="Bctech AI Assistant", layout="centered", initial_sidebar_state="collapsed")
 
-# Custom Clean Styling
+# Custom Styling
 st.markdown("""
 <style>
     #MainMenu, header, footer {visibility: hidden;}
@@ -25,74 +25,65 @@ st.markdown("""
 
 st.title("🎓 Bctech AI Assistant")
 
-SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1ES2A77U61GeS710Xfyc0dKIevUhzR2v7-aSjkr1R3tg/export?format=csv"
+# Google Sheet CSV URL
+SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/1ES2A77U61GeS710Xfyc0dKIevUhzR2v7-aSjkr1R3tg/gviz/tq?tqx=out:csv"
 
-@st.cache_data(ttl=30)
-def load_sheet_data(url):
+@st.cache_data(ttl=15)
+def load_sheet_data():
     try:
-        df = pd.read_csv(url)
-        df.columns = df.columns.astype(str).str.strip()
+        df = pd.read_csv(SHEET_CSV_URL)
+        df.columns = [str(c).strip() for c in df.columns]
+        # Unnamed columns hatayein
+        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
         return df
-    except Exception:
+    except Exception as e:
         return None
+
+# Powerful Smart Search - Sheet ke har cell me check karega
+def search_student_data(query_text, df):
+    if df is None or df.empty:
+        return []
+    
+    clean_q = query_text.strip().lower()
+    stop_words = {"result", "marks", "kya", "hai", "check", "batao", "mera", "meri", "ka", "ki", "dekho", "please", "sir", "bctech", "mujhko", "dekhna"}
+    
+    words = [w for w in clean_q.split() if w not in stop_words and len(w) >= 2]
+    if not words:
+        words = [clean_q]
+
+    matched_indices = set()
+    
+    # 1. Check complete query match across all text
+    for col in df.columns:
+        col_series = df[col].astype(str).str.strip().str.lower()
+        exact_hits = df[col_series == clean_q].index
+        matched_indices.update(exact_hits)
+
+    # 2. Check each word match
+    if not matched_indices:
+        for word in words:
+            for col in df.columns:
+                col_series = df[col].astype(str).str.strip().str.lower()
+                hits = df[col_series.str.contains(word, regex=False, na=False)].index
+                matched_indices.update(hits)
+
+    if matched_indices:
+        results_df = df.loc[list(matched_indices)]
+        return results_df.dropna(how='all').to_dict(orient="records")
+    return []
 
 # Website Knowledge Base
 KNOWLEDGE_BASE = """
 About Bctech Computer Education:
 - Institute: Bctech Computer Education (Website: https://sites.google.com/view/bctechcomputer)
 - Main Offerings: Professional computer training, practical practical-oriented learning, ISO certified courses, job assistance.
-- Popular Courses:
-  1. Basic Computer Course (Windows, MS Office - Word, Excel, PowerPoint)
-  2. Graphic Designing (CorelDraw, Photoshop, Illustrator, Adobe Express)
-  3. Accounting & Tally (Tally Prime, GST filing)
-  4. Web Designing & Development (HTML, CSS, JavaScript)
-  5. Programming & Coding (Python, C, C++)
-  6. Digital Marketing
-  7. Advanced Excel & Data Entry
+- Popular Courses: Basic Computer Course, Graphic Designing (CorelDraw, Photoshop), Accounting & Tally Prime, Web Development, Programming (Python, C++), Digital Marketing, Advanced Excel.
 """
-
-# Name-only Search Function
-def search_student_by_name(query_text, df):
-    if df is None or df.empty:
-        return None
-    
-    clean_query = query_text.strip().lower()
-    
-    # Common words ignore list
-    stop_words = {"result", "marks", "kya", "hai", "check", "batao", "mera", "meri", "ka", "ki", "dekho", "please", "sir", "bctech"}
-    query_words = [w for w in clean_query.split() if w not in stop_words and len(w) >= 2]
-    
-    if not query_words:
-        return None
-
-    # Identify name column automatically
-    name_cols = [col for col in df.columns if any(term in col.lower() for term in ["name", "student", "naam", "candidate"])]
-    target_cols = name_cols if name_cols else list(df.columns)
-
-    results = []
-
-    # 1. Exact Full Name Check
-    full_name_query = " ".join(query_words)
-    for col in target_cols:
-        matched = df[df[col].astype(str).str.strip().str.lower() == full_name_query]
-        if not matched.empty:
-            return matched.to_dict(orient="records")
-
-    # 2. Partial / First Name Match
-    for col in target_cols:
-        for word in query_words:
-            matched = df[df[col].astype(str).str.strip().str.lower().str.contains(word, regex=False, na=False)]
-            if not matched.empty:
-                for record in matched.to_dict(orient="records"):
-                    if record not in results:
-                        results.append(record)
-
-    return results if results else None
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Show previous history
+# Previous messages
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
@@ -104,8 +95,8 @@ if query:
     with st.chat_message("user"):
         st.write(query)
 
-    df_sheet = load_sheet_data(SHEET_CSV_URL)
-    matched_records = search_student_by_name(query, df_sheet)
+    df_sheet = load_sheet_data()
+    matched_records = search_student_data(query, df_sheet)
 
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
     
@@ -117,32 +108,32 @@ if query:
                 
                 if matched_records:
                     details_text = ""
-                    for idx, student in enumerate(matched_records[:3], 1):
-                        details_text += f"\nRecord {idx}:\n"
-                        for k, v in student.items():
-                            if pd.notna(v):
-                                details_text += f"- {k}: {v}\n"
-                    
+                    for idx, record in enumerate(matched_records[:3], 1):
+                        details_text += f"\n--- Student Record {idx} ---\n"
+                        for k, v in record.items():
+                            if pd.notna(v) and str(v).strip() != "":
+                                details_text += f"{k}: {v}\n"
+
                     system_prompt = f"""
                     You are the AI Assistant for Bctech Computer Education.
-                    Found student result record(s) matching the entered name:
+                    A student has searched for their result and we FOUND their record in the institute Google Sheet:
                     {details_text}
-                    
+
                     Instructions:
-                    1. Present the result clearly with student name, course, marks/grade, and pass/fail status.
-                    2. If there are multiple records with similar names, list them clearly so the student can identify theirs.
-                    3. Congratulate them if they passed.
-                    4. Reply politely in natural Hinglish.
+                    1. Show their details in an easy-to-read, clean format (Name, Course, Marks/Grade, Status).
+                    2. Congratulate them if they passed.
+                    3. Do not ask for their name again because their record is already found above.
+                    4. Reply in polite, clear Hinglish.
                     """
                 else:
                     system_prompt = f"""
                     You are the official AI Counselor for Bctech Computer Education.
                     STRICT RESTRICTIONS:
-                    1. NEVER tell, estimate, or guess any COURSE FEES or charges. Politely refuse: "Fees ki jankari ke liye kripya direct institute branch par visit karein ya diye gaye number par call karein."
+                    1. NEVER tell, estimate, or guess any COURSE FEES or charges. Politely refuse: "Fees ki jankari ke liye kripya direct institute branch par visit karein ya call karein."
                     2. NEVER mention or use the word 'Free'.
-                    3. If student is asking for result, ask them: "Apna sahi aur pura Naam type karein taaki hum sheet se result check kar sakein."
+                    3. If the user appears to be searching for an exam result or marks, explain that their name was not found in the sheet and ask them to type their exact spelling/full name as per admission record.
                     4. Reply in natural, friendly Hinglish.
-                    
+
                     Institute Information:
                     {KNOWLEDGE_BASE}
                     """
@@ -166,6 +157,6 @@ if query:
                     st.write(answer)
                     st.session_state.messages.append({"role": "assistant", "content": answer})
                 else:
-                    st.error("Filhal AI uplabdh nahi hai. Kripya thodi der baad prayas karein.")
+                    st.error("Filhal AI uplabdh nahi hai. Thodi der baad try karein.")
             except Exception as e:
                 st.error(f"Error: {e}")
