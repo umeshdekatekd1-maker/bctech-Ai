@@ -56,11 +56,14 @@ st.markdown("""
         font-size: 13px !important;
         text-align: left !important;
         justify-content: flex-start !important;
-        background-color: #f8f9fa !important;
-        border: 1px solid #e8eaed !important;
-        color: #3c4043 !important;
-        margin-bottom: 5px !important;
+        background-color: #ffffff !important;
+        border: 1px solid #dadce0 !important;
+        color: #202124 !important;
+        margin-bottom: 6px !important;
         cursor: pointer !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     section[data-testid="stSidebar"] div[data-testid="stExpander"] .stButton>button:hover {
         background-color: #e8f0fe !important;
@@ -117,34 +120,23 @@ def run_aerial_celebration():
 # Session States
 if "messages" not in st.session_state:
     st.session_state.messages = []
-if "saved_sessions" not in st.session_state:
-    st.session_state.saved_sessions = []
+if "search_history" not in st.session_state:
+    st.session_state.search_history = []
 if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
 if "waiting_for_image_prompt" not in st.session_state:
     st.session_state.waiting_for_image_prompt = False
 
 def start_new_chat():
-    if st.session_state.messages:
-        user_messages = [m["content"] for m in st.session_state.messages if m["role"] == "user"]
-        if user_messages:
-            last_msg = user_messages[-1]
-            title = (last_msg[:24] + "..") if len(last_msg) > 24 else last_msg
-        else:
-            title = "Chat"
-
-        st.session_state.saved_sessions.append({
-            "title": title,
-            "messages": list(st.session_state.messages)
-        })
     st.session_state.messages = []
     st.session_state.waiting_for_result_name = False
     st.session_state.waiting_for_image_prompt = False
 
-def load_saved_chat(session_index):
-    if 0 <= session_index < len(st.session_state.saved_sessions):
-        st.session_state.messages = list(st.session_state.saved_sessions[session_index]["messages"])
+def restore_search_item(item_idx):
+    if 0 <= item_idx < len(st.session_state.search_history):
+        st.session_state.messages = list(st.session_state.search_history[item_idx]["messages"])
 
+# Sidebar with Live Auto-Updating Recent Searches
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -152,18 +144,18 @@ with st.sidebar:
         st.rerun()
     st.markdown('</div>', unsafe_allow_html=True)
     
-    with st.expander("Recent", expanded=True):
-        if st.session_state.saved_sessions:
-            for idx, session_item in enumerate(reversed(st.session_state.saved_sessions)):
-                actual_idx = len(st.session_state.saved_sessions) - 1 - idx
+    with st.expander("🕒 Recent Searches", expanded=True):
+        if st.session_state.search_history:
+            for idx, item in enumerate(reversed(st.session_state.search_history)):
+                actual_idx = len(st.session_state.search_history) - 1 - idx
                 st.button(
-                    f"💬 {session_item['title']}", 
-                    key=f"recent_chat_{actual_idx}",
-                    on_click=load_saved_chat,
+                    f"🔍 {item['title']}", 
+                    key=f"recent_search_{actual_idx}",
+                    on_click=restore_search_item,
                     args=(actual_idx,)
                 )
         else:
-            st.caption("No recent chats yet.")
+            st.caption("No recent searches yet.")
             
     st.markdown("---")
     st.markdown("**📌 Quick Links:**")
@@ -217,10 +209,8 @@ def load_all_sheets_data():
         
     return None, "Sheet data unavailable"
 
-# High-Quality / 4K / Photorealistic Image Trigger & Prompt Optimizer
 def detect_image_request(text):
     text_lower = text.lower().strip()
-    
     triggers = [
         "image", "photo", "picture", "wallpaper", "banao", "create", 
         "generate", "tasveer", "chhavi", "તસવીર", "ફોટો", "draw"
@@ -245,7 +235,6 @@ def detect_image_request(text):
         if len(base_prompt) < 2:
             base_prompt = "breathtaking cinematic mountain landscape sunrise"
 
-    # Enforce 4K, Ultra Realistic, High-Definition Modifiers
     hd_boosted_prompt = (
         f"{base_prompt}, ultra photorealistic, 8k resolution, 4k uhd, masterpiece, "
         "hyperrealistic photography, natural volumetric lighting, 35mm photograph, shot on DSLR, "
@@ -333,7 +322,7 @@ About Bctech Computer Education:
 for idx, msg in enumerate(st.session_state.messages):
     with st.chat_message(msg["role"]):
         if msg.get("is_image", False):
-            st.image(msg["content"], caption=msg.get("caption", "Ultra HD 4K Realistic Output"), use_container_width=True)
+            st.image(msg["content"], caption=msg.get("caption", "Ultra HD Output"), use_container_width=True)
         else:
             st.write(msg["content"])
             col_l, col_r = st.columns([0.85, 0.15])
@@ -362,14 +351,12 @@ if query:
         if err:
             st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
         
-        # 1. 4K Ultra-HD Realistic Image Generator (FLUX Model)
+        # 1. 4K Ultra-HD Realistic Image
         elif is_img_req:
             with st.spinner("🎨 Rendering 4K Ultra-HD Realistic Image..."):
                 encoded_prompt = urllib.parse.quote(enhanced_prompt)
                 seed = random.randint(1000, 999999)
-                # FLUX engine with 1920x1080 resolution for genuine 4K/HD realistic rendering
                 image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1920&height=1080&model=flux&seed={seed}&nologo=true"
-                
                 st.image(image_url, caption="✨ 4K Ultra-HD Photorealistic Output", use_container_width=True)
                 st.session_state.messages.append({
                     "role": "assistant",
@@ -520,3 +507,11 @@ if query:
                             st.error(f"API Error: {last_api_err}")
                     except Exception as e:
                         st.error(f"Error: {e}")
+
+    # Automatically save each search into Recent Searches history
+    item_title = (query[:22] + "..") if len(query) > 22 else query
+    st.session_state.search_history.append({
+        "title": item_title,
+        "messages": list(st.session_state.messages)
+    })
+    st.rerun()
