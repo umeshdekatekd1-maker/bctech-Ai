@@ -3,7 +3,7 @@ from groq import Groq
 
 st.set_page_config(page_title="Bctech AI Assistant", layout="centered", initial_sidebar_state="collapsed")
 
-# Custom Google Styling
+# Styling
 st.markdown("""
 <style>
     #MainMenu, header, footer {visibility: hidden;}
@@ -27,7 +27,7 @@ st.title("🎓 Bctech AI Assistant")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Previous conversation history
+# Show previous history
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
@@ -41,24 +41,42 @@ if query:
 
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
     
+    # Active supported models on Groq
+    AVAILABLE_MODELS = [
+        "llama-3.3-70b-versatile",
+        "llama-3.2-3b-preview",
+        "llama-3.2-11b-vision-preview",
+        "gemma2-9b-it"
+    ]
+    
     with st.chat_message("assistant"):
         with st.spinner("AI jawab taiyar kar raha hai..."):
-            try:
-                chat_completion = client.chat.completions.create(
-                    messages=[
-                        {
-                            "role": "system",
-                            "content": "You are a helpful and friendly AI counselor for Bctech Computer Education institute. Guide students on courses, fees, syllabus, and computer career advice in simple Hinglish."
-                        },
-                        {
-                            "role": "user",
-                            "content": query,
-                        }
-                    ],
-                    model="llama3-8b-8192",
-                )
-                answer = chat_completion.choices[0].message.content
+            answer = None
+            last_err = None
+            
+            for mod in AVAILABLE_MODELS:
+                try:
+                    chat_completion = client.chat.completions.create(
+                        messages=[
+                            {
+                                "role": "system",
+                                "content": "You are a helpful and friendly AI counselor for Bctech Computer Education institute. Guide students on courses, fees, syllabus, and computer career advice in simple Hinglish."
+                            },
+                            {
+                                "role": "user",
+                                "content": query,
+                            }
+                        ],
+                        model=mod,
+                    )
+                    answer = chat_completion.choices[0].message.content
+                    break
+                except Exception as e:
+                    last_err = e
+                    continue
+            
+            if answer:
                 st.write(answer)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
-            except Exception as e:
-                st.error(f"Error: {e}")
+            else:
+                st.error(f"Model Error: {last_err}")
