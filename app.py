@@ -664,7 +664,7 @@ if query:
                     - Display all {len(matched_records)} records separately.
                     - Show clean whole numbers without decimals (e.g., 23, 41).
                     - DO NOT write 'Result: Pass' or any status.
-                    - FORMAT REQUIREMENT: Do NOT use the word 'Record' anywhere. Structure the output professionally using the exact layout below with Student Name, Exam Name, Teacher Name, Theory Tests, Practical Tests, Total Marks, and Percentage:
+                    - FORMAT REQUIREMENT: Do NOT use the word 'Record' anywhere. Structure the output professionally using the exact layout below with Student Name, Exam Name, and Teacher Name on separate lines, followed by Theory Tests, Practical Tests, Total Marks, and Percentage on a new separate line:
                     
                     - Format Structure:
                       Student Name: {found_name}
@@ -684,7 +684,7 @@ if query:
                       - Total Practical: [Sum]
                       
                       Total Marks: [Total Marks Obtained] / [Max Marks]
-                      [Percentage]%
+                      Percentage: [Percentage]%
                     """
                 else:
                     ist_tz = timezone(timedelta(hours=5, minutes=30))
