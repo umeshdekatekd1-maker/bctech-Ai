@@ -534,10 +534,8 @@ if query:
         else:
             matched_records = search_student_all_sheets(query, df_sheet)
             client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-            is_found_result = False
             
             if matched_records:
-                is_found_result = True
                 details_text = ""
                 found_name = matched_records[0].get("Student_Name_Std", "")
 
@@ -618,7 +616,6 @@ if query:
             with st.spinner("Thinking..."):
                 try:
                     models_resp = client.models.list()
-                    # Filter out non-chat, whisper, guard, vision, and restricted models to avoid 400 term errors
                     active_ids = [
                         m.id for m in models_resp.data 
                         if "whisper" not in m.id 
@@ -660,7 +657,9 @@ if query:
                     if answer:
                         st.write(answer)
                         st.session_state.messages.append({"role": "assistant", "content": answer})
-                        if is_found_result:
+                        
+                        # STRICT CHECK: Balloons/Celebration effect will ONLY trigger if student marks/result is successfully found in the sheet
+                        if matched_records:
                             run_aerial_celebration()
 
                         render_clean_copy_button(answer, f"ast_curr_{len(st.session_state.messages)}")
