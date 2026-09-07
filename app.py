@@ -423,8 +423,8 @@ def search_student_all_sheets(query_text, df):
 def clean_ai_response(text):
     if not text:
         return ""
-    cleaned = re.sub(r"<think>.*?</think>", "", text, flags=r.DOTALL)
-    cleaned = re.sub(r"<think>.*", "", cleaned, flags=r.DOTALL)
+    cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+    cleaned = re.sub(r"<think>.*", "", cleaned, flags=re.DOTALL)
     return cleaned.strip()
 
 BRANCH_LINK = "https://sites.google.com/view/bctechcomputer/about-us"
@@ -493,7 +493,7 @@ if query:
 
         elif is_greeting(query):
             if lang == "GUJARATI":
-                reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
             elif lang == "HINDI":
                 reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
             else:
@@ -618,9 +618,15 @@ if query:
             with st.spinner("Thinking..."):
                 try:
                     models_resp = client.models.list()
+                    # Filter out non-chat, whisper, guard, vision, and restricted models to avoid 400 term errors
                     active_ids = [
                         m.id for m in models_resp.data 
-                        if "whisper" not in m.id and "guard" not in m.id and "vision" not in m.id
+                        if "whisper" not in m.id 
+                        and "guard" not in m.id 
+                        and "vision" not in m.id 
+                        and "audio" not in m.id
+                        and "embed" not in m.id
+                        and "canopy" not in m.id
                     ]
                     preferred = ["llama-3.1-8b-instant", "llama3-8b-8192", "gemma2-9b-it"]
                     models_to_try = [m for m in preferred if m in active_ids] + [m for m in active_ids if m not in preferred]
