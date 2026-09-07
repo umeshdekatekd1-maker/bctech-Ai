@@ -578,7 +578,7 @@ if query:
                 
                 lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                 system_prompt = f"""
-                You are BC Tech AI Assistant, a smart, professional assistant for BC Tech Computer Education and general queries.
+                You are BC Tech AI Assistant, a smart, professional assistant for BC Tech Computer Education and general knowledge expert.
                 
                 EXACT CURRENT INDIAN STANDARD TIME (IST):
                 - Current Date and Time: {current_time_str}
@@ -590,12 +590,11 @@ if query:
                 
                 CRITICAL INSTRUCTIONS:
                 1. When the user asks for time, date, day, or general queries, answer accurately using the real-time context provided above ({current_time_str}).
-                2. If the user asks about the weather, politely reply in {lang_name} that you are the BC Tech Assistant focused on institute and result services, and suggest checking a weather app for local updates.
-                3. Answer general knowledge questions accurately in 2-3 direct sentences.
-                4. For BC Tech courses, refer to:
+                2. You possess extensive general knowledge (science, history, geography, technology, general facts, etc.). Answer any general knowledge questions accurately, informatively, and clearly.
+                3. For BC Tech computer courses, refer to:
                 {KNOWLEDGE_BASE}
-                5. If asked about location, provide: {BRANCH_LINK}
-                6. Output ONLY the response text without greetings or meta notes.
+                4. If asked about institute location, provide: {BRANCH_LINK}
+                5. Output ONLY the response text without greetings or meta notes.
                 """
 
             with st.spinner("Thinking..."):
@@ -619,8 +618,8 @@ if query:
                                     {"role": "user", "content": query}
                                 ],
                                 model=m_name,
-                                temperature=0.2,
-                                max_tokens=450
+                                temperature=0.3,
+                                max_tokens=600
                             )
                             raw_answer = chat_completion.choices[0].message.content
                             answer = clean_ai_response(raw_answer)
