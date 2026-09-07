@@ -89,7 +89,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Session States initialization
+# Session States initialization & LocalStorage Recovery
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "recent_chats" not in st.session_state:
@@ -98,6 +98,45 @@ if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
 if "current_language" not in st.session_state:
     st.session_state.current_language = "ENGLISH"
+
+# JavaScript to restore messages from localStorage on page refresh
+restore_script = """
+<script>
+    const STORAGE_KEY_MSGS = "bctech_persisted_messages_v12";
+    const STORAGE_KEY_RECENT = "bctech_persisted_recent_v12";
+    
+    try {
+        const savedMsgs = localStorage.getItem(STORAGE_KEY_MSGS);
+        const savedRecent = localStorage.getItem(STORAGE_KEY_RECENT);
+        
+        const urlParams = new URLSearchParams(window.parent.location.search);
+        const isRestored = urlParams.get('restored');
+        
+        if (savedMsgs && isRestored !== 'true') {
+            // Send saved data via URL parameters or sessionStorage backup
+            sessionStorage.setItem('restored_msgs', savedMsgs);
+            if (savedRecent) sessionStorage.setItem('restored_recent', savedRecent);
+            window.parent.location.search = "?restored=true";
+        }
+    } catch(e) {}
+</script>
+"""
+components.html(restore_script, height=0)
+
+# Check session storage recovery inside Python
+if not st.session_state.messages:
+    recovery_code = """
+    <script>
+        try {
+            const m = sessionStorage.getItem('restored_msgs');
+            const r = sessionStorage.getItem('restored_recent');
+            if (m) {
+                window.parent.postMessage({type: 'restore_data', msgs: m, recent: r}, '*');
+            }
+        } catch(e) {}
+    </script>
+    """
+    # Automatic state recovery handler via query params trick if needed
 
 # Clean One-Click Clipboard Button
 def render_clean_copy_button(text_to_copy, unique_id):
@@ -371,7 +410,6 @@ def search_student_all_sheets(query_text, df):
     
     clean_q = query_text.strip().lower()
     
-    # Agar user ne teacher ka naam ya aisi query likhi jo student nahi hai toh ignore karo
     if "priya mam" in clean_q or "priya ma'am" in clean_q:
         return []
 
@@ -509,14 +547,14 @@ if query:
 
                 system_prompt = f"""
                 You are the official AI Assistant for BC Tech Computer Education. 
-                Your primary and absolute duty is to display student examination records and marks fetched from the institute database when requested by the user.
+                Your primary and absolute duty is to display student examination records and marks fetched from the database when requested.
                 
                 Student verified database records:
                 {details_text}
 
                 MANDATORY RULES FOR DISPLAYING MARKS:
                 - Target Language: {lang_name}. Output strictly in {lang_name}.
-                - You MUST display the student marks and records provided above. Never refuse or claim privacy/confidentiality for institutional database queries.
+                - You MUST display the student marks and records provided above. Never refuse or claim privacy.
                 - Display all {len(matched_records)} records separately.
                 - Show clean whole numbers without decimals (e.g., 23, 41).
                 - DO NOT write 'Result: Pass' or any status.
@@ -546,7 +584,6 @@ if query:
                 current_time_str = datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %I:%M:%S %p (%A)")
                 lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                 
-                # Check if user tried searching for Priya Mam specifically
                 if "priya" in query.lower() and ("mam" in query.lower() or "ma'am" in query.lower() or "sir" in query.lower()):
                     specific_msg = "माफ़ कीजिए, 'Priya Mam' हमारे संस्थान में शिक्षिका (Teacher) हैं, किसी स्टूडेंट का नाम नहीं। कृपया किसी छात्र (Student) का नाम लिखकर रिजल्ट देखें।"
                     if lang == "GUJARATI":
@@ -625,14 +662,22 @@ if query:
                 except Exception as e:
                     st.error(f"Error: {e}")
 
-# Trigger LocalStorage sync to keep messages persistent across refreshes
-components.html(f"""
+# Save state to browser's localStorage automatically
+msgs_json = json.dumps(st.session_state.messages)
+recent_json = json.dumps(st.session_state.recent_chats)
+
+persistence_component = f"""
+<html>
+<body>
 <script>
-    const STORAGE_KEY_MSGS = "bctech_persistent_msgs_v10";
-    const STORAGE_KEY_RECENT = "bctech_persistent_recent_v10";
+    const STORAGE_KEY_MSGS = "bctech_persisted_messages_v12";
+    const STORAGE_KEY_RECENT = "bctech_persisted_recent_v12";
     try {{
-        localStorage.setItem(STORAGE_KEY_MSGS, {json.dumps(json.dumps(st.session_state.messages))});
-        localStorage.setItem(STORAGE_KEY_RECENT, {json.dumps(json.dumps(st.session_state.recent_chats))});
+        localStorage.setItem(STORAGE_KEY_MSGS, {json.dumps(msgs_json)});
+        localStorage.setItem(STORAGE_KEY_RECENT, {json.dumps(recent_json)});
     }} catch(e) {{}}
 </script>
-""", height=0)
+</body>
+</html>
+"""
+components.html(persistence_component, height=0)
