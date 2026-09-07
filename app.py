@@ -14,13 +14,12 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Modern Chat Bubbles & Completely Hiding Streamlit/Developer Watermark Badges
+# Custom Modern Chat Bubbles Styles
 st.markdown("""
 <style>
     #MainMenu, footer {visibility: hidden !important;}
     header {visibility: visible !important;}
     
-    /* Streamlit Hosted Footer Badge & Developer Tag Hide karne ke liye */
     footer {display: none !important;}
     .stApp > header {background-color: transparent;}
     [data-testid="stDecoration"] {display: none !important;}
@@ -88,15 +87,6 @@ st.markdown("""
         width: 100% !important;
     }
 </style>
-
-<script>
-    // Developer badge aur Streamlit footer ko remove karne ke liye extra JS script
-    const removeBadgesCompletely = () => {
-        const elements = window.parent.document.querySelectorAll('.viewerBadge_container__1QSob, footer, a[href*="streamlit.cloud"], div[class*="viewerBadge"]');
-        elements.forEach(el => el.remove());
-    };
-    setInterval(removeBadgesCompletely, 400);
-</script>
 """, unsafe_allow_html=True)
 
 # Session States initialization
@@ -108,52 +98,6 @@ if "waiting_for_result_name" not in st.session_state:
     st.session_state.waiting_for_result_name = False
 if "current_language" not in st.session_state:
     st.session_state.current_language = "ENGLISH"
-
-# Bulletproof LocalStorage Sync Component
-def render_localstorage_persistence():
-    msgs_json = json.dumps(st.session_state.messages)
-    recent_json = json.dumps(st.session_state.recent_chats)
-    
-    persistence_html = f"""
-    <html>
-    <body>
-    <script>
-        const STORAGE_KEY_MSGS = "bctech_persistent_msgs_v10";
-        const STORAGE_KEY_RECENT = "bctech_persistent_recent_v10";
-
-        try {{
-            localStorage.setItem(STORAGE_KEY_MSGS, {json.dumps(msgs_json)});
-            localStorage.setItem(STORAGE_KEY_RECENT, {json.dumps(recent_json)});
-        }} catch(e) {{}}
-    </script>
-    </body>
-    </html>
-    """
-    components.html(persistence_html, height=0)
-
-if "restored_from_storage" not in st.session_state:
-    st.session_state.restored_from_storage = False
-
-restore_js = """
-<script>
-    const STORAGE_KEY_MSGS = "bctech_persistent_msgs_v10";
-    const STORAGE_KEY_RECENT = "bctech_persistent_recent_v10";
-    
-    try {
-        const savedMsgs = localStorage.getItem(STORAGE_KEY_MSGS);
-        const savedRecent = localStorage.getItem(STORAGE_KEY_RECENT);
-        
-        if (savedMsgs && (!window.parent.alreadyRestored)) {
-            window.parent.alreadyRestored = true;
-            const urlParams = new URLSearchParams(window.parent.location.search);
-            if (!urlParams.has('restored')) {
-                window.parent.location.search = "?restored=true";
-            }
-        }
-    } catch(e) {}
-</script>
-"""
-components.html(restore_js, height=0)
 
 # Clean One-Click Clipboard Button
 def render_clean_copy_button(text_to_copy, unique_id):
@@ -433,7 +377,7 @@ def search_student_all_sheets(query_text, df):
     fillers = [
         "result", "marks", "marx", "kya", "hai", "check", "batao", "bata do", "mera", "meri", "ka", "ki", "ko",
         "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam", "name",
-        "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo",
+        "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo", "mam", "sir",
         "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ"
     ]
     
@@ -629,7 +573,10 @@ if query:
                     answer = None
                     last_api_err = None
 
-                    api_messages = [{"role": "system", "content": system_prop}]
+                    # Use system_prompt if student records are found, otherwise use system_prop (general & GK)
+                    active_system_prompt = system_prompt if matched_records else system_prop
+
+                    api_messages = [{"role": "system", "content": active_system_prompt}]
                     for m in st.session_state.messages[:-1]:
                         api_messages.append({"role": m["role"], "content": m["content"]})
                     api_messages.append({"role": "user", "content": query})
@@ -663,4 +610,13 @@ if query:
                     st.error(f"Error: {e}")
 
 # Trigger LocalStorage sync to keep messages persistent across refreshes
-render_localstorage_persistence()
+components.html(f"""
+<script>
+    const STORAGE_KEY_MSGS = "bctech_persistent_msgs_v10";
+    const STORAGE_KEY_RECENT = "bctech_persistent_recent_v10";
+    try {{
+        localStorage.setItem(STORAGE_KEY_MSGS, {json.dumps(json.dumps(st.session_state.messages))});
+        localStorage.setItem(STORAGE_KEY_RECENT, {json.dumps(json.dumps(st.session_state.recent_chats))});
+    }} catch(e) {{}}
+</script>
+""", height=0)
