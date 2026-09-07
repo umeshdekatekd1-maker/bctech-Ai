@@ -475,6 +475,12 @@ def check_is_branch_intent(text):
 def search_student_all_sheets(query_text, df):
     if df is None or df.empty or "Student_Name_Std" not in df.columns:
         return []
+    
+    # Check if query contains image/drawing keywords to avoid treating them as student names
+    img_triggers = ["image", "photo", "picture", "wallpaper", "banao", "create", "generate", "tasveer", "draw", "bana do"]
+    if any(t in query_text.lower() for t in img_triggers):
+        return []
+
     clean_q = query_text.strip().lower()
     fillers = [
         "result", "marks", "marx", "kya", "hai", "check", "batao", "bata do", "mera", "meri", "ka", "ki", "ko",
