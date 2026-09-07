@@ -354,7 +354,7 @@ def update_language_state(text):
 
 def is_greeting(text):
     text_clean = text.lower().strip().replace("!", "").replace(".", "")
-    greetings = ["hi", "hello", "hey", "hii", "hiii", "namaste", "kem cho", "kem chho", "halo", "હેલો", "નમસ્તે"]
+    greetings = ["hi", "hello", "hey", "hii", "hiii", "namaste", "kem cho", "kem chho", "halo", "હેલો", "નમસ્ते"]
     return text_clean in greetings
 
 def check_is_branch_intent(text):
@@ -369,15 +369,20 @@ def search_student_all_sheets(query_text, df):
     if df is None or df.empty or "Student_Name_Std" not in df.columns:
         return []
     
-    img_triggers = ["image", "photo", "picture", "wallpaper", "banao", "create", "generate", "tasveer", "draw", "bana do"]
-    if any(t in query_text.lower() for t in img_triggers):
+    clean_q = query_text.strip().lower()
+    
+    # Agar user ne teacher ka naam ya aisi query likhi jo student nahi hai toh ignore karo
+    if "priya mam" in clean_q or "priya ma'am" in clean_q:
         return []
 
-    clean_q = query_text.strip().lower()
+    img_triggers = ["image", "photo", "picture", "wallpaper", "banao", "create", "generate", "tasveer", "draw", "bana do"]
+    if any(t in clean_q for t in img_triggers):
+        return []
+
     fillers = [
         "result", "marks", "marx", "kya", "hai", "check", "batao", "bata do", "mera", "meri", "ka", "ki", "ko",
         "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam", "name",
-        "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo", "mam", "sir", "ka", "ki",
+        "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo", "mam", "sir",
         "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ"
     ]
     
@@ -541,6 +546,15 @@ if query:
                 current_time_str = datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %I:%M:%S %p (%A)")
                 lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                 
+                # Check if user tried searching for Priya Mam specifically
+                if "priya" in query.lower() and ("mam" in query.lower() or "ma'am" in query.lower() or "sir" in query.lower()):
+                    specific_msg = "माफ़ कीजिए, 'Priya Mam' हमारे संस्थान में शिक्षिका (Teacher) हैं, किसी स्टूडेंट का नाम नहीं। कृपया किसी छात्र (Student) का नाम लिखकर रिजल्ट देखें।"
+                    if lang == "GUJARATI":
+                        specific_msg = "ક્ષમા કરશો, 'Priya Mam' અમારી સંસ્થામાં શિક્ષિકા (Teacher) છે, વિદ્યાર્થીનું નામ નથી. કૃપા કરીને કોઈ વિદ્યાર્થીનું નામ લખીને પરિણામ જુઓ."
+                    st.write(specific_msg)
+                    st.session_state.messages.append({"role": "assistant", "content": specific_msg})
+                    st.stop()
+
                 system_prop = f"""
                 You are BC Tech AI Assistant, a smart, professional assistant for BC Tech Computer Education and general knowledge expert.
                 
