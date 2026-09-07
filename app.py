@@ -661,10 +661,10 @@ if query:
                     - Display all {len(matched_records)} records separately.
                     - Show clean whole numbers without decimals (e.g., 23, 41).
                     - DO NOT write 'Result: Pass' or any status.
-                    - FORMAT REQUIREMENT: List each subject and mark on a separate new line using bullet points (e.g., Theory-1: 35, Theory-2: 24, Practical-1: 40). Do not lump them together in a single comma-separated sentence.
+                    - FORMAT REQUIREMENT: Do NOT use the word 'Record'. Instead, use the Sheet/Teacher name directly as the heading. List each subject and mark on a separate new line using bullet points. Do not lump them together in a single sentence.
                     
                     - Format Structure:
-                      📌 Record [Number]: [Exam Name]
+                      📌 [Sheet/Teacher Name]: [Exam Name]
                       - Name: {found_name}
                       - Exam: [Exam Name]
                       - Marks:
