@@ -343,7 +343,7 @@ def update_language_state(text):
         
     hindi_triggers = [
         "hindi", "in hindi", "hindi me", "hindi main", "bat kro", "baat karo", "batao",
-        "namaste", "mera", "meri", "kaise", "chahiye", "kya hai", "kaha hai", "kab aaya tha", "time", "samay", "aaj", "date", "kisne", "bnaya", "banaya"
+        "namaste", "mera", "meri", "kaise", "chahiye", "kya hai", "kaha hai", "kab aaya tha", "time", "samay", "aaj", "date", "kisne", "bnaya", "banaya", "or batao"
     ]
     if any(re.search(r"\b" + re.escape(w) + r"\b", text_clean) for w in hindi_triggers):
         st.session_state.current_language = "HINDI"
@@ -352,7 +352,6 @@ def update_language_state(text):
     english_triggers = ["english", "in english", "speak english", "time", "date"]
     if any(re.search(r"\b" + re.escape(w) + r"\b", text_clean) for w in english_triggers):
         st.session_state.current_language = "ENGLISH"
-        return "ENGLISH"
 
     return st.session_state.current_language
 
@@ -384,6 +383,11 @@ def search_student_all_sheets(query_text, df):
     
     clean_q = query_text.strip().lower()
     
+    # Ignore general chat phrases like "or batao", "aur batao", "kya chal raha hai", etc.
+    ignore_phrases = ["or batao", "aur batao", "kya haal hai", "or kya", "aur kya", "batao", "kya chal raha hai"]
+    if any(p in clean_q for p in ignore_phrases) and len(clean_q.split()) <= 4:
+        return []
+
     if "priya mam" in clean_q or "umesh sir" in clean_q or "sanjay sir" in clean_q or "ajay sir" in clean_q:
         return []
 
@@ -401,10 +405,6 @@ def search_student_all_sheets(query_text, df):
     query_clean_words = [w for w in clean_q.split() if w not in fillers]
     search_query_str = " ".join(query_clean_words).strip()
     
-    if not search_query_str or search_query_str in ["result", "show", "batao"]:
-        if st.session_state.last_mentioned_name:
-            search_query_str = st.session_state.last_mentioned_name
-
     if not search_query_str:
         return []
 
@@ -658,7 +658,7 @@ if query:
                         st.write(answer)
                         st.session_state.messages.append({"role": "assistant", "content": answer})
                         
-                        # STRICT CHECK: Balloons/Celebration effect will ONLY trigger if student marks/result is successfully found in the sheet
+                        # Celebration balloons/fireworks will ONLY trigger if student marks/result is successfully found in the sheet
                         if matched_records:
                             run_aerial_celebration()
 
