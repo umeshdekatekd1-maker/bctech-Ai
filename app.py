@@ -6,7 +6,6 @@ import requests
 import io
 import re
 import json
-import urllib.parse
 from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
@@ -213,74 +212,6 @@ def render_clean_copy_button(text_to_copy, unique_id):
     """
     components.html(html_btn, height=30)
 
-# Secure WhatsApp Direct Embed Component (Safe & Non-blocking)
-def render_whatsapp_embed_button(text_to_send, unique_id):
-    wa_html = f"""
-    <html>
-    <head>
-    <style>
-        body {{
-            margin: 0;
-            padding: 0;
-            background: transparent;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }}
-        .wa-input {{
-            border-radius: 16px;
-            padding: 5px 12px;
-            font-size: 12px;
-            border: 1px solid #dadce0;
-            outline: none;
-            width: 130px;
-        }}
-        .wa-input:focus {{
-            border-color: #25D366;
-        }}
-        .wa-btn {{
-            border-radius: 16px;
-            padding: 5px 12px;
-            font-size: 12px;
-            border: 1px solid #25D366;
-            background-color: #25D366;
-            color: white;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }}
-        .wa-btn:hover {{
-            background-color: #20ba5a;
-        }}
-    </style>
-    </head>
-    <body>
-        <input type="text" class="wa-input" id="phone_{unique_id}" placeholder="Mobile No (e.g. 91...)" />
-        <button class="wa-btn" onclick="sendWhatsApp()">
-            💬 Send WhatsApp
-        </button>
-        <script>
-            function sendWhatsApp() {{
-                const phone = document.getElementById('phone_{unique_id}').value.trim();
-                const msg = {json.dumps(text_to_send)};
-                let url = "https://wa.me/";
-                if (phone) {{
-                    url += phone + "?text=" + encodeURIComponent(msg);
-                }} else {{
-                    url += "?text=" + encodeURIComponent(msg);
-                }}
-                window.open(url, '_blank');
-            }}
-        </script>
-    </body>
-    </html>
-    """
-    components.html(wa_html, height=35)
-
 def run_aerial_celebration():
     st.balloons()
     anim_js = """
@@ -476,7 +407,6 @@ def search_student_all_sheets(query_text, df):
     if df is None or df.empty or "Student_Name_Std" not in df.columns:
         return []
     
-    # Check if query contains image/drawing keywords to avoid treating them as student names
     img_triggers = ["image", "photo", "picture", "wallpaper", "banao", "create", "generate", "tasveer", "draw", "bana do"]
     if any(t in query_text.lower() for t in img_triggers):
         return []
@@ -531,8 +461,6 @@ for idx, msg in enumerate(st.session_state.messages):
         st.write(msg["content"])
         if not is_user:
             render_clean_copy_button(msg["content"], f"hist_{idx}")
-            if "Student Name:" in msg["content"] or "Total Marks:" in msg["content"]:
-                render_whatsapp_embed_button(msg["content"], f"hist_wa_{idx}")
 
 query = st.chat_input("")
 
@@ -662,11 +590,12 @@ if query:
                 
                 CRITICAL INSTRUCTIONS:
                 1. When the user asks for time, date, day, or general queries, answer accurately using the real-time context provided above ({current_time_str}).
-                2. Answer general knowledge questions accurately in 2-3 direct sentences.
-                3. For BC Tech courses, refer to:
+                2. If the user asks about the weather, politely reply in {lang_name} that you are the BC Tech Assistant focused on institute and result services, and suggest checking a weather app for local updates.
+                3. Answer general knowledge questions accurately in 2-3 direct sentences.
+                4. For BC Tech courses, refer to:
                 {KNOWLEDGE_BASE}
-                4. If asked about location, provide: {BRANCH_LINK}
-                5. Output ONLY the response text without greetings or meta notes.
+                5. If asked about location, provide: {BRANCH_LINK}
+                6. Output ONLY the response text without greetings or meta notes.
                 """
 
             with st.spinner("Thinking..."):
@@ -708,8 +637,6 @@ if query:
                             run_aerial_celebration()
 
                         render_clean_copy_button(answer, f"ast_curr_{len(st.session_state.messages)}")
-                        if is_found_result or "Student Name:" in answer:
-                            render_whatsapp_embed_button(answer, f"ast_wa_{len(st.session_state.messages)}")
                     else:
                         st.error(f"API Error: {last_api_err}")
                 except Exception as e:
