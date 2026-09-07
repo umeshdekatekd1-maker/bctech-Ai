@@ -383,7 +383,6 @@ def search_student_all_sheets(query_text, df):
     
     clean_q = query_text.strip().lower()
     
-    # Ignore general chat phrases like "or batao", "aur batao", "kya chal raha hai", etc.
     ignore_phrases = ["or batao", "aur batao", "kya haal hai", "or kya", "aur kya", "batao", "kya chal raha hai"]
     if any(p in clean_q for p in ignore_phrases) and len(clean_q.split()) <= 4:
         return []
@@ -533,55 +532,56 @@ if query:
 
         else:
             matched_records = search_student_all_sheets(query, df_sheet)
-            client = Groq(api_key=st.secrets["GROQ_API_KEY"])
             
             if matched_records:
-                details_text = ""
-                found_name = matched_records[0].get("Student_Name_Std", "")
-
-                for i, record in enumerate(matched_records, 1):
-                    sheet_tab = record.get("_Sheet_Tab", f"Sheet {i}")
-                    s_exam = record.get("Exam_Std", "")
-                    details_text += f"\n--- Teacher: {sheet_tab} | Exam: {s_exam} ---\n"
+                # Direct Python Formatting to completely bypass LLM refusals
+                full_reply = ""
+                for record in matched_records:
+                    f_name = record.get("Student_Name_Std", "")
+                    f_exam = record.get("Exam_Std", "Course")
+                    f_teacher = record.get("_Sheet_Tab", "Teacher")
+                    
+                    # Extract theory & practical marks dynamically
+                    t_marks = []
+                    p_marks = []
                     for k, v in record.items():
-                        if k not in ["Name_Signature_Std", "Exam_Std", "_Sheet_Tab", "Student_Name_Std"]:
-                            details_text += f"- {k}: {v}\n"
+                        if "theory" in k.lower():
+                            t_marks.append(float(v) if v != "N/A" and str(v).replace('.','',1).isdigit() else 0)
+                        elif "practical" in k.lower():
+                            p_marks.append(float(v) if v != "N/A" and str(v).replace('.','',1).isdigit() else 0)
+                    
+                    tot_theory = int(sum(t_marks))
+                    tot_prac = int(sum(p_marks))
+                    total_obtained = tot_theory + tot_prac
+                    max_total = (len(t_marks) + len(p_marks)) * 100 if (len(t_marks) + len(p_marks)) > 0 else 600
+                    percentage = round((total_obtained / max_total) * 100, 2) if max_total > 0 else 0
 
-                system_prompt = f"""
-                You are the official AI Assistant for BC Tech Computer Education. 
-                Your primary and absolute duty is to display student examination records and marks fetched from the database when requested.
-                
-                Student verified database records:
-                {details_text}
+                    full_reply += f"""Student Name: {f_name}
+Exam Name: {f_exam}
+Teacher Name: {f_teacher}
 
-                MANDATORY RULES FOR DISPLAYING MARKS:
-                - Target Language: STRICTLY ENGLISH. Output must be entirely in English language.
-                - You MUST display the student marks and records provided above. Never refuse or claim privacy.
-                - Display all {len(matched_records)} records separately.
-                - Show clean whole numbers without decimals (e.g., 23, 41).
-                - DO NOT write 'Result: Pass' or any status.
-                - FORMAT REQUIREMENT: Do NOT use the word 'Record' anywhere. Structure the output professionally using the exact layout below in English:
-                
-                  Student Name: {found_name}
-                  Exam Name: [Exam Name from record]
-                  Teacher Name: [Teacher/Sheet Name]
-                  
-                  Theory Tests
-                  - Test 1: [Value]
-                  - Test 2: [Value]
-                  - Test 3: [Value]
-                  - Total Theory: [Sum]
-                  
-                  Practical Tests
-                  - Test 1: [Value]
-                  - Test 2: [Value]
-                  - Test 3: [Value]
-                  - Total Practical: [Sum]
-                  
-                  Total Marks: [Total Marks Obtained] / [Max Marks]
-                  Percentage: [Percentage]%
-                """
+Theory Tests
+- Test 1: {record.get('Theory-1', 'N/A')}
+- Test 2: {record.get('Theory-2', 'N/A')}
+- Test 3: {record.get('Theory-3', 'N/A')}
+- Total Theory: {tot_theory}
+
+Practical Tests
+- Test 1: {record.get('practical-1', 'N/A')}
+- Test 2: {record.get('practical-2', 'N/A')}
+- Test 3: {record.get('practical-3', 'N/A')}
+- Total Practical: {tot_prac}
+
+Total Marks: {total_obtained} / {max_total}
+Percentage: {percentage}%
+
+"""
+                st.write(full_reply.strip())
+                st.session_state.messages.append({"role": "assistant", "content": full_reply.strip()})
+                run_aerial_celebration()
+                render_clean_copy_button(full_reply.strip(), f"ast_curr_{len(st.session_state.messages)}")
             else:
+                client = Groq(api_key=st.secrets["GROQ_API_KEY"])
                 current_time_str = datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %I:%M:%S %p (%A)")
                 lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                 
@@ -613,60 +613,53 @@ if query:
                 5. Output ONLY the response text without greetings or meta notes.
                 """
 
-            with st.spinner("Thinking..."):
-                try:
-                    models_resp = client.models.list()
-                    active_ids = [
-                        m.id for m in models_resp.data 
-                        if "whisper" not in m.id 
-                        and "guard" not in m.id 
-                        and "vision" not in m.id 
-                        and "audio" not in m.id
-                        and "embed" not in m.id
-                        and "canopy" not in m.id
-                    ]
-                    preferred = ["llama-3.1-8b-instant", "llama3-8b-8192", "gemma2-9b-it"]
-                    models_to_try = [m for m in preferred if m in active_ids] + [m for m in active_ids if m not in preferred]
+                with st.spinner("Thinking..."):
+                    try:
+                        models_resp = client.models.list()
+                        active_ids = [
+                            m.id for m in models_resp.data 
+                            if "whisper" not in m.id 
+                            and "guard" not in m.id 
+                            and "vision" not in m.id 
+                            and "audio" not in m.id
+                            and "embed" not in m.id
+                            and "canopy" not in m.id
+                        ]
+                        preferred = ["llama-3.1-8b-instant", "llama3-8b-8192", "gemma2-9b-it"]
+                        models_to_try = [m for m in preferred if m in active_ids] + [m for m in active_ids if m not in preferred]
 
-                    answer = None
-                    last_api_err = None
+                        answer = None
+                        last_api_err = None
 
-                    active_system_prompt = system_prompt if matched_records else system_prop
+                        api_messages = [{"role": "system", "content": system_prop}]
+                        for m in st.session_state.messages[:-1]:
+                            api_messages.append({"role": m["role"], "content": m["content"]})
+                        api_messages.append({"role": "user", "content": query})
 
-                    api_messages = [{"role": "system", "content": active_system_prompt}]
-                    for m in st.session_state.messages[:-1]:
-                        api_messages.append({"role": m["role"], "content": m["content"]})
-                    api_messages.append({"role": "user", "content": query})
-
-                    for m_name in models_to_try:
-                        try:
-                            chat_completion = client.chat.completions.create(
-                                messages=api_messages,
-                                model=m_name,
-                                temperature=0.1,
-                                max_tokens=500
-                            )
-                            raw_answer = chat_completion.choices[0].message.content
-                            answer = clean_ai_response(raw_answer)
-                            if answer:
-                                break
-                        except Exception as ex:
-                            last_api_err = str(ex)
-                            continue
-                    
-                    if answer:
-                        st.write(answer)
-                        st.session_state.messages.append({"role": "assistant", "content": answer})
+                        for m_name in models_to_try:
+                            try:
+                                chat_completion = client.chat.completions.create(
+                                    messages=api_messages,
+                                    model=m_name,
+                                    temperature=0.1,
+                                    max_tokens=500
+                                )
+                                raw_answer = chat_completion.choices[0].message.content
+                                answer = clean_ai_response(raw_answer)
+                                if answer:
+                                    break
+                            except Exception as ex:
+                                last_api_err = str(ex)
+                                continue
                         
-                        # Celebration balloons/fireworks will ONLY trigger if student marks/result is successfully found in the sheet
-                        if matched_records:
-                            run_aerial_celebration()
-
-                        render_clean_copy_button(answer, f"ast_curr_{len(st.session_state.messages)}")
-                    else:
-                        st.error(f"API Error: {last_api_err}")
-                except Exception as e:
-                    st.error(f"Error: {e}")
+                        if answer:
+                            st.write(answer)
+                            st.session_state.messages.append({"role": "assistant", "content": answer})
+                            render_clean_copy_button(answer, f"ast_curr_{len(st.session_state.messages)}")
+                        else:
+                            st.error(f"API Error: {last_api_err}")
+                    except Exception as e:
+                        st.error(f"Error: {e}")
 
 # Save state to browser's localStorage automatically
 msgs_json = json.dumps(st.session_state.messages)
