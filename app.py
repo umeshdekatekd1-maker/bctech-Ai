@@ -488,7 +488,7 @@ if query:
 
         elif is_greeting(query):
             if lang == "GUJARATI":
-                reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
             elif lang == "HINDI":
                 reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
             else:
@@ -624,7 +624,7 @@ if query:
                             chat_completion = client.chat.completions.create(
                                 messages=api_messages,
                                 model=m_name,
-                                temperature=0.1,  # Lower temperature to reduce hallucination & loops
+                                temperature=0.1,
                                 max_tokens=500
                             )
                             raw_answer = chat_completion.choices[0].message.content
