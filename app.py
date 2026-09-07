@@ -343,7 +343,7 @@ def update_language_state(text):
         
     hindi_triggers = [
         "hindi", "in hindi", "hindi me", "hindi main", "bat kro", "baat karo", "batao",
-        "namaste", "mera", "meri", "kaise", "chahiye", "kya hai", "kaha hai", "kab aaya tha", "time", "samay", "aaj", "date", "kisne", "bnaya", "banaya", "or batao"
+        "namaste", "mera", "meri", "kaise", "chahiye", "kya hai", "kaha hai", "kab aaya tha", "time", "samay", "aaj", "date", "kisne", "bnaya", "banaya", "or batao", "konsa", "course", "sakti"
     ]
     if any(re.search(r"\b" + re.escape(w) + r"\b", text_clean) for w in hindi_triggers):
         st.session_state.current_language = "HINDI"
@@ -383,7 +383,7 @@ def search_student_all_sheets(query_text, df):
     
     clean_q = query_text.strip().lower()
     
-    ignore_phrases = ["or batao", "aur batao", "kya haal hai", "or kya", "aur kya", "batao", "kya chal raha hai"]
+    ignore_phrases = ["or batao", "aur batao", "kya haal hai", "or kya", "aur kya", "batao", "kya chal raha hai", "konsa course", "course kar sakti"]
     if any(p in clean_q for p in ignore_phrases) and len(clean_q.split()) <= 4:
         return []
 
@@ -422,8 +422,18 @@ def search_student_all_sheets(query_text, df):
 def clean_ai_response(text):
     if not text:
         return ""
+    # Remove thinking tags
     cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
     cleaned = re.sub(r"<think>.*", "", cleaned, flags=re.DOTALL)
+    
+    # Aggressive Anti-Loop / Repetition Filter for small models
+    words = cleaned.split()
+    if len(words) > 10:
+        for i in range(1, len(words) // 2):
+            phrase = " ".join(words[:i])
+            if phrase and cleaned.count(phrase) > 3:
+                cleaned = phrase + "."
+                break
     return cleaned.strip()
 
 BRANCH_LINK = "https://sites.google.com/view/bctechcomputer/about-us"
@@ -534,14 +544,12 @@ if query:
             matched_records = search_student_all_sheets(query, df_sheet)
             
             if matched_records:
-                # Direct Python Formatting to completely bypass LLM refusals
                 full_reply = ""
                 for record in matched_records:
                     f_name = record.get("Student_Name_Std", "")
                     f_exam = record.get("Exam_Std", "Course")
                     f_teacher = record.get("_Sheet_Tab", "Teacher")
                     
-                    # Extract theory & practical marks dynamically
                     t_marks = []
                     p_marks = []
                     for k, v in record.items():
@@ -586,31 +594,17 @@ Percentage: {percentage}%
                 lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                 
                 system_prop = f"""
-                You are BC Tech AI Assistant, a smart, professional assistant for BC Tech Computer Education and general knowledge expert.
+                You are BC Tech AI Assistant, a smart, professional assistant for BC Tech Computer Education.
                 
                 EXACT CURRENT INDIAN STANDARD TIME (IST):
                 - Current Date and Time: {current_time_str}
                 
-                CRITICAL ANTI-LOOP & REPETITION RULE:
-                - NEVER repeat words, phrases, or sentences in a loop. Provide a smooth, concise, and direct answer. Stop generating text immediately once the point is clearly explained.
-                
-                CRITICAL LOCATION OVERRIDE:
-                - BC Tech Computer Education is strictly located in Surat, Gujarat, India. Never mention Bengaluru or any other city.
-                
-                CRITICAL LANGUAGE RULE:
-                - Reply strictly in {lang_name}.
-                - If Gujarati, reply in clean Gujarati script.
-                - If Hindi, reply in clean Hindi script.
-                
-                STRICT CONTEXT LOCK (CRITICAL):
-                - Look at the previous turn in chat history. If we discussed a specific subject (like Graphic Design, Tally, etc.), questions like "job kaha kr sakte hai", "salary", or "scope" must be answered specifically for that subject.
-                
                 CRITICAL INSTRUCTIONS:
-                1. Answer time/date/day queries using ({current_time_str}).
-                2. Answer general knowledge questions accurately.
-                3. For BC Tech computer courses, refer to: {KNOWLEDGE_BASE}
-                4. Location details: {BRANCH_LINK}
-                5. Output ONLY the response text without greetings or meta notes.
+                1. BC Tech Computer Education is strictly located in Surat, Gujarat, India.
+                2. Reply strictly and naturally in {lang_name} without repeating words.
+                3. Course offerings & details: {KNOWLEDGE_BASE}
+                4. Location link: {BRANCH_LINK}
+                5. Keep answers direct, helpful, and concise.
                 """
 
                 with st.spinner("Thinking..."):
@@ -641,8 +635,8 @@ Percentage: {percentage}%
                                 chat_completion = client.chat.completions.create(
                                     messages=api_messages,
                                     model=m_name,
-                                    temperature=0.1,
-                                    max_tokens=500
+                                    temperature=0.3,
+                                    max_tokens=400
                                 )
                                 raw_answer = chat_completion.choices[0].message.content
                                 answer = clean_ai_response(raw_answer)
