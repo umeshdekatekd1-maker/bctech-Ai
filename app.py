@@ -287,14 +287,16 @@ def load_all_sheets_data():
                     clean_df = clean_df[~clean_df[first_col].astype(str).str.lower().str.contains("batch time", na=False)]
                     clean_df = clean_df[clean_df[first_col].astype(str).str.strip() != ""]
                     
-                    # Forward-fill the Exam column so blank cells automatically inherit the exam name from above
+                    # Robust forward fill for exam column and capitalised formatting
                     clean_df[second_col] = clean_df[second_col].ffill()
                     
                     for _, row in clean_df.iterrows():
                         student_name = str(row[first_col]).strip()
                         name_words = sorted(student_name.lower().split())
                         name_signature = " ".join(name_words)
-                        exam_val = str(row[second_col]).strip() if pd.notna(row[second_col]) else "Course"
+                        
+                        raw_exam = str(row[second_col]).strip() if pd.notna(row[second_col]) else "Course"
+                        exam_val = raw_exam.capitalize() if raw_exam.lower() != "nan" else "Course"
                         
                         record = {
                             "Student_Name_Std": student_name,
@@ -646,7 +648,7 @@ persistence_component = f"""
     const STORAGE_KEY_RECENT = "bctech_persisted_recent_v16";
     try {{
         localStorage.setItem(STORAGE_KEY_MSGS, {json.dumps(msgs_json)});
-        localStorage.setItem(STORAGE_KEY_RECENT, {json.dumps(recent_json)});
+        localStorage.setItem(STORAGE_KEY_RECENT, {json.dumps(json_json)});
     }} catch(e) {{}}
 </script>
 </body>
