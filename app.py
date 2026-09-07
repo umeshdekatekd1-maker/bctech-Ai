@@ -343,7 +343,7 @@ def update_language_state(text):
         
     hindi_triggers = [
         "hindi", "in hindi", "hindi me", "hindi main", "bat kro", "baat karo", "batao",
-        "namaste", "mera", "meri", "kaise", "chahiye", "kya hai", "kaha hai", "kab aaya tha", "time", "samay", "aaj", "date"
+        "namaste", "mera", "meri", "kaise", "chahiye", "kya hai", "kaha hai", "kab aaya tha", "time", "samay", "aaj", "date", "bhagavad", "geeta"
     ]
     if any(re.search(r"\b" + re.escape(w) + r"\b", text_clean) for w in hindi_triggers):
         st.session_state.current_language = "HINDI"
@@ -396,7 +396,6 @@ def search_student_all_sheets(query_text, df):
     query_clean_words = [w for w in clean_q.split() if w not in fillers]
     search_query_str = " ".join(query_clean_words).strip()
     
-    # Agar user ne sirf "mera result show karo" ya "result" bola aur pehle naam bataya tha, toh us saved naam ko use karo
     if not search_query_str or search_query_str in ["result", "show", "batao"]:
         if st.session_state.last_mentioned_name:
             search_query_str = st.session_state.last_mentioned_name
@@ -458,10 +457,8 @@ if query:
             st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
         
         elif check_is_name_intro(query):
-            # Extract name and save to session state memory
             name_match = re.search(r"(?:mera naam|my name is|maru naam)\s+([a-zA-Z\u0900-\u097F]+)", query, re.IGNORECASE)
             if not name_match:
-                # Catch simple inputs like "harish hu" or just name
                 words = [w for w in query.split() if w.lower() not in ["mera", "naam", "hai", "is", "my", "name"]]
                 username = words[0].capitalize() if words else "User"
             else:
@@ -580,6 +577,9 @@ if query:
                 EXACT CURRENT INDIAN STANDARD TIME (IST):
                 - Current Date and Time: {current_time_str}
                 
+                CRITICAL ANTI-LOOP & REPETITION RULE:
+                - NEVER repeat words, phrases, or sentences in a loop. Provide a smooth, concise, and direct answer. Stop generating text immediately once the point is clearly explained.
+                
                 CRITICAL LOCATION OVERRIDE:
                 - BC Tech Computer Education is strictly located in Surat, Gujarat, India. Never mention Bengaluru or any other city.
                 
@@ -624,8 +624,8 @@ if query:
                             chat_completion = client.chat.completions.create(
                                 messages=api_messages,
                                 model=m_name,
-                                temperature=0.3,
-                                max_tokens=600
+                                temperature=0.1,  # Lower temperature to reduce hallucination & loops
+                                max_tokens=500
                             )
                             raw_answer = chat_completion.choices[0].message.content
                             answer = clean_ai_response(raw_answer)
