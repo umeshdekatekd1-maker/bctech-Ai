@@ -586,12 +586,12 @@ if query:
                 CRITICAL LANGUAGE RULE:
                 - Reply strictly in {lang_name}.
                 - If Gujarati, reply in clean Gujarati script.
-                - If Hindi, reply in clean Hindi script.
+                - IfHindi, reply in clean Hindi script.
                 
-                CRITICAL STRICT CONTEXT RULE (PREVENTING MISUNDERSTANDING OF AMBIGUOUS WORDS):
-                - Always analyze the immediately preceding assistant response and user prompt in the conversation history before answering.
-                - Words like "kar", "kya fayda", "iske", "next" refer DIRECTLY to the subject/topic discussed in the previous turn (e.g., if we were talking about Graphic Design, "kya fayda hai kar ke" means "What are the benefits of doing/learning Graphic Design?"). NEVER interpret "kar" as tax (income tax/GST) unless the word "tax" was explicitly mentioned in the previous turn.
-                - Maintain absolute topic continuity.
+                ABSOLUTE CONTEXT & CONTINUITY LOCK (CRITICAL):
+                - Look closely at the PREVIOUS turn in the chat history. 
+                - If the user asks short follow-up questions like "job kaha kaha kr sakte hai", "kya fayda hai", "salary kitni hai", or "scope kya hai" immediately after discussing a specific subject or course (e.g. Graphic Design, Tally, Python, Web Development), you MUST answer that question **exclusively and specifically for that exact subject/course**, NOT as a generic catch-all answer.
+                - Never ignore the immediate context of the conversation.
                 
                 CRITICAL INSTRUCTIONS:
                 1. When the user asks for time, date, day, or general queries, answer accurately using the real-time context provided ({current_time_str}).
