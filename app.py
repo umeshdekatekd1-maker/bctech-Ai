@@ -644,7 +644,7 @@ if query:
                     for i, record in enumerate(matched_records, 1):
                         sheet_tab = record.get("_Sheet_Tab", f"Sheet {i}")
                         s_exam = record.get("Exam_Std", "")
-                        details_text += f"\n--- Teacher/Sheet: {sheet_tab} | Exam: {s_exam} ---\n"
+                        details_text += f"\n--- Teacher: {sheet_tab} | Exam: {s_exam} ---\n"
                         for k, v in record.items():
                             if k not in ["Name_Signature_Std", "Exam_Std", "_Sheet_Tab", "Student_Name_Std"]:
                                 details_text += f"- {k}: {v}\n"
@@ -661,15 +661,17 @@ if query:
                     - Display all {len(matched_records)} records separately.
                     - Show clean whole numbers without decimals (e.g., 23, 41).
                     - DO NOT write 'Result: Pass' or any status.
-                    - FORMAT REQUIREMENT: Do NOT use the word 'Record' anywhere. Use the Teacher/Sheet name as the main clean heading. List each subject and mark on a separate new line using bullet points. Do not lump them together in a single sentence.
+                    - CRITICAL FORMAT REQUIREMENT: Do NOT use the word 'Record' anywhere. Use the Teacher/Sheet name directly as the main heading. You MUST include and print the actual mark values provided in the records (e.g., Theory-1: 20, Practical-1: 12). List each subject and mark on a separate new line using bullet points.
                     
                     - Format Structure:
                       📌 [Teacher/Sheet Name]
                       - Name: {found_name}
                       - Exam: [Exam Name]
                       - Marks:
-                        - [Subject]: [Value]
-                        - [Subject]: [Value]
+                        - Theory-1: [Value]
+                        - Theory-2: [Value]
+                        - Practical-1: [Value]
+                        - Practical-2: [Value]
                     """
                 else:
                     ist_tz = timezone(timedelta(hours=5, minutes=30))
