@@ -358,6 +358,10 @@ def is_greeting(text):
     greetings = ["hi", "hello", "hey", "hii", "hiii", "namaste", "kem cho", "kem chho", "halo", "હેલો", "નમસ્તે"]
     return text_clean in greetings
 
+def check_is_name_intro(text):
+    t = text.lower().strip()
+    return "mera naam" in t or "my name is" in t or "hu mara naam" in t or "maru naam" in t
+
 def check_is_branch_intent(text):
     text = text.lower()
     branch_keywords = [
@@ -372,6 +376,9 @@ def search_student_all_sheets(query_text, df):
     
     clean_q = query_text.strip().lower()
     
+    if check_is_name_intro(clean_q) or "priya mam" in clean_q or "umesh sir" in clean_q or "sanjay sir" in clean_q or "ajay sir" in clean_q:
+        return []
+
     img_triggers = ["image", "photo", "picture", "wallpaper", "banao", "create", "generate", "tasveer", "draw", "bana do"]
     if any(t in clean_q for t in img_triggers):
         return []
@@ -441,6 +448,17 @@ if query:
         if err:
             st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
         
+        elif check_is_name_intro(query):
+            name_match = re.search(r"(?:mera naam|my name is|maru naam)\s+([a-zA-Z\u0900-\u097F]+)", query, re.IGNORECASE)
+            username = name_match.group(1).capitalize() if name_match else "User"
+            if lang == "GUJARATI":
+                reply = f"નમસ્તે {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
+            else:
+                reply = f"नमस्ते {username}! BC Tech Computer Education में आपका स्वागत है। बताइए, मैं आपकी कैसे मदद कर सकता हूँ? 😊"
+            st.write(reply)
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+            render_clean_copy_button(reply, f"name_reply_{len(st.session_state.messages)}")
+
         elif query.strip().lower() in ["gujarati", "gujrati", "gujarati ma", "gujarati mein baat karte hai", "gujarati main baat karte hai ok", "gujarati ma vaat kariye"]:
             reply = "ચોક્કસ! હવે આપણે ગુજરાતીમાં વાત કરીશું. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
             st.write(reply)
@@ -455,7 +473,7 @@ if query:
 
         elif is_greeting(query):
             if lang == "GUJARATI":
-                reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
             elif lang == "HINDI":
                 reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
             else:
@@ -500,8 +518,7 @@ if query:
                         if k not in ["Name_Signature_Std", "Exam_Std", "_Sheet_Tab", "Student_Name_Std"]:
                             details_text += f"- {k}: {v}\n"
 
-                lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
-
+                # STRICT RULE: Result must ALWAYS be displayed strictly in English regardless of user query language
                 system_prompt = f"""
                 You are the official AI Assistant for BC Tech Computer Education. 
                 Your primary and absolute duty is to display student examination records and marks fetched from the database when requested.
@@ -510,14 +527,13 @@ if query:
                 {details_text}
 
                 MANDATORY RULES FOR DISPLAYING MARKS:
-                - Target Language: {lang_name}. Output strictly in {lang_name}.
+                - Target Language: STRICTLY ENGLISH. Output must be entirely in English language.
                 - You MUST display the student marks and records provided above. Never refuse or claim privacy.
                 - Display all {len(matched_records)} records separately.
                 - Show clean whole numbers without decimals (e.g., 23, 41).
                 - DO NOT write 'Result: Pass' or any status.
-                - FORMAT REQUIREMENT: Do NOT use the word 'Record' anywhere. Structure the output professionally using the exact layout below with Student Name, Exam Name, and Teacher Name on separate lines, followed by Theory Tests, Practical Tests, Total Marks, and Percentage on a new separate line:
+                - FORMAT REQUIREMENT: Do NOT use the word 'Record' anywhere. Structure the output professionally using the exact layout below in English:
                 
-                - Format Structure:
                   Student Name: {found_name}
                   Exam Name: [Exam Name from record]
                   Teacher Name: [Teacher/Sheet Name]
