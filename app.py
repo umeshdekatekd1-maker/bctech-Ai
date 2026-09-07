@@ -14,11 +14,18 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Modern Chat Bubbles & Persistence Styles
+# Custom Modern Chat Bubbles, Persistence Styles & Hiding Streamlit Branding
 st.markdown("""
 <style>
     #MainMenu, footer {visibility: hidden;}
     header {visibility: visible !important;}
+    
+    /* Streamlit Hosted Footer Badge aur Branding ko hide karne ke liye */
+    #stStatusWidget {visibility: hidden;}
+    footer {visibility: hidden !important;}
+    .viewerBadge_container__1QSob {visibility: hidden !important;}
+    div[data-testid="stStatusWidget"] {display: none !important;}
+    
     .block-container {padding-top: 1.5rem; max-width: 780px;}
     
     div[data-baseweb="input"] {
@@ -573,10 +580,9 @@ if query:
                   Percentage: [Percentage]%
                 """
             else:
-                ist_tz = timezone(timedelta(hours=5, minutes=30))
-                current_time_str = datetime.now(ist_tz).strftime("%Y-%m-%d %I:%M:%S %p (%A)")
-                
+                current_time_str = datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %I:%M:%S %p (%A)")
                 lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
+                
                 system_prop = f"""
                 You are BC Tech AI Assistant, a smart, professional assistant for BC Tech Computer Education and general knowledge expert.
                 
@@ -586,19 +592,16 @@ if query:
                 CRITICAL LANGUAGE RULE:
                 - Reply strictly in {lang_name}.
                 - If Gujarati, reply in clean Gujarati script.
-                - IfHindi, reply in clean Hindi script.
+                - If Hindi, reply in clean Hindi script.
                 
-                ABSOLUTE CONTEXT & CONTINUITY LOCK (CRITICAL):
-                - Look closely at the PREVIOUS turn in the chat history. 
-                - If the user asks short follow-up questions like "job kaha kaha kr sakte hai", "kya fayda hai", "salary kitni hai", or "scope kya hai" immediately after discussing a specific subject or course (e.g. Graphic Design, Tally, Python, Web Development), you MUST answer that question **exclusively and specifically for that exact subject/course**, NOT as a generic catch-all answer.
-                - Never ignore the immediate context of the conversation.
+                STRICT CONTEXT LOCK (CRITICAL):
+                - Look at the previous turn in chat history. If we discussed a specific subject (like Graphic Design, Tally, etc.), questions like "job kaha kr sakte hai", "salary", or "scope" must be answered specifically for that subject.
                 
                 CRITICAL INSTRUCTIONS:
-                1. When the user asks for time, date, day, or general queries, answer accurately using the real-time context provided ({current_time_str}).
-                2. You possess extensive general knowledge. Answer any general knowledge questions accurately, informatively, and clearly.
-                3. For BC Tech computer courses, refer to:
-                {KNOWLEDGE_BASE}
-                4. If asked about institute location, provide: {BRANCH_LINK}
+                1. Answer time/date/day queries using ({current_time_str}).
+                2. Answer general knowledge questions accurately.
+                3. For BC Tech computer courses, refer to: {KNOWLEDGE_BASE}
+                4. Location details: {BRANCH_LINK}
                 5. Output ONLY the response text without greetings or meta notes.
                 """
 
