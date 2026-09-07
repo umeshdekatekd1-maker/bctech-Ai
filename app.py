@@ -7,7 +7,6 @@ import io
 import re
 import json
 import urllib.parse
-import random
 from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
@@ -105,7 +104,6 @@ def render_localstorage_persistence():
         const STORAGE_KEY_MSGS = "bctech_persistent_msgs_v10";
         const STORAGE_KEY_RECENT = "bctech_persistent_recent_v10";
 
-        // Save current session to localStorage
         try {{
             localStorage.setItem(STORAGE_KEY_MSGS, {json.dumps(msgs_json)});
             localStorage.setItem(STORAGE_KEY_RECENT, {json.dumps(recent_json)});
@@ -116,7 +114,6 @@ def render_localstorage_persistence():
     """
     components.html(persistence_html, height=0)
 
-# Check if we need to restore from localStorage on first load via query params or initialization
 if "restored_from_storage" not in st.session_state:
     st.session_state.restored_from_storage = False
 
@@ -131,7 +128,6 @@ restore_js = """
         
         if (savedMsgs && (!window.parent.alreadyRestored)) {
             window.parent.alreadyRestored = true;
-            // If python state is empty but storage has data, push to URL params to reload state
             const urlParams = new URLSearchParams(window.parent.location.search);
             if (!urlParams.has('restored')) {
                 window.parent.location.search = "?restored=true";
@@ -217,10 +213,9 @@ def render_clean_copy_button(text_to_copy, unique_id):
     """
     components.html(html_btn, height=30)
 
-# Direct Image Download Button Component
-def render_direct_download_button(img_url, unique_id):
-    json_url = json.dumps(img_url)
-    download_html = f"""
+# Secure WhatsApp Direct Embed Component (Safe & Non-blocking)
+def render_whatsapp_embed_button(text_to_send, unique_id):
+    wa_html = f"""
     <html>
     <head>
     <style>
@@ -229,60 +224,62 @@ def render_direct_download_button(img_url, unique_id):
             padding: 0;
             background: transparent;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }}
-        .dl-btn {{
+        .wa-input {{
             border-radius: 16px;
-            padding: 5px 16px;
+            padding: 5px 12px;
             font-size: 12px;
             border: 1px solid #dadce0;
-            background-color: #f8f9fa;
-            color: #3c4043;
+            outline: none;
+            width: 130px;
+        }}
+        .wa-input:focus {{
+            border-color: #25D366;
+        }}
+        .wa-btn {{
+            border-radius: 16px;
+            padding: 5px 12px;
+            font-size: 12px;
+            border: 1px solid #25D366;
+            background-color: #25D366;
+            color: white;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             font-weight: 500;
             transition: all 0.2s ease;
         }}
-        .dl-btn:hover {{
-            background-color: #e8eaed;
-            color: #202124;
-            border-color: #bdc1c6;
+        .wa-btn:hover {{
+            background-color: #20ba5a;
         }}
     </style>
     </head>
     <body>
-        <button class="dl-btn" id="dl_{unique_id}" onclick="downloadImage()">
-            📥 Download Image
+        <input type="text" class="wa-input" id="phone_{unique_id}" placeholder="Mobile No (e.g. 91...)" />
+        <button class="wa-btn" onclick="sendWhatsApp()">
+            💬 Send WhatsApp
         </button>
         <script>
-            async function downloadImage() {{
-                const btn = document.getElementById('dl_{unique_id}');
-                btn.innerHTML = '⏳ Downloading...';
-                try {{
-                    const response = await fetch({json_url});
-                    const blob = await response.blob();
-                    const blobUrl = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = blobUrl;
-                    a.download = 'bctech_portrait_' + Date.now() + '.jpg';
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(blobUrl);
-                    document.body.removeChild(a);
-                    btn.innerHTML = '✓ Downloaded!';
-                    setTimeout(() => {{ btn.innerHTML = '📥 Download Image'; }}, 2500);
-                }} catch (e) {{
-                    window.open({json_url}, '_blank');
-                    btn.innerHTML = '📥 Download Image';
+            function sendWhatsApp() {{
+                const phone = document.getElementById('phone_{unique_id}').value.trim();
+                const msg = {json.dumps(text_to_send)};
+                let url = "https://wa.me/";
+                if (phone) {{
+                    url += phone + "?text=" + encodeURIComponent(msg);
+                }} else {{
+                    url += "?text=" + encodeURIComponent(msg);
                 }}
+                window.open(url, '_blank');
             }}
         </script>
     </body>
     </html>
     """
-    components.html(download_html, height=40)
+    components.html(wa_html, height=35)
 
 def run_aerial_celebration():
     st.balloons()
@@ -429,37 +426,6 @@ def load_all_sheets_data():
         
     return None, "Sheet data unavailable"
 
-def detect_image_request(text):
-    text_lower = text.lower().strip()
-    triggers = [
-        "image", "photo", "picture", "wallpaper", "banao", "create", 
-        "generate", "tasveer", "chhavi", "તસવીર", "ફોટો", "draw", "kare",
-        "badlo", "change", "edit", "karo", "kro", "redesign", "modify"
-    ]
-    
-    is_img_query = any(t in text_lower for t in triggers)
-    if not is_img_query:
-        return False, ""
-    
-    remove_words = [
-        "mere liye", "ek", "please", "can you", "kro", "karo", "banao", "chahiye",
-        "image", "photo", "picture", "create", "generate", "make", "of", "ki", "ka", 
-        "ke liye", "dikhao", "draw", "kare", "yesi", "aisi", "wala", "wali",
-        "badlo", "change", "edit", "modify", "isame", "is me", "bana do"
-    ]
-    pattern = r"\b(" + "|".join(remove_words) + r")\b"
-    cleaned = re.sub(pattern, "", text_lower).strip()
-    base_prompt = re.sub(r"\s+", " ", cleaned)
-    
-    if len(base_prompt) < 3:
-        base_prompt = "full length portrait photography of a beautiful simple person standing naturally"
-
-    hd_boosted_prompt = (
-        f"{base_prompt}, full length vertical portrait, shot on 35mm lens, DSLR camera capture, "
-        "natural lighting, sharp focus from head to toe, realistic skin texture, beautiful background, magazine quality"
-    )
-    return True, hd_boosted_prompt
-
 def update_language_state(text):
     text_clean = text.strip().lower()
     
@@ -552,17 +518,15 @@ About Bctech Computer Education:
 - Popular Courses: Basic Computer Course, Graphic Designing (CorelDraw, Photoshop, Illustrator), Accounting & Tally Prime, Web Development, Programming (Python, C++), Digital Marketing, Advanced Excel.
 """
 
-# Render chat history with explicit user/assistant styling (User right, AI left)
+# Render chat history
 for idx, msg in enumerate(st.session_state.messages):
     is_user = (msg["role"] == "user")
     with st.chat_message(msg["role"], avatar="👤" if is_user else "🤖"):
-        if msg.get("is_image", False):
-            st.image(msg["content"], caption=msg.get("caption", "DSLR Vertical Output"), use_container_width=True)
-            render_direct_download_button(msg["content"], f"hist_dl_{idx}")
-        else:
-            st.write(msg["content"])
-            if not is_user:
-                render_clean_copy_button(msg["content"], f"hist_{idx}")
+        st.write(msg["content"])
+        if not is_user:
+            render_clean_copy_button(msg["content"], f"hist_{idx}")
+            if "Student Name:" in msg["content"] or "Total Marks:" in msg["content"]:
+                render_whatsapp_embed_button(msg["content"], f"hist_wa_{idx}")
 
 query = st.chat_input("")
 
@@ -572,194 +536,178 @@ if query:
     with st.chat_message("user", avatar="👤"):
         st.write(query)
 
-    is_img_req, enhanced_prompt = detect_image_request(query)
+    df_sheet, err = load_all_sheets_data()
+    lang = update_language_state(query)
     
-    if is_img_req:
-        with st.chat_message("assistant", avatar="🤖"):
-            with st.spinner("🎨 Rendering DSLR Vertical Full-Body Image..."):
-                encoded_prompt = urllib.parse.quote(enhanced_prompt)
-                seed = random.randint(1000, 999999)
-                image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1080&height=1920&model=flux&seed={seed}&nologo=true"
-                st.image(image_url, caption="✨ DSLR Vertical Full-Body Output", use_container_width=True)
-                render_direct_download_button(image_url, f"curr_dl_{len(st.session_state.messages)}")
-                
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": image_url,
-                    "caption": "✨ DSLR Vertical Full-Body Output",
-                    "is_image": True
-                })
-    else:
-        df_sheet, err = load_all_sheets_data()
-        lang = update_language_state(query)
+    with st.chat_message("assistant", avatar="🤖"):
+        if err:
+            st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
         
-        with st.chat_message("assistant", avatar="🤖"):
-            if err:
-                st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
-            
-            elif query.strip().lower() in ["gujarati", "gujrati", "gujarati ma", "gujarati mein baat karte hai", "gujarati main baat karte hai ok", "gujarati ma vaat kariye"]:
-                reply = "ચોક્કસ! હવે આપણે ગુજરાતીમાં વાત કરીશું. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
-                st.write(reply)
-                st.session_state.messages.append({"role": "assistant", "content": reply})
-                render_clean_copy_button(reply, f"ack_{len(st.session_state.messages)}")
+        elif query.strip().lower() in ["gujarati", "gujrati", "gujarati ma", "gujarati mein baat karte hai", "gujarati main baat karte hai ok", "gujarati ma vaat kariye"]:
+            reply = "ચોક્કસ! હવે આપણે ગુજરાતીમાં વાત કરીશું. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+            st.write(reply)
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+            render_clean_copy_button(reply, f"ack_{len(st.session_state.messages)}")
 
-            elif query.strip().lower() in ["hindi", "in hindi", "hindi me", "hindi main baat karo", "hindi me baat karte hai"]:
-                reply = "ज़रूर! अब हम हिंदी में बात करेंगे। मैं आपकी क्या सहायता कर सकता हूँ? 😊"
-                st.write(reply)
-                st.session_state.messages.append({"role": "assistant", "content": reply})
-                render_clean_copy_button(reply, f"ack_{len(st.session_state.messages)}")
+        elif query.strip().lower() in ["hindi", "in hindi", "hindi me", "hindi main baat karo", "hindi me baat karte hai"]:
+            reply = "ज़रूर! अब हम हिंदी में बात करेंगे। मैं आपकी क्या सहायता कर सकता हूँ? 😊"
+            st.write(reply)
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+            render_clean_copy_button(reply, f"ack_{len(st.session_state.messages)}")
 
-            elif is_greeting(query):
-                if lang == "GUJARATI":
-                    reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
-                elif lang == "HINDI":
-                    reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
-                else:
-                    reply = "Hello! Welcome to BC Tech Computer Education. How can I help you today? 😊"
-                st.write(reply)
-                st.session_state.messages.append({"role": "assistant", "content": reply})
-                render_clean_copy_button(reply, f"greet_{len(st.session_state.messages)}")
-
-            elif check_is_branch_intent(query):
-                if lang == "GUJARATI":
-                    reply = f"BC Tech Computer Education ની શાખા અને લોકેશનની સંપૂર્ણ વિગત માટે અહીં ક્લિક કરો:\n🔗 {BRANCH_LINK}"
-                elif lang == "HINDI":
-                    reply = f"BC Tech Computer Education की शाखा और पता की जानकारी के लिए यहाँ क्लिक करें:\n🔗 {BRANCH_LINK}"
-                else:
-                    reply = f"You can check the branch location and address details of BC Tech Computer Education here:\n🔗 {BRANCH_LINK}"
-                
-                st.write(reply)
-                st.session_state.messages.append({"role": "assistant", "content": reply})
-                render_clean_copy_button(reply, f"branch_{len(st.session_state.messages)}")
-
-            elif len(query.strip()) <= 3 and query.strip().lower() in ["ok", "h", "k", "hi", "ok.", "okay"]:
-                reply = "हाँ, बताइए! मैं आपकी क्या मदद कर सकता हूँ? 😊"
-                st.write(reply)
-                st.session_state.messages.append({"role": "assistant", "content": reply})
-                render_clean_copy_button(reply, f"ack_{len(st.session_state.messages)}")
-
+        elif is_greeting(query):
+            if lang == "GUJARATI":
+                reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+            elif lang == "HINDI":
+                reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
             else:
-                matched_records = search_student_all_sheets(query, df_sheet)
-                client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-                is_found_result = False
+                reply = "Hello! Welcome to BC Tech Computer Education. How can I help you today? 😊"
+            st.write(reply)
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+            render_clean_copy_button(reply, f"greet_{len(st.session_state.messages)}")
+
+        elif check_is_branch_intent(query):
+            if lang == "GUJARATI":
+                reply = f"BC Tech Computer Education ની શાખા અને લોકેશનની સંપૂર્ણ વિગત માટે અહીં ક્લિક કરો:\n🔗 {BRANCH_LINK}"
+            elif lang == "HINDI":
+                reply = f"BC Tech Computer Education की शाखा और पता की जानकारी के लिए यहाँ क्लिक करें:\n🔗 {BRANCH_LINK}"
+            else:
+                reply = f"You can check the branch location and address details of BC Tech Computer Education here:\n🔗 {BRANCH_LINK}"
+            
+            st.write(reply)
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+            render_clean_copy_button(reply, f"branch_{len(st.session_state.messages)}")
+
+        elif len(query.strip()) <= 3 and query.strip().lower() in ["ok", "h", "k", "hi", "ok.", "okay"]:
+            reply = "हाँ, बताइए! मैं आपकी क्या मदद कर सकता हूँ? 😊"
+            st.write(reply)
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+            render_clean_copy_button(reply, f"ack_{len(st.session_state.messages)}")
+
+        else:
+            matched_records = search_student_all_sheets(query, df_sheet)
+            client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+            is_found_result = False
+            
+            if matched_records:
+                is_found_result = True
+                st.session_state.waiting_for_result_name = False
                 
-                if matched_records:
-                    is_found_result = True
-                    st.session_state.waiting_for_result_name = False
+                details_text = ""
+                found_name = matched_records[0].get("Student_Name_Std", "")
+
+                for i, record in enumerate(matched_records, 1):
+                    sheet_tab = record.get("_Sheet_Tab", f"Sheet {i}")
+                    s_exam = record.get("Exam_Std", "")
+                    details_text += f"\n--- Teacher: {sheet_tab} | Exam: {s_exam} ---\n"
+                    for k, v in record.items():
+                        if k not in ["Name_Signature_Std", "Exam_Std", "_Sheet_Tab", "Student_Name_Std"]:
+                            details_text += f"- {k}: {v}\n"
+
+                lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
+
+                system_prompt = f"""
+                You are the AI Assistant for BC Tech Computer Education.
+                Student verified records:
+                {details_text}
+
+                CRITICAL RULES FOR DISPLAYING MARKS:
+                - Target Language: {lang_name}. Output strictly in {lang_name}.
+                - Display all {len(matched_records)} records separately.
+                - Show clean whole numbers without decimals (e.g., 23, 41).
+                - DO NOT write 'Result: Pass' or any status.
+                - FORMAT REQUIREMENT: Do NOT use the word 'Record' anywhere. Structure the output professionally using the exact layout below with Student Name, Exam Name, and Teacher Name on separate lines, followed by Theory Tests, Practical Tests, Total Marks, and Percentage on a new separate line:
+                
+                - Format Structure:
+                  Student Name: {found_name}
+                  Exam Name: [Exam Name from record]
+                  Teacher Name: [Teacher/Sheet Name]
+                  
+                  Theory Tests
+                  - Test 1: [Value]
+                  - Test 2: [Value]
+                  - Test 3: [Value]
+                  - Total Theory: [Sum]
+                  
+                  Practical Tests
+                  - Test 1: [Value]
+                  - Test 2: [Value]
+                  - Test 3: [Value]
+                  - Total Practical: [Sum]
+                  
+                  Total Marks: [Total Marks Obtained] / [Max Marks]
+                  Percentage: [Percentage]%
+                """
+            else:
+                ist_tz = timezone(timedelta(hours=5, minutes=30))
+                current_time_str = datetime.now(ist_tz).strftime("%Y-%m-%d %I:%M:%S %p (%A)")
+                
+                lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
+                system_prompt = f"""
+                You are BC Tech AI Assistant, a smart, professional assistant for BC Tech Computer Education and general queries.
+                
+                EXACT CURRENT INDIAN STANDARD TIME (IST):
+                - Current Date and Time: {current_time_str}
+                
+                CRITICAL LANGUAGE RULE:
+                - Reply strictly in {lang_name}.
+                - If Gujarati, reply in clean Gujarati script.
+                - If Hindi, reply in clean Hindi script.
+                
+                CRITICAL INSTRUCTIONS:
+                1. When the user asks for time, date, day, or general queries, answer accurately using the real-time context provided above ({current_time_str}).
+                2. Answer general knowledge questions accurately in 2-3 direct sentences.
+                3. For BC Tech courses, refer to:
+                {KNOWLEDGE_BASE}
+                4. If asked about location, provide: {BRANCH_LINK}
+                5. Output ONLY the response text without greetings or meta notes.
+                """
+
+            with st.spinner("Thinking..."):
+                try:
+                    models_resp = client.models.list()
+                    active_ids = [
+                        m.id for m in models_resp.data 
+                        if "whisper" not in m.id and "guard" not in m.id and "vision" not in m.id
+                    ]
+                    preferred = ["llama-3.1-8b-instant", "llama3-8b-8192", "gemma2-9b-it"]
+                    models_to_try = [m for m in preferred if m in active_ids] + [m for m in active_ids if m not in preferred]
+
+                    answer = None
+                    last_api_err = None
+
+                    for m_name in models_to_try:
+                        try:
+                            chat_completion = client.chat.completions.create(
+                                messages=[
+                                    {"role": "system", "content": system_prompt},
+                                    {"role": "user", "content": query}
+                                ],
+                                model=m_name,
+                                temperature=0.2,
+                                max_tokens=450
+                            )
+                            raw_answer = chat_completion.choices[0].message.content
+                            answer = clean_ai_response(raw_answer)
+                            if answer:
+                                break
+                        except Exception as ex:
+                            last_api_err = str(ex)
+                            continue
                     
-                    details_text = ""
-                    found_name = matched_records[0].get("Student_Name_Std", "")
+                    if answer:
+                        st.write(answer)
+                        st.session_state.messages.append({"role": "assistant", "content": answer})
+                        if is_found_result:
+                            run_aerial_celebration()
 
-                    for i, record in enumerate(matched_records, 1):
-                        sheet_tab = record.get("_Sheet_Tab", f"Sheet {i}")
-                        s_exam = record.get("Exam_Std", "")
-                        details_text += f"\n--- Teacher: {sheet_tab} | Exam: {s_exam} ---\n"
-                        for k, v in record.items():
-                            if k not in ["Name_Signature_Std", "Exam_Std", "_Sheet_Tab", "Student_Name_Std"]:
-                                details_text += f"- {k}: {v}\n"
-
-                    lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
-
-                    system_prompt = f"""
-                    You are the AI Assistant for BC Tech Computer Education.
-                    Student verified records:
-                    {details_text}
-
-                    CRITICAL RULES FOR DISPLAYING MARKS:
-                    - Target Language: {lang_name}. Output strictly in {lang_name}.
-                    - Display all {len(matched_records)} records separately.
-                    - Show clean whole numbers without decimals (e.g., 23, 41).
-                    - DO NOT write 'Result: Pass' or any status.
-                    - FORMAT REQUIREMENT: Do NOT use the word 'Record' anywhere. Structure the output professionally using the exact layout below with Student Name, Exam Name, and Teacher Name on separate lines, followed by Theory Tests, Practical Tests, Total Marks, and Percentage on a new separate line:
-                    
-                    - Format Structure:
-                      Student Name: {found_name}
-                      Exam Name: [Exam Name from record]
-                      Teacher Name: [Teacher/Sheet Name]
-                      
-                      Theory Tests
-                      - Test 1: [Value]
-                      - Test 2: [Value]
-                      - Test 3: [Value]
-                      - Total Theory: [Sum]
-                      
-                      Practical Tests
-                      - Test 1: [Value]
-                      - Test 2: [Value]
-                      - Test 3: [Value]
-                      - Total Practical: [Sum]
-                      
-                      Total Marks: [Total Marks Obtained] / [Max Marks]
-                      Percentage: [Percentage]%
-                    """
-                else:
-                    ist_tz = timezone(timedelta(hours=5, minutes=30))
-                    current_time_str = datetime.now(ist_tz).strftime("%Y-%m-%d %I:%M:%S %p (%A)")
-                    
-                    lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
-                    system_prompt = f"""
-                    You are BC Tech AI Assistant, a smart, professional assistant for BC Tech Computer Education and general queries.
-                    
-                    EXACT CURRENT INDIAN STANDARD TIME (IST):
-                    - Current Date and Time: {current_time_str}
-                    
-                    CRITICAL LANGUAGE RULE:
-                    - Reply strictly in {lang_name}.
-                    - If Gujarati, reply in clean Gujarati script.
-                    - If Hindi, reply in clean Hindi script.
-                    
-                    CRITICAL INSTRUCTIONS:
-                    1. When the user asks for time, date, day, or general queries, answer accurately using the real-time context provided above ({current_time_str}).
-                    2. Answer general knowledge questions accurately in 2-3 direct sentences.
-                    3. For BC Tech courses, refer to:
-                    {KNOWLEDGE_BASE}
-                    4. If asked about location, provide: {BRANCH_LINK}
-                    5. Output ONLY the response text without greetings or meta notes.
-                    """
-
-                with st.spinner("Thinking..."):
-                    try:
-                        models_resp = client.models.list()
-                        active_ids = [
-                            m.id for m in models_resp.data 
-                            if "whisper" not in m.id and "guard" not in m.id and "vision" not in m.id
-                        ]
-                        preferred = ["llama-3.1-8b-instant", "llama3-8b-8192", "gemma2-9b-it"]
-                        models_to_try = [m for m in preferred if m in active_ids] + [m for m in active_ids if m not in preferred]
-
-                        answer = None
-                        last_api_err = None
-
-                        for m_name in models_to_try:
-                            try:
-                                chat_completion = client.chat.completions.create(
-                                    messages=[
-                                        {"role": "system", "content": system_prompt},
-                                        {"role": "user", "content": query}
-                                    ],
-                                    model=m_name,
-                                    temperature=0.2,
-                                    max_tokens=450
-                                )
-                                raw_answer = chat_completion.choices[0].message.content
-                                answer = clean_ai_response(raw_answer)
-                                if answer:
-                                    break
-                            except Exception as ex:
-                                last_api_err = str(ex)
-                                continue
-                        
-                        if answer:
-                            st.write(answer)
-                            st.session_state.messages.append({"role": "assistant", "content": answer})
-                            if is_found_result:
-                                run_aerial_celebration()
-
-                            render_clean_copy_button(answer, f"ast_curr_{len(st.session_state.messages)}")
-                        else:
-                            st.error(f"API Error: {last_api_err}")
-                    except Exception as e:
-                        st.error(f"Error: {e}")
+                        render_clean_copy_button(answer, f"ast_curr_{len(st.session_state.messages)}")
+                        if is_found_result or "Student Name:" in answer:
+                            render_whatsapp_embed_button(answer, f"ast_wa_{len(st.session_state.messages)}")
+                    else:
+                        st.error(f"API Error: {last_api_err}")
+                except Exception as e:
+                    st.error(f"Error: {e}")
 
 # Trigger LocalStorage sync to keep messages persistent across refreshes
 render_localstorage_persistence()
