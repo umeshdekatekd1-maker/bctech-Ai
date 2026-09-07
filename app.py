@@ -507,26 +507,29 @@ def check_is_branch_intent(text):
     return any(kw in text for kw in branch_keywords)
 
 def search_student_all_sheets(query_text, df):
-    if df is None or df.empty or "Name_Signature_Std" not in df.columns:
+    if df is None or df.empty or "Student_Name_Std" not in df.columns:
         return []
     clean_q = query_text.strip().lower()
     fillers = [
-        "result", "marks", "marx", "kya", "hai", "check", "batao", "mera", "meri", "ka", "ki", 
+        "result", "marks", "marx", "kya", "hai", "check", "batao", "bata do", "mera", "meri", "ka", "ki", "ko",
         "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam", "name",
         "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo",
         "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ"
     ]
-    words = [w for w in clean_q.split() if w not in fillers and len(w) >= 2]
-    if not words:
-        return []
-        
-    user_search_signature = " ".join(sorted(list(set(words))))
-    name_signatures = df["Name_Signature_Std"].astype(str)
-    matched = df[name_signatures == user_search_signature]
     
+    query_clean_words = [w for w in clean_q.split() if w not in fillers]
+    search_query_str = " ".join(query_clean_words).strip()
+    
+    if not search_query_str:
+        search_query_str = clean_q
+
+    matched = df[df["Student_Name_Std"].astype(str).str.lower().str.contains(search_query_str, na=False)]
+
     if matched.empty:
-        search_term_original = " ".join(words)
-        matched = df[df["Student_Name_Std"].astype(str).str.lower().str.strip() == search_term_original]
+        words = [w for w in query_clean_words if len(w) >= 2]
+        if words:
+            user_search_signature = " ".join(sorted(list(set(words))))
+            matched = df[df["Name_Signature_Std"].astype(str) == user_search_signature]
 
     if not matched.empty:
         return matched.to_dict(orient="records")
