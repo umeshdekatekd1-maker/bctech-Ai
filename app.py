@@ -287,7 +287,6 @@ def load_all_sheets_data():
                     clean_df = clean_df[~clean_df[first_col].astype(str).str.lower().str.contains("batch time", na=False)]
                     clean_df = clean_df[clean_df[first_col].astype(str).str.strip() != ""]
                     
-                    # Robust forward fill for exam column and capitalised formatting
                     clean_df[second_col] = clean_df[second_col].ffill()
                     
                     for _, row in clean_df.iterrows():
@@ -648,7 +647,7 @@ persistence_component = f"""
     const STORAGE_KEY_RECENT = "bctech_persisted_recent_v16";
     try {{
         localStorage.setItem(STORAGE_KEY_MSGS, {json.dumps(msgs_json)});
-        localStorage.setItem(STORAGE_KEY_RECENT, {json.dumps(json_json)});
+        localStorage.setItem(STORAGE_KEY_RECENT, {json.dumps(recent_json)});
     }} catch(e) {{}}
 </script>
 </body>
