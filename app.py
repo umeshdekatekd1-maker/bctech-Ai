@@ -632,6 +632,12 @@ if query:
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 render_clean_copy_button(reply, f"branch_{len(st.session_state.messages)}")
 
+            elif len(query.strip()) <= 3 and query.strip().lower() in ["ok", "h", "k", "hi", "ok.", "okay"]:
+                reply = "हाँ, बताइए! मैं आपकी क्या मदद कर सकता हूँ? 😊"
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                render_clean_copy_button(reply, f"ack_{len(st.session_state.messages)}")
+
             else:
                 matched_records = search_student_all_sheets(query, df_sheet)
                 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
