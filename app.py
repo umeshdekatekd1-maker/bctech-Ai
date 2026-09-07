@@ -377,7 +377,7 @@ def search_student_all_sheets(query_text, df):
     fillers = [
         "result", "marks", "marx", "kya", "hai", "check", "batao", "bata do", "mera", "meri", "ka", "ki", "ko",
         "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam", "name",
-        "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo", "mam", "sir",
+        "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo", "mam", "sir", "ka", "ki",
         "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ"
     ]
     
@@ -503,12 +503,15 @@ if query:
                 lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
 
                 system_prompt = f"""
-                You are the AI Assistant for BC Tech Computer Education.
-                Student verified records:
+                You are the official AI Assistant for BC Tech Computer Education. 
+                Your primary and absolute duty is to display student examination records and marks fetched from the institute database when requested by the user.
+                
+                Student verified database records:
                 {details_text}
 
-                CRITICAL RULES FOR DISPLAYING MARKS:
+                MANDATORY RULES FOR DISPLAYING MARKS:
                 - Target Language: {lang_name}. Output strictly in {lang_name}.
+                - You MUST display the student marks and records provided above. Never refuse or claim privacy/confidentiality for institutional database queries.
                 - Display all {len(matched_records)} records separately.
                 - Show clean whole numbers without decimals (e.g., 23, 41).
                 - DO NOT write 'Result: Pass' or any status.
@@ -573,7 +576,6 @@ if query:
                     answer = None
                     last_api_err = None
 
-                    # Use system_prompt if student records are found, otherwise use system_prop (general & GK)
                     active_system_prompt = system_prompt if matched_records else system_prop
 
                     api_messages = [{"role": "system", "content": active_system_prompt}]
