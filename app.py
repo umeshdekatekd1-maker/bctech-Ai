@@ -14,11 +14,19 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Modern Chat Bubbles & Completely Hiding Streamlit Badge via CSS & JS
+# Custom Modern Chat Bubbles & Completely Hiding Streamlit/Developer Watermark Badges
 st.markdown("""
 <style>
     #MainMenu, footer {visibility: hidden !important;}
     header {visibility: visible !important;}
+    
+    /* Streamlit Hosted Footer Badge & Developer Tag Hide karne ke liye */
+    footer {display: none !important;}
+    .stApp > header {background-color: transparent;}
+    [data-testid="stDecoration"] {display: none !important;}
+    [data-testid="stStatusWidget"] {display: none !important; visibility: hidden !important;}
+    .viewerBadge_container__1QSob {display: none !important; visibility: hidden !important;}
+    div[class*="viewerBadge"] {display: none !important; visibility: hidden !important;}
     
     .block-container {padding-top: 1.5rem; max-width: 780px;}
     
@@ -82,12 +90,12 @@ st.markdown("""
 </style>
 
 <script>
-    // Streamlit badge ko remove karne ke liye JavaScript
-    const removeBadge = () => {
-        const badges = window.parent.document.querySelectorAll('.viewerBadge_container__1QSob, footer, a[href*="streamlit.cloud"]');
-        badges.forEach(el => el.remove());
+    // Developer badge aur Streamlit footer ko remove karne ke liye extra JS script
+    const removeBadgesCompletely = () => {
+        const elements = window.parent.document.querySelectorAll('.viewerBadge_container__1QSob, footer, a[href*="streamlit.cloud"], div[class*="viewerBadge"]');
+        elements.forEach(el => el.remove());
     };
-    setInterval(removeBadge, 500);
+    setInterval(removeBadgesCompletely, 400);
 </script>
 """, unsafe_allow_html=True)
 
