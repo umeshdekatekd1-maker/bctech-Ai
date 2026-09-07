@@ -287,6 +287,9 @@ def load_all_sheets_data():
                     clean_df = clean_df[~clean_df[first_col].astype(str).str.lower().str.contains("batch time", na=False)]
                     clean_df = clean_df[clean_df[first_col].astype(str).str.strip() != ""]
                     
+                    # Forward-fill the Exam column so blank cells automatically inherit the exam name from above
+                    clean_df[second_col] = clean_df[second_col].ffill()
+                    
                     for _, row in clean_df.iterrows():
                         student_name = str(row[first_col]).strip()
                         name_words = sorted(student_name.lower().split())
@@ -372,8 +375,7 @@ def search_student_all_sheets(query_text, df):
     
     clean_q = query_text.strip().lower()
     
-    # Agar user apna naam bata raha hai, ya teacher ka naam hai, toh sheet search mat karo
-    if check_is_name_intro(clean_q) or "priya mam" in clean_q or "umesh sir" in clean_q:
+    if check_is_name_intro(clean_q) or "priya mam" in clean_q or "umesh sir" in clean_q or "sanjay sir" in clean_q or "ajay sir" in clean_q:
         return []
 
     img_triggers = ["image", "photo", "picture", "wallpaper", "banao", "create", "generate", "tasveer", "draw", "bana do"]
@@ -391,7 +393,7 @@ def search_student_all_sheets(query_text, df):
     search_query_str = " ".join(query_clean_words).strip()
     
     if not search_query_str:
-        return [] # Agar sirf fillers bache hain toh search mat karo
+        return []
 
     matched = df[df["Student_Name_Std"].astype(str).str.lower().str.contains(search_query_str, na=False)]
 
@@ -446,7 +448,6 @@ if query:
             st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
         
         elif check_is_name_intro(query):
-            # Extract name if possible or reply nicely
             name_match = re.search(r"(?:mera naam|my name is|maru naam)\s+([a-zA-Z\u0900-\u097F]+)", query, re.IGNORECASE)
             username = name_match.group(1).capitalize() if name_match else "User"
             if lang == "GUJARATI":
@@ -557,6 +558,12 @@ if query:
                 current_time_str = datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %I:%M:%S %p (%A)")
                 lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                 
+                if "priya" in query.lower() and ("mam" in query.lower() or "ma'am" in query.lower() or "sir" in query.lower()):
+                    specific_msg = "माफ़ कीजिए, यह नाम हमारे संस्थान में शिक्षक (Teacher) का है, किसी स्टूडेंट का नहीं। कृपया किसी छात्र (Student) का नाम लिखकर रिजल्ट देखें।"
+                    st.write(specific_msg)
+                    st.session_state.messages.append({"role": "assistant", "content": specific_msg})
+                    st.stop()
+
                 system_prop = f"""
                 You are BC Tech AI Assistant, a smart, professional assistant for BC Tech Computer Education and general knowledge expert.
                 
