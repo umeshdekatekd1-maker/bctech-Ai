@@ -355,7 +355,7 @@ def update_language_state(text):
 
 def is_greeting(text):
     text_clean = text.lower().strip().replace("!", "").replace(".", "")
-    greetings = ["hi", "hello", "hey", "hii", "hiii", "namaste", "kem cho", "kem chho", "halo", "હેલો", "નમસ્તે"]
+    greetings = ["hi", "hello", "hey", "hii", "hiii", "namaste", "kem cho", "kem chho", "halo", "હેલો", "નમસ્ते"]
     return text_clean in greetings
 
 def check_is_name_intro(text):
@@ -423,6 +423,7 @@ About Bctech Computer Education:
 - Official Branch & Location Info Link: {BRANCH_LINK}
 - Main Offerings: Professional computer training, practical learning, ISO certified courses, job assistance.
 - Popular Courses: Basic Computer Course, Graphic Designing (CorelDraw, Photoshop, Illustrator), Accounting & Tally Prime, Web Development, Programming (Python, C++), Digital Marketing, Advanced Excel.
+- Location/Address: Surat, Gujarat, India.
 """
 
 # Render chat history
@@ -473,7 +474,7 @@ if query:
 
         elif is_greeting(query):
             if lang == "GUJARATI":
-                reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
             elif lang == "HINDI":
                 reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
             else:
@@ -484,11 +485,11 @@ if query:
 
         elif check_is_branch_intent(query):
             if lang == "GUJARATI":
-                reply = f"BC Tech Computer Education ની શાખા અને લોકેશનની સંપૂર્ણ વિગત માટે અહીં ક્લિક કરો:\n🔗 {BRANCH_LINK}"
+                reply = f"BC Tech Computer Education सूरत, गुजरात, भारत में स्थित है। अधिक विवरण और अन्य शाखाओं के पते के लिए आप आधिकारिक वेबसाइट पर जा सकते हैं:\n🔗 {BRANCH_LINK}"
             elif lang == "HINDI":
-                reply = f"BC Tech Computer Education की शाखा और पता की जानकारी के लिए यहाँ क्लिक करें:\n🔗 {BRANCH_LINK}"
+                reply = f"BC Tech Computer Education सूरत, गुजरात, भारत में स्थित है। अधिक विवरण और अन्य शाखाओं के पते के लिए आप आधिकारिक वेबसाइट पर जा सकते हैं:\n🔗 {BRANCH_LINK}"
             else:
-                reply = f"You can check the branch location and address details of BC Tech Computer Education here:\n🔗 {BRANCH_LINK}"
+                reply = f"BC Tech Computer Education is located in Surat, Gujarat, India. For more details and branch addresses, you can visit the official website:\n🔗 {BRANCH_LINK}"
             
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
@@ -518,7 +519,6 @@ if query:
                         if k not in ["Name_Signature_Std", "Exam_Std", "_Sheet_Tab", "Student_Name_Std"]:
                             details_text += f"- {k}: {v}\n"
 
-                # STRICT RULE: Result must ALWAYS be displayed strictly in English regardless of user query language
                 system_prompt = f"""
                 You are the official AI Assistant for BC Tech Computer Education. 
                 Your primary and absolute duty is to display student examination records and marks fetched from the database when requested.
@@ -562,6 +562,9 @@ if query:
                 
                 EXACT CURRENT INDIAN STANDARD TIME (IST):
                 - Current Date and Time: {current_time_str}
+                
+                CRITICAL LOCATION OVERRIDE:
+                - BC Tech Computer Education is strictly located in Surat, Gujarat, India. Never mention Bengaluru or any other city.
                 
                 CRITICAL LANGUAGE RULE:
                 - Reply strictly in {lang_name}.
