@@ -355,12 +355,8 @@ def update_language_state(text):
 
 def is_greeting(text):
     text_clean = text.lower().strip().replace("!", "").replace(".", "")
-    greetings = ["hi", "hello", "hey", "hii", "hiii", "namaste", "kem cho", "kem chho", "halo", "હેલો", "નમસ્ते"]
+    greetings = ["hi", "hello", "hey", "hii", "hiii", "namaste", "kem cho", "kem chho", "halo", "હેલો", "નમસ્તે"]
     return text_clean in greetings
-
-def check_is_name_intro(text):
-    t = text.lower().strip()
-    return "mera naam" in t or "my name is" in t or "hu mara naam" in t or "maru naam" in t
 
 def check_is_branch_intent(text):
     text = text.lower()
@@ -376,9 +372,6 @@ def search_student_all_sheets(query_text, df):
     
     clean_q = query_text.strip().lower()
     
-    if check_is_name_intro(clean_q) or "priya mam" in clean_q or "umesh sir" in clean_q or "sanjay sir" in clean_q or "ajay sir" in clean_q:
-        return []
-
     img_triggers = ["image", "photo", "picture", "wallpaper", "banao", "create", "generate", "tasveer", "draw", "bana do"]
     if any(t in clean_q for t in img_triggers):
         return []
@@ -448,17 +441,6 @@ if query:
         if err:
             st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
         
-        elif check_is_name_intro(query):
-            name_match = re.search(r"(?:mera naam|my name is|maru naam)\s+([a-zA-Z\u0900-\u097F]+)", query, re.IGNORECASE)
-            username = name_match.group(1).capitalize() if name_match else "User"
-            if lang == "GUJARATI":
-                reply = f"નમસ્તે {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
-            else:
-                reply = f"नमस्ते {username}! BC Tech Computer Education में आपका स्वागत है। बताइए, मैं आपकी कैसे मदद कर सकता हूँ? 😊"
-            st.write(reply)
-            st.session_state.messages.append({"role": "assistant", "content": reply})
-            render_clean_copy_button(reply, f"name_reply_{len(st.session_state.messages)}")
-
         elif query.strip().lower() in ["gujarati", "gujrati", "gujarati ma", "gujarati mein baat karte hai", "gujarati main baat karte hai ok", "gujarati ma vaat kariye"]:
             reply = "ચોક્કસ! હવે આપણે ગુજરાતીમાં વાત કરીશું. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
             st.write(reply)
@@ -495,7 +477,7 @@ if query:
             render_clean_copy_button(reply, f"branch_{len(st.session_state.messages)}")
 
         elif len(query.strip()) <= 3 and query.strip().lower() in ["ok", "h", "k", "hi", "ok.", "okay", "ha", "haan"]:
-            reply = "हाँ, बताइए! किस स्टूडेंट का रिजल्ट देखना है या क्या जानकारी चाहिए? 😊"
+            reply = "हाँ, बताइए! मैं आपकी क्या मदद कर सकता हूँ? 😊"
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
             render_clean_copy_button(reply, f"ack_{len(st.session_state.messages)}")
@@ -559,12 +541,6 @@ if query:
                 current_time_str = datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %I:%M:%S %p (%A)")
                 lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                 
-                if "priya" in query.lower() and ("mam" in query.lower() or "ma'am" in query.lower() or "sir" in query.lower()):
-                    specific_msg = "माफ़ कीजिए, यह नाम हमारे संस्थान में शिक्षक (Teacher) का है, किसी स्टूडेंट का नहीं। कृपया किसी छात्र (Student) का नाम लिखकर रिजल्ट देखें।"
-                    st.write(specific_msg)
-                    st.session_state.messages.append({"role": "assistant", "content": specific_msg})
-                    st.stop()
-
                 system_prop = f"""
                 You are BC Tech AI Assistant, a smart, professional assistant for BC Tech Computer Education and general knowledge expert.
                 
