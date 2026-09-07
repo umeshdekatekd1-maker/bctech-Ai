@@ -343,7 +343,7 @@ def update_language_state(text):
         
     hindi_triggers = [
         "hindi", "in hindi", "hindi me", "hindi main", "bat kro", "baat karo", "batao",
-        "namaste", "mera", "meri", "kaise", "chahiye", "kya hai", "kaha hai", "kab aaya tha", "time", "samay", "aaj", "date", "bhagavad", "geeta"
+        "namaste", "mera", "meri", "kaise", "chahiye", "kya hai", "kaha hai", "kab aaya tha", "time", "samay", "aaj", "date", "kisne", "bnaya", "banaya"
     ]
     if any(re.search(r"\b" + re.escape(w) + r"\b", text_clean) for w in hindi_triggers):
         st.session_state.current_language = "HINDI"
@@ -372,6 +372,11 @@ def check_is_branch_intent(text):
         "kahan hai", "bctech kaha", "bc tech kaha", "ક્યાં છે", "ક્યાં આવેલું", "સરનામું", "લોકેશન", "શાખા", "पता", "कहाँ है", "लोकेशन"
     ]
     return any(kw in text for kw in branch_keywords)
+
+def check_is_creator_intent(text):
+    text = text.lower()
+    creator_keywords = ["kisne banaya", "kisne bnaya", "who made you", "who created you", "aapko kisne banaya", "ko kisne banaya"]
+    return any(kw in text for kw in creator_keywords)
 
 def search_student_all_sheets(query_text, df):
     if df is None or df.empty or "Student_Name_Std" not in df.columns:
@@ -418,8 +423,8 @@ def search_student_all_sheets(query_text, df):
 def clean_ai_response(text):
     if not text:
         return ""
-    cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
-    cleaned = re.sub(r"<think>.*", "", cleaned, flags=re.DOTALL)
+    cleaned = re.sub(r"<think>.*?</think>", "", text, flags=r.DOTALL)
+    cleaned = re.sub(r"<think>.*", "", cleaned, flags=r.DOTALL)
     return cleaned.strip()
 
 BRANCH_LINK = "https://sites.google.com/view/bctechcomputer/about-us"
@@ -508,6 +513,17 @@ if query:
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
             render_clean_copy_button(reply, f"branch_{len(st.session_state.messages)}")
+
+        elif check_is_creator_intent(query):
+            if lang == "GUJARATI":
+                reply = "મને BC Tech Computer Education ના એડમિન અને ડેવલપર દ્વારા બનાવવામાં આવ્યો છે."
+            elif lang == "HINDI":
+                reply = "मुझे BC Tech Computer Education के डेवलपर और एडमिन द्वारा बनाया गया है।"
+            else:
+                reply = "I was created by the developer and admin of BC Tech Computer Education."
+            st.write(reply)
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+            render_clean_copy_button(reply, f"creator_{len(st.session_state.messages)}")
 
         elif len(query.strip()) <= 3 and query.strip().lower() in ["ok", "h", "k", "hi", "ok.", "okay", "ha", "haan"]:
             reply = "हाँ, बताइए! मैं आपकी क्या मदद कर सकता हूँ? 😊"
