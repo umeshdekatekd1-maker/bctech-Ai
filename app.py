@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Modern Chat Bubbles Styles & Bulletproof Persistence Script Loader
+# Custom Modern Chat Bubbles Styles
 st.markdown("""
 <style>
     #MainMenu, footer {visibility: hidden !important;}
@@ -94,84 +94,8 @@ if "messages" not in st.session_state:
     st.session_state.messages = []
 if "recent_chats" not in st.session_state:
     st.session_state.recent_chats = []
-if "waiting_for_result_name" not in st.session_state:
-    st.session_state.waiting_for_result_name = False
 if "current_language" not in st.session_state:
     st.session_state.current_language = "ENGLISH"
-
-# Absolute Persistent Storage Sync & Auto-Reload Recovery Script
-persistent_sync_html = f"""
-<html>
-<body>
-<script>
-    const STORAGE_KEY_MSGS = "bctech_persisted_messages_v15";
-    const STORAGE_KEY_RECENT = "bctech_persisted_recent_v15";
-
-    try {{
-        // Check if we have stored data and current session is empty
-        const savedMsgs = localStorage.getItem(STORAGE_KEY_MSGS);
-        const savedRecent = localStorage.getItem(STORAGE_KEY_RECENT);
-        
-        // If parent has empty messages container rendered, inject from localStorage via custom event or url hash if needed
-    }} catch(e) {{}}
-
-    window.saveToLocalStorage = function(msgs, recent) {{
-        try {{
-            localStorage.setItem(STORAGE_KEY_MSGS, JSON.stringify(msgs));
-            localStorage.setItem(STORAGE_KEY_RECENT, JSON.stringify(recent));
-        }} catch(e) {{}}
-    }};
-
-    window.loadFromLocalStorage = function() {{
-        try {{
-            return {{
-                msgs: JSON.parse(localStorage.getItem(STORAGE_KEY_MSGS) || "[]"),
-                recent: JSON.parse(localStorage.getItem(STORAGE_KEY_RECENT) || "[]")
-            }};
-        }} catch(e) {{
-            return {{ msgs: [], recent: [] }};
-        }}
-    }};
-</script>
-</body>
-</html>
-"""
-
-# Automatic LocalStorage Recovery Handler on First Run
-if not st.session_state.messages:
-    recovery_trigger_js = """
-    <script>
-        try {
-            const data = window.parent.loadFromLocalStorage ? window.parent.loadFromLocalStorage() : null;
-            if (data && data.msgs && data.msgs.length > 0) {
-                // Trigger page state update by setting a hidden param or reloading with state backup
-                const currentUrl = window.parent.location.href;
-                if (!currentUrl.includes('reloaded=true')) {
-                    sessionStorage.setItem('backup_msgs', JSON.stringify(data.msgs));
-                    sessionStorage.setItem('backup_recent', JSON.stringify(data.recent));
-                    window.parent.location.href = currentUrl + (currentUrl.includes('?') ? '&' : '?') + 'reloaded=true';
-                }
-            }
-        } catch(e) {}
-    </script>
-    """
-    components.html(recovery_trigger_js, height=0)
-
-# Check sessionStorage recovery backup
-recovery_check_js = """
-<script>
-    try {
-        const bm = sessionStorage.getItem('backup_msgs');
-        const br = sessionStorage.getItem('backup_recent');
-        if (bm) {
-            sessionStorage.removeItem('backup_msgs');
-            sessionStorage.removeItem('backup_recent');
-            // Post data to python or handle
-        }
-    } catch(e) {}
-</script>
-"""
-components.html(recovery_check_js, height=0)
 
 # Clean One-Click Clipboard Button
 def render_clean_copy_button(text_to_copy, unique_id):
@@ -297,7 +221,6 @@ def on_new_chat_clicked():
         st.session_state.recent_chats = st.session_state.recent_chats[:3]
 
     st.session_state.messages = []
-    st.session_state.waiting_for_result_name = False
     st.session_state.current_language = "ENGLISH"
 
 def restore_chat(idx):
@@ -431,6 +354,10 @@ def is_greeting(text):
     greetings = ["hi", "hello", "hey", "hii", "hiii", "namaste", "kem cho", "kem chho", "halo", "હેલો", "નમસ્ते"]
     return text_clean in greetings
 
+def check_is_name_intro(text):
+    t = text.lower().strip()
+    return "mera naam" in t or "my name is" in t or "hu mara naam" in t or "maru naam" in t
+
 def check_is_branch_intent(text):
     text = text.lower()
     branch_keywords = [
@@ -445,7 +372,8 @@ def search_student_all_sheets(query_text, df):
     
     clean_q = query_text.strip().lower()
     
-    if "priya mam" in clean_q or "priya ma'am" in clean_q:
+    # Agar user apna naam bata raha hai, ya teacher ka naam hai, toh sheet search mat karo
+    if check_is_name_intro(clean_q) or "priya mam" in clean_q or "umesh sir" in clean_q:
         return []
 
     img_triggers = ["image", "photo", "picture", "wallpaper", "banao", "create", "generate", "tasveer", "draw", "bana do"]
@@ -463,7 +391,7 @@ def search_student_all_sheets(query_text, df):
     search_query_str = " ".join(query_clean_words).strip()
     
     if not search_query_str:
-        search_query_str = clean_q
+        return [] # Agar sirf fillers bache hain toh search mat karo
 
     matched = df[df["Student_Name_Std"].astype(str).str.lower().str.contains(search_query_str, na=False)]
 
@@ -517,6 +445,18 @@ if query:
         if err:
             st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
         
+        elif check_is_name_intro(query):
+            # Extract name if possible or reply nicely
+            name_match = re.search(r"(?:mera naam|my name is|maru naam)\s+([a-zA-Z\u0900-\u097F]+)", query, re.IGNORECASE)
+            username = name_match.group(1).capitalize() if name_match else "User"
+            if lang == "GUJARATI":
+                reply = f"નમસ્તે {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
+            else:
+                reply = f"नमस्ते {username}! BC Tech Computer Education में आपका स्वागत है। बताइए, मैं आपकी कैसे मदद कर सकता हूँ? 😊"
+            st.write(reply)
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+            render_clean_copy_button(reply, f"name_reply_{len(st.session_state.messages)}")
+
         elif query.strip().lower() in ["gujarati", "gujrati", "gujarati ma", "gujarati mein baat karte hai", "gujarati main baat karte hai ok", "gujarati ma vaat kariye"]:
             reply = "ચોક્કસ! હવે આપણે ગુજરાતીમાં વાત કરીશું. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
             st.write(reply)
@@ -552,8 +492,8 @@ if query:
             st.session_state.messages.append({"role": "assistant", "content": reply})
             render_clean_copy_button(reply, f"branch_{len(st.session_state.messages)}")
 
-        elif len(query.strip()) <= 3 and query.strip().lower() in ["ok", "h", "k", "hi", "ok.", "okay"]:
-            reply = "हाँ, बताइए! मैं आपकी क्या मदद कर सकता हूँ? 😊"
+        elif len(query.strip()) <= 3 and query.strip().lower() in ["ok", "h", "k", "hi", "ok.", "okay", "ha", "haan"]:
+            reply = "हाँ, बताइए! किस स्टूडेंट का रिजल्ट देखना है या क्या जानकारी चाहिए? 😊"
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
             render_clean_copy_button(reply, f"ack_{len(st.session_state.messages)}")
@@ -565,8 +505,6 @@ if query:
             
             if matched_records:
                 is_found_result = True
-                st.session_state.waiting_for_result_name = False
-                
                 details_text = ""
                 found_name = matched_records[0].get("Student_Name_Std", "")
 
@@ -619,14 +557,6 @@ if query:
                 current_time_str = datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %I:%M:%S %p (%A)")
                 lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                 
-                if "priya" in query.lower() and ("mam" in query.lower() or "ma'am" in query.lower() or "sir" in query.lower()):
-                    specific_msg = "माफ़ कीजिए, 'Priya Mam' हमारे संस्थान में शिक्षिका (Teacher) हैं, किसी स्टूडेंट का नाम नहीं। कृपया किसी छात्र (Student) का नाम लिखकर रिजल्ट देखें।"
-                    if lang == "GUJARATI":
-                        specific_msg = "ક્ષમા કરશો, 'Priya Mam' અમારી સંસ્થામાં શિક્ષિકા (Teacher) છે, વિદ્યાર્થીનું નામ નથી. કૃપા કરીને કોઈ વિદ્યાર્થીનું નામ લખીને પરિણામ જુઓ."
-                    st.write(specific_msg)
-                    st.session_state.messages.append({"role": "assistant", "content": specific_msg})
-                    st.stop()
-
                 system_prop = f"""
                 You are BC Tech AI Assistant, a smart, professional assistant for BC Tech Computer Education and general knowledge expert.
                 
@@ -697,7 +627,7 @@ if query:
                 except Exception as e:
                     st.error(f"Error: {e}")
 
-# Save state to browser's localStorage automatically and trigger persistence sync
+# Save state to browser's localStorage automatically
 msgs_json = json.dumps(st.session_state.messages)
 recent_json = json.dumps(st.session_state.recent_chats)
 
@@ -705,9 +635,12 @@ persistence_component = f"""
 <html>
 <body>
 <script>
-    if (window.parent.saveToLocalStorage) {{
-        window.parent.saveToLocalStorage({json.dumps(msgs_json)}, {json.dumps(recent_json)});
-    }}
+    const STORAGE_KEY_MSGS = "bctech_persisted_messages_v16";
+    const STORAGE_KEY_RECENT = "bctech_persisted_recent_v16";
+    try {{
+        localStorage.setItem(STORAGE_KEY_MSGS, {json.dumps(msgs_json)});
+        localStorage.setItem(STORAGE_KEY_RECENT, {json.dumps(recent_json)});
+    }} catch(e) {{}}
 </script>
 </body>
 </html>
