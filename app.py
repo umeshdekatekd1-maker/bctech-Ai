@@ -644,7 +644,7 @@ if query:
                     for i, record in enumerate(matched_records, 1):
                         sheet_tab = record.get("_Sheet_Tab", f"Sheet {i}")
                         s_exam = record.get("Exam_Std", "")
-                        details_text += f"\n--- Record {i} (Exam: {s_exam} | Sheet: {sheet_tab}) ---\n"
+                        details_text += f"\n--- Teacher/Sheet: {sheet_tab} | Exam: {s_exam} ---\n"
                         for k, v in record.items():
                             if k not in ["Name_Signature_Std", "Exam_Std", "_Sheet_Tab", "Student_Name_Std"]:
                                 details_text += f"- {k}: {v}\n"
@@ -661,10 +661,10 @@ if query:
                     - Display all {len(matched_records)} records separately.
                     - Show clean whole numbers without decimals (e.g., 23, 41).
                     - DO NOT write 'Result: Pass' or any status.
-                    - FORMAT REQUIREMENT: Do NOT use the word 'Record'. Instead, use the Sheet/Teacher name directly as the heading. List each subject and mark on a separate new line using bullet points. Do not lump them together in a single sentence.
+                    - FORMAT REQUIREMENT: Do NOT use the word 'Record' anywhere. Use the Teacher/Sheet name as the main clean heading. List each subject and mark on a separate new line using bullet points. Do not lump them together in a single sentence.
                     
                     - Format Structure:
-                      📌 [Sheet/Teacher Name]: [Exam Name]
+                      📌 [Teacher/Sheet Name]
                       - Name: {found_name}
                       - Exam: [Exam Name]
                       - Marks:
