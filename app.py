@@ -96,6 +96,8 @@ if "recent_chats" not in st.session_state:
     st.session_state.recent_chats = []
 if "current_language" not in st.session_state:
     st.session_state.current_language = "ENGLISH"
+if "last_mentioned_name" not in st.session_state:
+    st.session_state.last_mentioned_name = None
 
 # Clean One-Click Clipboard Button
 def render_clean_copy_button(text_to_copy, unique_id):
@@ -222,6 +224,7 @@ def on_new_chat_clicked():
 
     st.session_state.messages = []
     st.session_state.current_language = "ENGLISH"
+    st.session_state.last_mentioned_name = None
 
 def restore_chat(idx):
     if idx < len(st.session_state.recent_chats):
@@ -360,7 +363,7 @@ def is_greeting(text):
 
 def check_is_name_intro(text):
     t = text.lower().strip()
-    return "mera naam" in t or "my name is" in t or "hu mara naam" in t or "maru naam" in t
+    return "mera naam" in t or "my name is" in t or "hu mara naam" in t or "maru naam" in t or t.startswith("naam ")
 
 def check_is_branch_intent(text):
     text = text.lower()
@@ -376,7 +379,7 @@ def search_student_all_sheets(query_text, df):
     
     clean_q = query_text.strip().lower()
     
-    if check_is_name_intro(clean_q) or "priya mam" in clean_q or "umesh sir" in clean_q or "sanjay sir" in clean_q or "ajay sir" in clean_q:
+    if "priya mam" in clean_q or "umesh sir" in clean_q or "sanjay sir" in clean_q or "ajay sir" in clean_q:
         return []
 
     img_triggers = ["image", "photo", "picture", "wallpaper", "banao", "create", "generate", "tasveer", "draw", "bana do"]
@@ -386,13 +389,18 @@ def search_student_all_sheets(query_text, df):
     fillers = [
         "result", "marks", "marx", "kya", "hai", "check", "batao", "bata do", "mera", "meri", "ka", "ki", "ko",
         "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam", "name",
-        "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo", "mam", "sir",
+        "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo", "mam", "sir", "karo", "kar do",
         "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ"
     ]
     
     query_clean_words = [w for w in clean_q.split() if w not in fillers]
     search_query_str = " ".join(query_clean_words).strip()
     
+    # Agar user ne sirf "mera result show karo" ya "result" bola aur pehle naam bataya tha, toh us saved naam ko use karo
+    if not search_query_str or search_query_str in ["result", "show", "batao"]:
+        if st.session_state.last_mentioned_name:
+            search_query_str = st.session_state.last_mentioned_name
+
     if not search_query_str:
         return []
 
@@ -450,8 +458,17 @@ if query:
             st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
         
         elif check_is_name_intro(query):
+            # Extract name and save to session state memory
             name_match = re.search(r"(?:mera naam|my name is|maru naam)\s+([a-zA-Z\u0900-\u097F]+)", query, re.IGNORECASE)
-            username = name_match.group(1).capitalize() if name_match else "User"
+            if not name_match:
+                # Catch simple inputs like "harish hu" or just name
+                words = [w for w in query.split() if w.lower() not in ["mera", "naam", "hai", "is", "my", "name"]]
+                username = words[0].capitalize() if words else "User"
+            else:
+                username = name_match.group(1).capitalize()
+            
+            st.session_state.last_mentioned_name = username.lower()
+
             if lang == "GUJARATI":
                 reply = f"નમસ્તે {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
             else:
@@ -484,7 +501,6 @@ if query:
             render_clean_copy_button(reply, f"greet_{len(st.session_state.messages)}")
 
         elif check_is_branch_intent(query):
-            # Direct Python-hardcoded clean response to completely prevent LLM looping errors
             if lang == "GUJARATI":
                 reply = f"BC Tech Computer Education સુરત, ગુજરાત, ભારતમાં આવેલું છે. વધુ વિગતો અને અન્ય શાખાના પત્તા માટે અધિકૃત વેબસાઇટની મુલાકાત લો:\n🔗 {BRANCH_LINK}"
             elif lang == "HINDI":
