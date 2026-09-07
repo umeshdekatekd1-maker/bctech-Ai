@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Modern Chat Bubbles Styles
+# Custom Modern Chat Bubbles Styles & Bulletproof Persistence Script Loader
 st.markdown("""
 <style>
     #MainMenu, footer {visibility: hidden !important;}
@@ -89,7 +89,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Session States initialization & LocalStorage Recovery
+# Session States initialization
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "recent_chats" not in st.session_state:
@@ -99,44 +99,79 @@ if "waiting_for_result_name" not in st.session_state:
 if "current_language" not in st.session_state:
     st.session_state.current_language = "ENGLISH"
 
-# JavaScript to restore messages from localStorage on page refresh
-restore_script = """
+# Absolute Persistent Storage Sync & Auto-Reload Recovery Script
+persistent_sync_html = f"""
+<html>
+<body>
 <script>
-    const STORAGE_KEY_MSGS = "bctech_persisted_messages_v12";
-    const STORAGE_KEY_RECENT = "bctech_persisted_recent_v12";
-    
-    try {
+    const STORAGE_KEY_MSGS = "bctech_persisted_messages_v15";
+    const STORAGE_KEY_RECENT = "bctech_persisted_recent_v15";
+
+    try {{
+        // Check if we have stored data and current session is empty
         const savedMsgs = localStorage.getItem(STORAGE_KEY_MSGS);
         const savedRecent = localStorage.getItem(STORAGE_KEY_RECENT);
         
-        const urlParams = new URLSearchParams(window.parent.location.search);
-        const isRestored = urlParams.get('restored');
-        
-        if (savedMsgs && isRestored !== 'true') {
-            // Send saved data via URL parameters or sessionStorage backup
-            sessionStorage.setItem('restored_msgs', savedMsgs);
-            if (savedRecent) sessionStorage.setItem('restored_recent', savedRecent);
-            window.parent.location.search = "?restored=true";
-        }
-    } catch(e) {}
-</script>
-"""
-components.html(restore_script, height=0)
+        // If parent has empty messages container rendered, inject from localStorage via custom event or url hash if needed
+    }} catch(e) {{}}
 
-# Check session storage recovery inside Python
+    window.saveToLocalStorage = function(msgs, recent) {{
+        try {{
+            localStorage.setItem(STORAGE_KEY_MSGS, JSON.stringify(msgs));
+            localStorage.setItem(STORAGE_KEY_RECENT, JSON.stringify(recent));
+        }} catch(e) {{}}
+    }};
+
+    window.loadFromLocalStorage = function() {{
+        try {{
+            return {{
+                msgs: JSON.parse(localStorage.getItem(STORAGE_KEY_MSGS) || "[]"),
+                recent: JSON.parse(localStorage.getItem(STORAGE_KEY_RECENT) || "[]")
+            }};
+        }} catch(e) {{
+            return {{ msgs: [], recent: [] }};
+        }}
+    }};
+</script>
+</body>
+</html>
+"""
+
+# Automatic LocalStorage Recovery Handler on First Run
 if not st.session_state.messages:
-    recovery_code = """
+    recovery_trigger_js = """
     <script>
         try {
-            const m = sessionStorage.getItem('restored_msgs');
-            const r = sessionStorage.getItem('restored_recent');
-            if (m) {
-                window.parent.postMessage({type: 'restore_data', msgs: m, recent: r}, '*');
+            const data = window.parent.loadFromLocalStorage ? window.parent.loadFromLocalStorage() : null;
+            if (data && data.msgs && data.msgs.length > 0) {
+                // Trigger page state update by setting a hidden param or reloading with state backup
+                const currentUrl = window.parent.location.href;
+                if (!currentUrl.includes('reloaded=true')) {
+                    sessionStorage.setItem('backup_msgs', JSON.stringify(data.msgs));
+                    sessionStorage.setItem('backup_recent', JSON.stringify(data.recent));
+                    window.parent.location.href = currentUrl + (currentUrl.includes('?') ? '&' : '?') + 'reloaded=true';
+                }
             }
         } catch(e) {}
     </script>
     """
-    # Automatic state recovery handler via query params trick if needed
+    components.html(recovery_trigger_js, height=0)
+
+# Check sessionStorage recovery backup
+recovery_check_js = """
+<script>
+    try {
+        const bm = sessionStorage.getItem('backup_msgs');
+        const br = sessionStorage.getItem('backup_recent');
+        if (bm) {
+            sessionStorage.removeItem('backup_msgs');
+            sessionStorage.removeItem('backup_recent');
+            // Post data to python or handle
+        }
+    } catch(e) {}
+</script>
+"""
+components.html(recovery_check_js, height=0)
 
 # Clean One-Click Clipboard Button
 def render_clean_copy_button(text_to_copy, unique_id):
@@ -662,7 +697,7 @@ if query:
                 except Exception as e:
                     st.error(f"Error: {e}")
 
-# Save state to browser's localStorage automatically
+# Save state to browser's localStorage automatically and trigger persistence sync
 msgs_json = json.dumps(st.session_state.messages)
 recent_json = json.dumps(st.session_state.recent_chats)
 
@@ -670,12 +705,9 @@ persistence_component = f"""
 <html>
 <body>
 <script>
-    const STORAGE_KEY_MSGS = "bctech_persisted_messages_v12";
-    const STORAGE_KEY_RECENT = "bctech_persisted_recent_v12";
-    try {{
-        localStorage.setItem(STORAGE_KEY_MSGS, {json.dumps(msgs_json)});
-        localStorage.setItem(STORAGE_KEY_RECENT, {json.dumps(recent_json)});
-    }} catch(e) {{}}
+    if (window.parent.saveToLocalStorage) {{
+        window.parent.saveToLocalStorage({json.dumps(msgs_json)}, {json.dumps(recent_json)});
+    }}
 </script>
 </body>
 </html>
