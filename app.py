@@ -656,16 +656,20 @@ if query:
                     Student verified records:
                     {details_text}
 
-                    CRITICAL RULES:
+                    CRITICAL RULES FOR DISPLAYING MARKS:
                     - Target Language: {lang_name}. Output strictly in {lang_name}.
                     - Display all {len(matched_records)} records separately.
                     - Show clean whole numbers without decimals (e.g., 23, 41).
                     - DO NOT write 'Result: Pass' or any status.
-                    - Format:
+                    - FORMAT REQUIREMENT: List each subject and mark on a separate new line using bullet points (e.g., Theory-1: 35, Theory-2: 24, Practical-1: 40). Do not lump them together in a single comma-separated sentence.
+                    
+                    - Format Structure:
                       📌 Record [Number]: [Exam Name]
                       - Name: {found_name}
                       - Exam: [Exam Name]
-                      - Marks: [Marks list]
+                      - Marks:
+                        - [Subject]: [Value]
+                        - [Subject]: [Value]
                     """
                 else:
                     ist_tz = timezone(timedelta(hours=5, minutes=30))
