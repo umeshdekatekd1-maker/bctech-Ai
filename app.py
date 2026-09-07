@@ -661,17 +661,27 @@ if query:
                     - Display all {len(matched_records)} records separately.
                     - Show clean whole numbers without decimals (e.g., 23, 41).
                     - DO NOT write 'Result: Pass' or any status.
-                    - CRITICAL FORMAT REQUIREMENT: Do NOT use the word 'Record' anywhere. Use the Teacher/Sheet name directly as the main heading. You MUST include and print the actual mark values provided in the records (e.g., Theory-1: 20, Practical-1: 12). List each subject and mark on a separate new line using bullet points.
+                    - FORMAT REQUIREMENT: Do NOT use the word 'Record' anywhere. Structure the output professionally using the exact layout below with Student Name, Exam Name, Teacher Name, Theory Tests, Practical Tests, Total Marks, and Percentage:
                     
                     - Format Structure:
-                      📌 [Teacher/Sheet Name]
-                      - Name: {found_name}
-                      - Exam: [Exam Name]
-                      - Marks:
-                        - Theory-1: [Value]
-                        - Theory-2: [Value]
-                        - Practical-1: [Value]
-                        - Practical-2: [Value]
+                      Student Name: {found_name}
+                      Exam Name: [Exam Name from record]
+                      Teacher Name: [Teacher/Sheet Name]
+                      
+                      Theory Tests
+                      - Test 1: [Value]
+                      - Test 2: [Value]
+                      - Test 3: [Value]
+                      - Total Theory: [Sum]
+                      
+                      Practical Tests
+                      - Test 1: [Value]
+                      - Test 2: [Value]
+                      - Test 3: [Value]
+                      - Total Practical: [Sum]
+                      
+                      Total Marks: [Total Marks Obtained] / [Max Marks]
+                      [Percentage]%
                     """
                 else:
                     ist_tz = timezone(timedelta(hours=5, minutes=30))
