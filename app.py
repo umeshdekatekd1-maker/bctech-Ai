@@ -577,7 +577,7 @@ if query:
                 current_time_str = datetime.now(ist_tz).strftime("%Y-%m-%d %I:%M:%S %p (%A)")
                 
                 lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
-                system_prompt = f"""
+                system_prop = f"""
                 You are BC Tech AI Assistant, a smart, professional assistant for BC Tech Computer Education and general knowledge expert.
                 
                 EXACT CURRENT INDIAN STANDARD TIME (IST):
@@ -588,9 +588,13 @@ if query:
                 - If Gujarati, reply in clean Gujarati script.
                 - If Hindi, reply in clean Hindi script.
                 
+                CRITICAL CONTEXT & CONTINUITY RULE (IMPORTANT):
+                - Pay close attention to the previous conversation history (messages). 
+                - If the user says "next", "aur do", "4 line aur", or refers to the previous topic without naming it, you MUST continue or provide more items of the exact same topic that was discussed right before (e.g. if previous was slogans on Diwali, give more Diwali slogans; if previous was a GK topic, continue that topic). NEVER write code or programming snippets unless the user explicitly asks for coding/programming.
+                
                 CRITICAL INSTRUCTIONS:
-                1. When the user asks for time, date, day, or general queries, answer accurately using the real-time context provided above ({current_time_str}).
-                2. You possess extensive general knowledge (science, history, geography, technology, general facts, etc.). Answer any general knowledge questions accurately, informatively, and clearly.
+                1. When the user asks for time, date, day, or general queries, answer accurately using the real-time context provided ({current_time_str}).
+                2. You possess extensive general knowledge. Answer any general knowledge questions accurately, informatively, and clearly.
                 3. For BC Tech computer courses, refer to:
                 {KNOWLEDGE_BASE}
                 4. If asked about institute location, provide: {BRANCH_LINK}
@@ -610,13 +614,17 @@ if query:
                     answer = None
                     last_api_err = None
 
+                    # Prepare full conversation history so AI remembers context ("next" works properly)
+                    api_messages = [{"role": "system", "content": system_prop}]
+                    # Append previous history excluding the very latest query which we add explicitly or let loop handle
+                    for m in st.session_state.messages[:-1]:
+                        api_messages.append({"role": m["role"], "content": m["content"]})
+                    api_messages.append({"role": "user", "content": query})
+
                     for m_name in models_to_try:
                         try:
                             chat_completion = client.chat.completions.create(
-                                messages=[
-                                    {"role": "system", "content": system_prompt},
-                                    {"role": "user", "content": query}
-                                ],
+                                messages=api_messages,
                                 model=m_name,
                                 temperature=0.3,
                                 max_tokens=600
