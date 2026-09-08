@@ -257,7 +257,7 @@ def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="hi-IN"):
     """
     components.html(html_toolbar, height=35)
 
-# --- CLEAN & WORKING VOICE INPUT WIDGET (Placed right above chat box) ---
+# --- VOICE INPUT WIDGET WITH AUTO-SUBMIT (Auto-Click Send Button) ---
 def render_voice_input_widget():
     mic_html = """
     <html>
@@ -320,7 +320,7 @@ def render_voice_input_widget():
                     recognition.onstart = function() {
                         isListening = true;
                         btn.classList.add('listening');
-                        btn.innerHTML = '🛑 सुन रहे हैं... (सुनना बंद करने के लिए क्लिक करें)';
+                        btn.innerHTML = '🛑 सुन रहे हैं... (बोलना बंद करें)';
                     };
                     
                     recognition.onresult = function(event) {
@@ -329,6 +329,20 @@ def render_voice_input_widget():
                             inputEl.value = transcript;
                             inputEl.dispatchEvent(new Event('input', { bubbles: true }));
                             inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+                            
+                            // Automatically find and click Streamlit's native Send button to submit instantly
+                            setTimeout(() => {
+                                const sendButton = parentDoc.querySelector('[data-testid="stChatInput"] button') || parentDoc.querySelector('button[kind="secondary"]');
+                                if (sendButton) {
+                                    sendButton.click();
+                                } else {
+                                    // Fallback keydown event
+                                    const enterEvent = new KeyboardEvent('keydown', {
+                                        key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true
+                                    });
+                                    inputEl.dispatchEvent(enterEvent);
+                                }
+                            }, 500);
                         }
                     };
                     
@@ -648,7 +662,7 @@ for idx, msg in enumerate(st.session_state.messages):
             lang_code = "hi-IN" if st.session_state.current_language == "HINDI" else ("gu-IN" if st.session_state.current_language == "GUJARATI" else "en-US")
             render_voice_and_copy_toolbar(msg["content"], f"hist_{idx}", lang_code)
 
-# Render Voice Input Widget right above the chat input box
+# Render Voice Input Widget right above chat input box
 render_voice_input_widget()
 
 query = st.chat_input("")
