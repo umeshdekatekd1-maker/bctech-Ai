@@ -6,6 +6,8 @@ import requests
 import io
 import re
 import json
+import os
+import uuid
 from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
@@ -89,42 +91,62 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Session States initialization
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "recent_chats" not in st.session_state:
-    st.session_state.recent_chats = []
-if "current_language" not in st.session_state:
-    st.session_state.current_language = "ENGLISH"
-if "last_mentioned_name" not in st.session_state:
-    st.session_state.last_mentioned_name = None
+# --- PERSISTENT STORAGE DB MANAGER (Prevents wipe on refresh/reload) ---
+DB_FILE = "bctech_chat_storage.json"
 
-# Persistent Storage Bridge Component to Restore Data on Refresh
-storage_bridge_code = """
-<html>
-<body>
-<script>
-    const STORAGE_KEY_MSGS = "bctech_persisted_messages_v18";
-    const STORAGE_KEY_RECENT = "bctech_persisted_recent_v18";
-    
-    function checkAndRestore() {
-        try {
-            const savedMsgs = localStorage.getItem(STORAGE_KEY_MSGS);
-            const savedRecent = localStorage.getItem(STORAGE_KEY_RECENT);
-            
-            // Check if Streamlit session state is empty but localStorage has data
-            const urlParams = new URLSearchParams(window.location.search);
-            if (!urlParams.has('restored') && (savedMsgs || savedRecent)) {
-                // Pass data back or flag restoration
-            }
-        } catch(e) {}
+def load_db():
+    if os.path.exists(DB_FILE):
+        try:
+            with open(DB_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def save_db(db):
+    try:
+        with open(DB_FILE, "w", encoding="utf-8") as f:
+            json.dump(db, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+# Initialize Chat ID from URL Query Parameters for Permanent Refresh Persistence
+query_params = st.query_params
+if "chat_id" not in query_params or not query_params["chat_id"]:
+    current_chat_id = str(uuid.uuid4())
+    st.query_params["chat_id"] = current_chat_id
+else:
+    current_chat_id = query_params["chat_id"]
+
+db_data = load_db()
+if current_chat_id not in db_data:
+    db_data[current_chat_id] = {
+        "messages": [],
+        "recent_chats": [],
+        "current_language": "ENGLISH",
+        "last_mentioned_name": None
     }
-    checkAndRestore();
-</script>
-</body>
-</html>
-"""
-components.html(storage_bridge_code, height=0)
+    save_db(db_data)
+
+# Bind Session States with Persistent DB
+if "messages" not in st.session_state:
+    st.session_state.messages = db_data[current_chat_id]["messages"]
+if "recent_chats" not in st.session_state:
+    st.session_state.recent_chats = db_data[current_chat_id]["recent_chats"]
+if "current_language" not in st.session_state:
+    st.session_state.current_language = db_data[current_chat_id]["current_language"]
+if "last_mentioned_name" not in st.session_state:
+    st.session_state.last_mentioned_name = db_data[current_chat_id]["last_mentioned_name"]
+
+def persist_current_state():
+    db = load_db()
+    if current_chat_id not in db:
+        db[current_chat_id] = {}
+    db[current_chat_id]["messages"] = st.session_state.messages
+    db[current_chat_id]["recent_chats"] = st.session_state.recent_chats
+    db[current_chat_id]["current_language"] = st.session_state.current_language
+    db[current_chat_id]["last_mentioned_name"] = st.session_state.last_mentioned_name
+    save_db(db)
 
 # Clean One-Click Clipboard Button
 def render_clean_copy_button(text_to_copy, unique_id):
@@ -252,10 +274,16 @@ def on_new_chat_clicked():
     st.session_state.messages = []
     st.session_state.current_language = "ENGLISH"
     st.session_state.last_mentioned_name = None
+    
+    # Generate new chat ID for new chat session
+    new_id = str(uuid.uuid4())
+    st.query_params["chat_id"] = new_id
+    persist_current_state()
 
 def restore_chat(idx):
     if idx < len(st.session_state.recent_chats):
         st.session_state.messages = list(st.session_state.recent_chats[idx]["messages"])
+        persist_current_state()
 
 def clean_val_display(val):
     if pd.isna(val) or str(val).strip() == "" or str(val).strip().lower() == "nan":
@@ -457,7 +485,7 @@ About Bctech Computer Education:
 - Location/Address: Surat, Gujarat, India.
 """
 
-# Render chat history from session state
+# Render chat history from persistent session state
 for idx, msg in enumerate(st.session_state.messages):
     is_user = (msg["role"] == "user")
     with st.chat_message(msg["role"], avatar="👤" if is_user else "🤖"):
@@ -479,6 +507,7 @@ if query:
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
             render_clean_copy_button(reply, f"hard_block_{len(st.session_state.messages)}")
+        persist_current_state()
     else:
         st.session_state.messages.append({"role": "user", "content": query})
         
@@ -693,33 +722,4 @@ Percentage: {percentage}%
                                 st.error(f"API Error: {last_api_err}")
                         except Exception as e:
                             st.error(f"Error: {e}")
-
-# Save state and restore automatically via browser localStorage and DOM injection
-msgs_json = json.dumps(st.session_state.messages)
-recent_json = json.dumps(st.session_state.recent_chats)
-
-persistence_component = f"""
-<html>
-<body>
-<script>
-    const STORAGE_KEY_MSGS = "bctech_persisted_messages_v18";
-    const STORAGE_KEY_RECENT = "bctech_persisted_recent_v18";
-    try {{
-        localStorage.setItem(STORAGE_KEY_MSGS, {json.dumps(msgs_json)});
-        localStorage.setItem(STORAGE_KEY_RECENT, {json.dumps(recent_json)});
-        
-        // Auto restore on hard reload if Python session is empty
-        const parentDoc = window.parent.document;
-        const chatContainer = parentDoc.querySelector('[data-testid="stChatMessage"]');
-        if (!chatContainer) {{
-            const savedMsgs = localStorage.getItem(STORAGE_KEY_MSGS);
-            if (savedMsgs && savedMsgs !== "[]") {{
-                // Trigger soft navigation or reload sync if needed
-            }}
-        }}
-    }} catch(e) {{}}
-</script>
-</body>
-</html>
-"""
-components.html(persistence_component, height=0)
+        persist_current_state()
