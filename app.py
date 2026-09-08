@@ -503,9 +503,8 @@ def search_student_all_sheets(query_text, df):
     matched = df[df["Student_Name_Std"].astype(str).str.lower().apply(lambda x: any(w == search_query_str or search_query_str in x.split() for w in x.split()))]
 
     if matched.empty:
-        matched = df[df["Student_Name_Std"].astype(str).str.lower().str.contains(r'\b' + re.escape(search_query_str) + r'\b', na=False))]
+        matched = df[df["Student_Name_Std"].astype(str).str.lower().str.contains(r'\b' + re.escape(search_query_str) + r'\b', na=False)]
 
-    # Partial substring search if full word doesn't match (e.g. "pooja pal")
     if matched.empty:
         matched = df[df["Student_Name_Std"].astype(str).str.lower().str.contains(re.escape(search_query_str), na=False)]
 
@@ -677,7 +676,6 @@ if query:
                 render_voice_and_copy_toolbar(reply, f"creator_{len(st.session_state.messages)}", lang_code)
 
             else:
-                # SMART CONTEXT MEMORY: If user says "mera result batao", fallback to st.session_state.last_mentioned_name
                 search_query_to_use = query
                 result_intent_words = ["result", "marks", "exam", "mera", "meri", "score", "reult", "rizalt", "marksheet"]
                 
