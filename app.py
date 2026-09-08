@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Modern Chat Bubbles Styles
+# Custom Modern Chat Bubbles Styles + Voice UI Styles
 st.markdown("""
 <style>
     #MainMenu, footer {visibility: hidden !important;}
@@ -146,9 +146,10 @@ def persist_current_state():
     db[current_chat_id]["last_mentioned_name"] = st.session_state.last_mentioned_name
     save_db(db)
 
-def render_clean_copy_button(text_to_copy, unique_id):
-    json_text = json.dumps(text_to_copy)
-    html_btn = f"""
+# --- VOICE INPUT & TEXT-TO-SPEECH CONTROLS COMPONENT ---
+def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="hi-IN"):
+    json_text = json.dumps(text_to_speak)
+    html_toolbar = f"""
     <html>
     <head>
     <style>
@@ -159,9 +160,10 @@ def render_clean_copy_button(text_to_copy, unique_id):
             display: flex;
             justify-content: flex-end;
             align-items: center;
+            gap: 8px;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }}
-        .copy-btn {{
+        .action-btn {{
             border-radius: 16px;
             padding: 3px 12px;
             font-size: 12px;
@@ -174,17 +176,39 @@ def render_clean_copy_button(text_to_copy, unique_id):
             gap: 4px;
             transition: all 0.2s ease;
         }}
-        .copy-btn:hover {{
+        .action-btn:hover {{
             background-color: #e8eaed;
             color: #202124;
         }}
     </style>
     </head>
     <body>
-        <button class="copy-btn" id="btn_{unique_id}" onclick="doCopy()">
+        <button class="action-btn" id="speak_{unique_id}" onclick="doSpeak()">
+            🔊 Read Aloud
+        </button>
+        <button class="action-btn" id="copy_{unique_id}" onclick="doCopy()">
             📋 Copy
         </button>
         <script>
+            function doSpeak() {{
+                const text = {json_text};
+                if ('speechSynthesis' in window) {{
+                    window.speechSynthesis.cancel();
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.lang = '{lang_code}';
+                    utterance.rate = 1.0;
+                    window.speechSynthesis.speak(utterance);
+                    
+                    const btn = document.getElementById('speak_{unique_id}');
+                    btn.innerHTML = '🔊 Playing...';
+                    utterance.onend = function() {{
+                        btn.innerHTML = '🔊 Read Aloud';
+                    }};
+                }} else {{
+                    alert('Text-to-speech is not supported in this browser.');
+                }}
+            }}
+
             function doCopy() {{
                 const text = {json_text};
                 if (navigator.clipboard && window.isSecureContext) {{
@@ -202,7 +226,7 @@ def render_clean_copy_button(text_to_copy, unique_id):
                 }}
             }}
             function showSuccess() {{
-                const b = document.getElementById('btn_{unique_id}');
+                const b = document.getElementById('copy_{unique_id}');
                 b.innerHTML = '✓ Copied!';
                 b.style.backgroundColor = '#e6f4ea';
                 b.style.color = '#137333';
@@ -218,7 +242,112 @@ def render_clean_copy_button(text_to_copy, unique_id):
     </body>
     </html>
     """
-    components.html(html_btn, height=30)
+    components.html(html_toolbar, height=35)
+
+# Render Voice Input (Speech-to-Text) Button at Top/Input helper
+def render_voice_input_widget():
+    mic_html = """
+    <html>
+    <head>
+    <style>
+        body { margin: 0; padding: 0; background: transparent; font-family: sans-serif; }
+        .mic-container { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .mic-btn {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            transition: background 0.2s;
+        }
+        .mic-btn:hover { background-color: #1557b0; }
+        .listening { background-color: #ea4335 !important; animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+    </style>
+    </head>
+    <body>
+        <div class="mic-container">
+            <button class="mic-btn" id="micBtn" onclick="toggleMic()">
+                🎤 Speak to Type (बोलकर टाइप करें)
+            </button>
+            <span id="micStatus" style="font-size:12px; color:#5f6368;"></span>
+        </div>
+        <script>
+            let recognition = null;
+            let isListening = false;
+            
+            function toggleMic() {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                if (!SpeechRecognition) {
+                    alert('Speech recognition is not supported in this browser. Please use Chrome.');
+                    return;
+                }
+                
+                const btn = document.getElementById('micBtn');
+                const status = document.getElementById('micStatus');
+                
+                if (!isListening) {
+                    recognition = new SpeechRecognition();
+                    recognition.lang = 'hi-IN'; // Default Hindi/English support
+                    recognition.interimResults = false;
+                    recognition.maxAlternatives = 1;
+                    
+                    recognition.onstart = function() {
+                        isListening = true;
+                        btn.classList.add('listening');
+                        btn.innerHTML = '🛑 Listening... (सुन रहे हैं)';
+                        status.innerHTML = 'Speak now...';
+                    };
+                    
+                    recognition.onresult = function(event) {
+                        const speechToText = event.results[0][0].transcript;
+                        // Find streamlit input box and set value
+                        const parentDoc = window.parent.document;
+                        const inputEl = parentDoc.querySelector('input[aria-label*="chat"], input[type="text"], textarea');
+                        if (inputEl) {
+                            inputEl.value = speechToText;
+                            inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+                            inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+                        }
+                    };
+                    
+                    recognition.onerror = function(event) {
+                        status.innerHTML = 'Error: ' + event.error;
+                        stopMic();
+                    };
+                    
+                    recognition.onend = function() {
+                        stopMic();
+                    };
+                    
+                    recognition.start();
+                } else {
+                    if (recognition) recognition.stop();
+                    stopMic();
+                }
+            }
+            
+            function stopMic() {
+                isListening = false;
+                const btn = document.getElementById('micBtn');
+                const status = document.getElementById('micStatus');
+                if (btn) {
+                    btn.classList.remove('listening');
+                    btn.innerHTML = '🎤 Speak to Type (बोलकर टाइप करें)';
+                }
+                if (status) status.innerHTML = '';
+            }
+        </script>
+    </body>
+    </html>
+    """
+    components.html(mic_html, height=45)
 
 def run_aerial_celebration():
     st.balloons()
@@ -319,6 +448,9 @@ with st.sidebar:
 
 st.title("🎓 BC Tech Ai Assistant")
 
+# Render Voice Input Widget right above chat input
+render_voice_input_widget()
+
 SHEET_ID = "1ES2A77U61GeS710Xfyc0dKIevUhzR2v7-aSjkr1R3tg"
 EXCEL_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
 
@@ -377,17 +509,14 @@ def load_all_sheets_data():
 def update_language_state(text):
     text_clean = text.strip().lower()
     
-    # Check Gujarati script
     if any('\u0A80' <= ch <= '\u0AFF' for ch in text):
         st.session_state.current_language = "GUJARATI"
         return "GUJARATI"
         
-    # Check Hindi script (Devanagari)
     if any('\u0900' <= ch <= '\u097F' for ch in text):
         st.session_state.current_language = "HINDI"
         return "HINDI"
     
-    # Check Hinglish / Hindi Romanized triggers (like "kaise ho", "kaha se ho", "kya hai", etc.)
     hindi_romanized = [
         "kaise", "kaisa", "kaisi", "kaha", "kahan", "kya", "hain", "ho", "hu", "mera", 
         "meri", "karo", "batao", "bata do", "aap", "tum", "kaun", "kisne", "kyu", "kyon"
@@ -397,7 +526,6 @@ def update_language_state(text):
         st.session_state.current_language = "HINDI"
         return "HINDI"
         
-    # Check English triggers explicitly
     english_romanized = ["how are you", "hello", "hi", "hey", "where", "what", "who", "is", "are", "you"]
     if any(w in text_clean for w in english_romanized) and not any(w in hindi_romanized for w in words):
         st.session_state.current_language = "ENGLISH"
@@ -502,13 +630,14 @@ About Bctech Computer Education:
 - Location/Address: Surat, Gujarat, India.
 """
 
-# Render chat history
+# Render chat history with Read Aloud & Copy buttons
 for idx, msg in enumerate(st.session_state.messages):
     is_user = (msg["role"] == "user")
     with st.chat_message(msg["role"], avatar="👤" if is_user else "🤖"):
         st.write(msg["content"])
         if not is_user:
-            render_clean_copy_button(msg["content"], f"hist_{idx}")
+            lang_code = "hi-IN" if st.session_state.current_language == "HINDI" else ("gu-IN" if st.session_state.current_language == "GUJARATI" else "en-US")
+            render_voice_and_copy_toolbar(msg["content"], f"hist_{idx}", lang_code)
 
 query = st.chat_input("")
 
@@ -529,7 +658,8 @@ if query:
                 reply = "Yes, please tell me! How can I help you? 😊"
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
-            render_clean_copy_button(reply, f"hard_block_{len(st.session_state.messages)}")
+            lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
+            render_voice_and_copy_toolbar(reply, f"hard_block_{len(st.session_state.messages)}", lang_code)
         persist_current_state()
     else:
         st.session_state.messages.append({"role": "user", "content": query})
@@ -561,7 +691,8 @@ if query:
                     reply = f"Hello {username}! Welcome to BC Tech Computer Education. How can I help you today? 😊"
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
-                render_clean_copy_button(reply, f"name_reply_{len(st.session_state.messages)}")
+                lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
+                render_voice_and_copy_toolbar(reply, f"name_reply_{len(st.session_state.messages)}", lang_code)
 
             elif check_is_where_from(query):
                 if lang == "GUJARATI":
@@ -578,19 +709,20 @@ if query:
                         reply = "I am the AI Assistant for BC Tech Computer Education, located in Surat, Gujarat, India."
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
-                render_clean_copy_button(reply, f"where_{len(st.session_state.messages)}")
+                lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
+                render_voice_and_copy_toolbar(reply, f"where_{len(st.session_state.messages)}", lang_code)
 
             elif query.strip().lower() in ["gujarati", "gujrati", "gujarati ma", "gujarati mein baat karte hai", "gujarati main baat karte hai ok", "gujarati ma vaat kariye"]:
                 reply = "ચોક્કસ! હવે આપણે ગુજરાતીમાં વાત કરીશું. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
-                render_clean_copy_button(reply, f"ack_{len(st.session_state.messages)}")
+                render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", "gu-IN")
 
             elif query.strip().lower() in ["hindi", "in hindi", "hindi me", "hindi main baat karo", "hindi me baat karte hai"]:
                 reply = "ज़रूर! अब हम हिंदी में बात करेंगे। मैं आपकी क्या सहायता कर सकता हूँ? 😊"
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
-                render_clean_copy_button(reply, f"ack_{len(st.session_state.messages)}")
+                render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", "hi-IN")
 
             elif is_greeting(query):
                 if lang == "GUJARATI":
@@ -601,7 +733,8 @@ if query:
                     reply = "Hello! Welcome to BC Tech Computer Education. How can I help you today? 😊"
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
-                render_clean_copy_button(reply, f"greet_{len(st.session_state.messages)}")
+                lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
+                render_voice_and_copy_toolbar(reply, f"greet_{len(st.session_state.messages)}", lang_code)
 
             elif check_is_branch_intent(query):
                 if lang == "GUJARATI":
@@ -613,7 +746,8 @@ if query:
                 
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
-                render_clean_copy_button(reply, f"branch_{len(st.session_state.messages)}")
+                lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
+                render_voice_and_copy_toolbar(reply, f"branch_{len(st.session_state.messages)}", lang_code)
 
             elif check_is_creator_intent(query):
                 if lang == "GUJARATI":
@@ -624,7 +758,8 @@ if query:
                     reply = "I was created by the developer and admin of BC Tech Computer Education."
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
-                render_clean_copy_button(reply, f"creator_{len(st.session_state.messages)}")
+                lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
+                render_voice_and_copy_toolbar(reply, f"creator_{len(st.session_state.messages)}", lang_code)
 
             else:
                 matched_records = search_student_all_sheets(query, df_sheet)
@@ -690,7 +825,8 @@ Percentage: {percentage}%
                     st.write(full_reply.strip())
                     st.session_state.messages.append({"role": "assistant", "content": full_reply.strip()})
                     run_aerial_celebration()
-                    render_clean_copy_button(full_reply.strip(), f"ast_curr_{len(st.session_state.messages)}")
+                    lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
+                    render_voice_and_copy_toolbar(full_reply.strip(), f"ast_curr_{len(st.session_state.messages)}", lang_code)
                 else:
                     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
                     current_time_str = datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %I:%M:%S %p (%A)")
@@ -748,7 +884,8 @@ Percentage: {percentage}%
                             if answer:
                                 st.write(answer)
                                 st.session_state.messages.append({"role": "assistant", "content": answer})
-                                render_clean_copy_button(answer, f"ast_curr_{len(st.session_state.messages)}")
+                                lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
+                                render_voice_and_copy_toolbar(answer, f"ast_curr_{len(st.session_state.messages)}", lang_code)
                             else:
                                 st.error(f"API Error: {last_api_err}")
                         except Exception as e:
