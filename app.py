@@ -613,7 +613,7 @@ if query:
                     else:
                         reply = "I am the AI Assistant for BC Tech Computer Education, located in Surat, Gujarat, India."
                 st.write(reply)
-py                st.session_state.messages.append({"role": "assistant", "content": reply})
+                st.session_state.messages.append({"role": "assistant", "content": reply})
                 lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
                 render_voice_and_copy_toolbar(reply, f"where_{len(st.session_state.messages)}", lang_code)
 
@@ -631,7 +631,7 @@ py                st.session_state.messages.append({"role": "assistant", "conten
 
             elif is_greeting(query):
                 if lang == "GUJARATI":
-                    reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                    reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                 elif lang == "HINDI":
                     reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                 else:
