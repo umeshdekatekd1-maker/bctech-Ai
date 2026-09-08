@@ -422,11 +422,9 @@ def search_student_all_sheets(query_text, df):
 def clean_ai_response(text):
     if not text:
         return ""
-    # Remove thinking tags
     cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
     cleaned = re.sub(r"<think>.*", "", cleaned, flags=re.DOTALL)
     
-    # Aggressive Anti-Loop / Repetition Filter for small models
     words = cleaned.split()
     if len(words) > 10:
         for i in range(1, len(words) // 2):
@@ -561,7 +559,11 @@ if query:
                     tot_theory = int(sum(t_marks))
                     tot_prac = int(sum(p_marks))
                     total_obtained = tot_theory + tot_prac
-                    max_total = (len(t_marks) + len(p_marks)) * 100 if (len(t_marks) + len(p_marks)) > 0 else 600
+                    
+                    # Each test is 50 marks. Total tests = Theory tests count + Practical tests count. Max total = Total tests * 50
+                    total_tests_count = len(t_marks) + len(p_marks)
+                    max_total = total_tests_count * 50 if total_tests_count > 0 else 300
+                    
                     percentage = round((total_obtained / max_total) * 100, 2) if max_total > 0 else 0
 
                     full_reply += f"""Student Name: {f_name}
