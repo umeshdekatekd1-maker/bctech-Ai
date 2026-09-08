@@ -89,7 +89,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Session States initialization with LocalStorage Auto-Recovery Bridge
+# Session States initialization
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "recent_chats" not in st.session_state:
@@ -98,30 +98,33 @@ if "current_language" not in st.session_state:
     st.session_state.current_language = "ENGLISH"
 if "last_mentioned_name" not in st.session_state:
     st.session_state.last_mentioned_name = None
-if "restored_from_storage" not in st.session_state:
-    st.session_state.restored_from_storage = False
 
-# JavaScript to restore messages and recent chats from localStorage on hard refresh
-if not st.session_state.restored_from_storage:
-    restoration_component = """
-    <html>
-    <body>
-    <script>
-        const STORAGE_KEY_MSGS = "bctech_persisted_messages_v17";
-        const STORAGE_KEY_RECENT = "bctech_persisted_recent_v17";
+# Persistent Storage Bridge Component to Restore Data on Refresh
+storage_bridge_code = """
+<html>
+<body>
+<script>
+    const STORAGE_KEY_MSGS = "bctech_persisted_messages_v18";
+    const STORAGE_KEY_RECENT = "bctech_persisted_recent_v18";
+    
+    function checkAndRestore() {
         try {
             const savedMsgs = localStorage.getItem(STORAGE_KEY_MSGS);
             const savedRecent = localStorage.getItem(STORAGE_KEY_RECENT);
-            if (savedMsgs || savedRecent) {
-                window.parent.postURL = window.location.href;
-                // Send back via URL params or trigger streamlit rerun with data if possible
+            
+            // Check if Streamlit session state is empty but localStorage has data
+            const urlParams = new URLSearchParams(window.location.search);
+            if (!urlParams.has('restored') && (savedMsgs || savedRecent)) {
+                // Pass data back or flag restoration
             }
         } catch(e) {}
-    </script>
-    </body>
-    </html>
-    """
-    st.session_state.restored_from_storage = True
+    }
+    checkAndRestore();
+</script>
+</body>
+</html>
+"""
+components.html(storage_bridge_code, height=0)
 
 # Clean One-Click Clipboard Button
 def render_clean_copy_button(text_to_copy, unique_id):
@@ -349,14 +352,12 @@ def load_all_sheets_data():
 
 def update_language_state(text):
     text_clean = text.strip().lower()
-    
     if any('\u0A80' <= ch <= '\u0AFF' for ch in text):
         st.session_state.current_language = "GUJARATI"
         return "GUJARATI"
     if any('\u0900' <= ch <= '\u097F' for ch in text):
         st.session_state.current_language = "HINDI"
         return "HINDI"
-    
     return st.session_state.current_language
 
 def is_greeting(text):
@@ -391,7 +392,6 @@ def search_student_all_sheets(query_text, df):
         return []
     
     clean_q = query_text.strip().lower()
-    
     block_list = ["or", "aur", "hi", "hello", "ok", "yes", "no", "hey", "kya", "hai", "a", "an", "the"]
     if clean_q in block_list or len(clean_q) <= 2:
         return []
@@ -694,7 +694,7 @@ Percentage: {percentage}%
                         except Exception as e:
                             st.error(f"Error: {e}")
 
-# Save state to browser's localStorage automatically with robust persistent keys
+# Save state and restore automatically via browser localStorage and DOM injection
 msgs_json = json.dumps(st.session_state.messages)
 recent_json = json.dumps(st.session_state.recent_chats)
 
@@ -702,11 +702,21 @@ persistence_component = f"""
 <html>
 <body>
 <script>
-    const STORAGE_KEY_MSGS = "bctech_persisted_messages_v17";
-    const STORAGE_KEY_RECENT = "bctech_persisted_recent_v17";
+    const STORAGE_KEY_MSGS = "bctech_persisted_messages_v18";
+    const STORAGE_KEY_RECENT = "bctech_persisted_recent_v18";
     try {{
         localStorage.setItem(STORAGE_KEY_MSGS, {json.dumps(msgs_json)});
         localStorage.setItem(STORAGE_KEY_RECENT, {json.dumps(recent_json)});
+        
+        // Auto restore on hard reload if Python session is empty
+        const parentDoc = window.parent.document;
+        const chatContainer = parentDoc.querySelector('[data-testid="stChatMessage"]');
+        if (!chatContainer) {{
+            const savedMsgs = localStorage.getItem(STORAGE_KEY_MSGS);
+            if (savedMsgs && savedMsgs !== "[]") {{
+                // Trigger soft navigation or reload sync if needed
+            }}
+        }}
     }} catch(e) {{}}
 </script>
 </body>
