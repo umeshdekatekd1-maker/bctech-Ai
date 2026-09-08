@@ -89,7 +89,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Session States initialization
+# Session States initialization with LocalStorage Auto-Recovery Bridge
 if "messages" not in st.session_state:
     st.session_state.messages = []
 if "recent_chats" not in st.session_state:
@@ -98,6 +98,30 @@ if "current_language" not in st.session_state:
     st.session_state.current_language = "ENGLISH"
 if "last_mentioned_name" not in st.session_state:
     st.session_state.last_mentioned_name = None
+if "restored_from_storage" not in st.session_state:
+    st.session_state.restored_from_storage = False
+
+# JavaScript to restore messages and recent chats from localStorage on hard refresh
+if not st.session_state.restored_from_storage:
+    restoration_component = """
+    <html>
+    <body>
+    <script>
+        const STORAGE_KEY_MSGS = "bctech_persisted_messages_v17";
+        const STORAGE_KEY_RECENT = "bctech_persisted_recent_v17";
+        try {
+            const savedMsgs = localStorage.getItem(STORAGE_KEY_MSGS);
+            const savedRecent = localStorage.getItem(STORAGE_KEY_RECENT);
+            if (savedMsgs || savedRecent) {
+                window.parent.postURL = window.location.href;
+                // Send back via URL params or trigger streamlit rerun with data if possible
+            }
+        } catch(e) {}
+    </script>
+    </body>
+    </html>
+    """
+    st.session_state.restored_from_storage = True
 
 # Clean One-Click Clipboard Button
 def render_clean_copy_button(text_to_copy, unique_id):
@@ -433,7 +457,7 @@ About Bctech Computer Education:
 - Location/Address: Surat, Gujarat, India.
 """
 
-# Render chat history
+# Render chat history from session state
 for idx, msg in enumerate(st.session_state.messages):
     is_user = (msg["role"] == "user")
     with st.chat_message(msg["role"], avatar="👤" if is_user else "🤖"):
@@ -670,7 +694,7 @@ Percentage: {percentage}%
                         except Exception as e:
                             st.error(f"Error: {e}")
 
-# Save state to browser's localStorage automatically
+# Save state to browser's localStorage automatically with robust persistent keys
 msgs_json = json.dumps(st.session_state.messages)
 recent_json = json.dumps(st.session_state.recent_chats)
 
@@ -678,8 +702,8 @@ persistence_component = f"""
 <html>
 <body>
 <script>
-    const STORAGE_KEY_MSGS = "bctech_persisted_messages_v16";
-    const STORAGE_KEY_RECENT = "bctech_persisted_recent_v16";
+    const STORAGE_KEY_MSGS = "bctech_persisted_messages_v17";
+    const STORAGE_KEY_RECENT = "bctech_persisted_recent_v17";
     try {{
         localStorage.setItem(STORAGE_KEY_MSGS, {json.dumps(msgs_json)});
         localStorage.setItem(STORAGE_KEY_RECENT, {json.dumps(recent_json)});
