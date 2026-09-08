@@ -548,22 +548,36 @@ if query:
                     f_exam = record.get("Exam_Std", "Course")
                     f_teacher = record.get("_Sheet_Tab", "Teacher")
                     
+                    valid_tests_count = 0
                     t_marks = []
                     p_marks = []
+                    
                     for k, v in record.items():
                         if "theory" in k.lower():
-                            t_marks.append(float(v) if v != "N/A" and str(v).replace('.','',1).isdigit() else 0)
+                            val_str = str(v).strip()
+                            if val_str and val_str.lower() != "n/a" and val_str.lower() != "nan":
+                                try:
+                                    m_val = float(val_str)
+                                    t_marks.append(m_val)
+                                    valid_tests_count += 1
+                                except ValueError:
+                                    pass
                         elif "practical" in k.lower():
-                            p_marks.append(float(v) if v != "N/A" and str(v).replace('.','',1).isdigit() else 0)
+                            val_str = str(v).strip()
+                            if val_str and val_str.lower() != "n/a" and val_str.lower() != "nan":
+                                try:
+                                    m_val = float(val_str)
+                                    p_marks.append(m_val)
+                                    valid_tests_count += 1
+                                except ValueError:
+                                    pass
                     
                     tot_theory = int(sum(t_marks))
                     tot_prac = int(sum(p_marks))
                     total_obtained = tot_theory + tot_prac
                     
-                    # Each test is 50 marks. Total tests = Theory tests count + Practical tests count. Max total = Total tests * 50
-                    total_tests_count = len(t_marks) + len(p_marks)
-                    max_total = total_tests_count * 50 if total_tests_count > 0 else 300
-                    
+                    # Dynamically count only the attempted/present exams (each exam is 50 marks)
+                    max_total = valid_tests_count * 50 if valid_tests_count > 0 else 50
                     percentage = round((total_obtained / max_total) * 100, 2) if max_total > 0 else 0
 
                     full_reply += f"""Student Name: {f_name}
