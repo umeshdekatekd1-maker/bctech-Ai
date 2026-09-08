@@ -333,26 +333,6 @@ def update_language_state(text):
         st.session_state.current_language = "HINDI"
         return "HINDI"
     
-    guj_triggers = [
-        "gujarati", "gujrati", "gujaratin", "in gujarati", "gujarati ma", "gujarati mein",
-        "kem cho", "kem chho", "halo", "maru", "maro", "chhe", "che", "tamaru", "tame"
-    ]
-    if any(re.search(r"\b" + re.escape(w) + r"\b", text_clean) for w in guj_triggers):
-        st.session_state.current_language = "GUJARATI"
-        return "GUJARATI"
-        
-    hindi_triggers = [
-        "hindi", "in hindi", "hindi me", "hindi main", "bat kro", "baat karo", "batao",
-        "namaste", "mera", "meri", "kaise", "chahiye", "kya hai", "kaha hai", "kab aaya tha", "time", "samay", "aaj", "date", "kisne", "bnaya", "banaya", "or batao", "konsa", "course", "sakti"
-    ]
-    if any(re.search(r"\b" + re.escape(w) + r"\b", text_clean) for w in hindi_triggers):
-        st.session_state.current_language = "HINDI"
-        return "HINDI"
-        
-    english_triggers = ["english", "in english", "speak english", "time", "date"]
-    if any(re.search(r"\b" + re.escape(w) + r"\b", text_clean) for w in english_triggers):
-        st.session_state.current_language = "ENGLISH"
-
     return st.session_state.current_language
 
 def is_greeting(text):
@@ -377,19 +357,19 @@ def check_is_creator_intent(text):
     creator_keywords = ["kisne banaya", "kisne bnaya", "who made you", "who created you", "aapko kisne banaya", "ko kisne banaya"]
     return any(kw in text for kw in creator_keywords)
 
+def check_is_where_from(text):
+    text = text.lower().strip()
+    where_keywords = ["aap kaha se ho", "tum kaha se ho", "where are you from", "kaha se ho", "apka office kaha hai"]
+    return any(kw in text for kw in where_keywords)
+
 def search_student_all_sheets(query_text, df):
     if df is None or df.empty or "Student_Name_Std" not in df.columns:
         return []
     
     clean_q = query_text.strip().lower()
     
-    # Strict block for single words or short conversational filler words like "or", "aur", etc.
-    block_list = ["or", "aur", "hi", "hello", "ok", "yes", "no", "hey", "kya", "hai"]
+    block_list = ["or", "aur", "hi", "hello", "ok", "yes", "no", "hey", "kya", "hai", "a", "an", "the"]
     if clean_q in block_list or len(clean_q) <= 2:
-        return []
-
-    ignore_phrases = ["or batao", "aur batao", "kya haal hai", "or kya", "aur kya", "batao", "kya chal raha hai", "konsa course", "course kar sakti"]
-    if any(p in clean_q for p in ignore_phrases) and len(clean_q.split()) <= 4:
         return []
 
     if "priya mam" in clean_q or "umesh sir" in clean_q or "sanjay sir" in clean_q or "ajay sir" in clean_q:
@@ -412,12 +392,10 @@ def search_student_all_sheets(query_text, df):
     if not search_query_str or len(search_query_str) <= 2:
         return []
 
-    # Exact or safe substring match using word boundary or precise filtering to avoid partial letter mismatches like 'or' inside names
     matched = df[df["Student_Name_Std"].astype(str).str.lower().apply(lambda x: any(w == search_query_str or search_query_str in x.split() for w in x.split()))]
 
     if matched.empty:
-        # Fallback to standard contains only if the search string is substantial (> 2 chars)
-        matched = df[df["Student_Name_Std"].astype(str).str.lower().str.contains(search_query_str, na=False)]
+        matched = df[df["Student_Name_Std"].astype(str).str.lower().str.contains(r'\b' + re.escape(search_query_str) + r'\b', na=False)]
 
     if matched.empty:
         words = [w for w in query_clean_words if len(w) >= 2]
@@ -466,130 +444,147 @@ for idx, msg in enumerate(st.session_state.messages):
 query = st.chat_input("")
 
 if query:
-    st.session_state.messages.append({"role": "user", "content": query})
+    clean_q_lower = query.strip().lower()
     
-    with st.chat_message("user", avatar="👤"):
-        st.write(query)
-
-    df_sheet, err = load_all_sheets_data()
-    lang = update_language_state(query)
-    
-    with st.chat_message("assistant", avatar="🤖"):
-        if err:
-            st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
-        
-        elif check_is_name_intro(query):
-            name_match = re.search(r"(?:mera naam|my name is|maru naam)\s+([a-zA-Z\u0900-\u097F]+)", query, re.IGNORECASE)
-            if not name_match:
-                words = [w for w in query.split() if w.lower() not in ["mera", "naam", "hai", "is", "my", "name"]]
-                username = words[0].capitalize() if words else "User"
-            else:
-                username = name_match.group(1).capitalize()
-            
-            st.session_state.last_mentioned_name = username.lower()
-
-            if lang == "GUJARATI":
-                reply = f"નમસ્તે {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
-            else:
-                reply = f"नमस्ते {username}! BC Tech Computer Education में आपका स्वागत है। बताइए, मैं आपकी कैसे मदद कर सकता हूँ? 😊"
-            st.write(reply)
-            st.session_state.messages.append({"role": "assistant", "content": reply})
-            render_clean_copy_button(reply, f"name_reply_{len(st.session_state.messages)}")
-
-        elif query.strip().lower() in ["gujarati", "gujrati", "gujarati ma", "gujarati mein baat karte hai", "gujarati main baat karte hai ok", "gujarati ma vaat kariye"]:
-            reply = "ચોક્કસ! હવે આપણે ગુજરાતીમાં વાત કરીશું. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
-            st.write(reply)
-            st.session_state.messages.append({"role": "assistant", "content": reply})
-            render_clean_copy_button(reply, f"ack_{len(st.session_state.messages)}")
-
-        elif query.strip().lower() in ["hindi", "in hindi", "hindi me", "hindi main baat karo", "hindi me baat karte hai"]:
-            reply = "ज़रूर! अब हम हिंदी में बात करेंगे। मैं आपकी क्या सहायता कर सकता हूँ? 😊"
-            st.write(reply)
-            st.session_state.messages.append({"role": "assistant", "content": reply})
-            render_clean_copy_button(reply, f"ack_{len(st.session_state.messages)}")
-
-        elif is_greeting(query):
-            if lang == "GUJARATI":
-                reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
-            elif lang == "HINDI":
-                reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
-            else:
-                reply = "Hello! Welcome to BC Tech Computer Education. How can I help you today? 😊"
-            st.write(reply)
-            st.session_state.messages.append({"role": "assistant", "content": reply})
-            render_clean_copy_button(reply, f"greet_{len(st.session_state.messages)}")
-
-        elif check_is_branch_intent(query):
-            if lang == "GUJARATI":
-                reply = f"BC Tech Computer Education સુરત, ગુજરાત, ભારતમાં આવેલું છે. વધુ વિગતો અને અન્ય શાખાના પત્તા માટે અધિકૃત વેબસાઇટની મુલાકાત લો:\n🔗 {BRANCH_LINK}"
-            elif lang == "HINDI":
-                reply = f"BC Tech Computer Education सूरत, गुजरात, भारत में स्थित है। अधिक विवरण और अन्य शाखाओं के पते के लिए आप आधिकारिक वेबसाइट पर जा सकते हैं:\n🔗 {BRANCH_LINK}"
-            else:
-                reply = f"BC Tech Computer Education is located in Surat, Gujarat, India. For more details and branch addresses, you can visit the official website:\n🔗 {BRANCH_LINK}"
-            
-            st.write(reply)
-            st.session_state.messages.append({"role": "assistant", "content": reply})
-            render_clean_copy_button(reply, f"branch_{len(st.session_state.messages)}")
-
-        elif check_is_creator_intent(query):
-            if lang == "GUJARATI":
-                reply = "મને BC Tech Computer Education ના એડમિન અને ડેવલપર દ્વારા બનાવવામાં આવ્યો છે."
-            elif lang == "HINDI":
-                reply = "मुझे BC Tech Computer Education के डेवलपर और एडमिन द्वारा बनाया गया है।"
-            else:
-                reply = "I was created by the developer and admin of BC Tech Computer Education."
-            st.write(reply)
-            st.session_state.messages.append({"role": "assistant", "content": reply})
-            render_clean_copy_button(reply, f"creator_{len(st.session_state.messages)}")
-
-        elif len(query.strip()) <= 3 and query.strip().lower() in ["ok", "h", "k", "hi", "ok.", "okay", "ha", "haan", "or"]:
+    if clean_q_lower in ["or", "aur", "hi", "hello", "ok", "hey", "h", "k"]:
+        st.session_state.messages.append({"role": "user", "content": query})
+        with st.chat_message("user", avatar="👤"):
+            st.write(query)
+        with st.chat_message("assistant", avatar="🤖"):
             reply = "हाँ, बताइए! मैं आपकी क्या मदद कर सकता हूँ? 😊"
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
-            render_clean_copy_button(reply, f"ack_{len(st.session_state.messages)}")
+            render_clean_copy_button(reply, f"hard_block_{len(st.session_state.messages)}")
+    else:
+        st.session_state.messages.append({"role": "user", "content": query})
+        
+        with st.chat_message("user", avatar="👤"):
+            st.write(query)
 
-        else:
-            matched_records = search_student_all_sheets(query, df_sheet)
+        df_sheet, err = load_all_sheets_data()
+        lang = update_language_state(query)
+        
+        with st.chat_message("assistant", avatar="🤖"):
+            if err:
+                st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
             
-            if matched_records:
-                full_reply = ""
-                for record in matched_records:
-                    f_name = record.get("Student_Name_Std", "")
-                    f_exam = record.get("Exam_Std", "Course")
-                    f_teacher = record.get("_Sheet_Tab", "Teacher")
-                    
-                    valid_tests_count = 0
-                    t_marks = []
-                    p_marks = []
-                    
-                    for k, v in record.items():
-                        if "theory" in k.lower():
-                            val_str = str(v).strip()
-                            if val_str and val_str.lower() != "n/a" and val_str.lower() != "nan":
-                                try:
-                                    m_val = float(val_str)
-                                    t_marks.append(m_val)
-                                    valid_tests_count += 1
-                                except ValueError:
-                                    pass
-                        elif "practical" in k.lower():
-                            val_str = str(v).strip()
-                            if val_str and val_str.lower() != "n/a" and val_str.lower() != "nan":
-                                try:
-                                    m_val = float(val_str)
-                                    p_marks.append(m_val)
-                                    valid_tests_count += 1
-                                except ValueError:
-                                    pass
-                    
-                    tot_theory = int(sum(t_marks))
-                    tot_prac = int(sum(p_marks))
-                    total_obtained = tot_theory + tot_prac
-                    
-                    max_total = valid_tests_count * 50 if valid_tests_count > 0 else 50
-                    percentage = round((total_obtained / max_total) * 100, 2) if max_total > 0 else 0
+            elif check_is_name_intro(query):
+                name_match = re.search(r"(?:mera naam|my name is|maru naam)\s+([a-zA-Z\u0900-\u097F]+)", query, re.IGNORECASE)
+                if not name_match:
+                    words = [w for w in query.split() if w.lower() not in ["mera", "naam", "hai", "is", "my", "name"]]
+                    username = words[0].capitalize() if words else "User"
+                else:
+                    username = name_match.group(1).capitalize()
+                
+                st.session_state.last_mentioned_name = username.lower()
 
-                    full_reply += f"""Student Name: {f_name}
+                if lang == "GUJARATI":
+                    reply = f"નમસ્તે {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
+                else:
+                    reply = f"नमस्ते {username}! BC Tech Computer Education में आपका स्वागत है। बताइए, मैं आपकी कैसे मदद कर सकता हूँ? 😊"
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                render_clean_copy_button(reply, f"name_reply_{len(st.session_state.messages)}")
+
+            elif check_is_where_from(query):
+                if lang == "GUJARATI":
+                    reply = "હું BC Tech Computer Education નો AI અસિસ્ટન્ટ છું, અને આપણી સંસ્થા સુરત, ગુજરાત, ભારતમાં આવેલી છે."
+                elif lang == "HINDI":
+                    reply = "मैं BC Tech Computer Education का AI असिस्टेंट हूँ, और हमारी संस्था सूरत, गुजरात, भारत में स्थित है।"
+                else:
+                    reply = "I am the AI Assistant for BC Tech Computer Education, located in Surat, Gujarat, India."
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                render_clean_copy_button(reply, f"where_{len(st.session_state.messages)}")
+
+            elif query.strip().lower() in ["gujarati", "gujrati", "gujarati ma", "gujarati mein baat karte hai", "gujarati main baat karte hai ok", "gujarati ma vaat kariye"]:
+                reply = "ચોક્કસ! હવે આપણે ગુજરાતીમાં વાત કરીશું. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                render_clean_copy_button(reply, f"ack_{len(st.session_state.messages)}")
+
+            elif query.strip().lower() in ["hindi", "in hindi", "hindi me", "hindi main baat karo", "hindi me baat karte hai"]:
+                reply = "ज़रूर! अब हम हिंदी में बात करेंगे। मैं आपकी क्या सहायता कर सकता हूँ? 😊"
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                render_clean_copy_button(reply, f"ack_{len(st.session_state.messages)}")
+
+            elif is_greeting(query):
+                if lang == "GUJARATI":
+                    reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                elif lang == "HINDI":
+                    reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
+                else:
+                    reply = "Hello! Welcome to BC Tech Computer Education. How can I help you today? 😊"
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                render_clean_copy_button(reply, f"greet_{len(st.session_state.messages)}")
+
+            elif check_is_branch_intent(query):
+                if lang == "GUJARATI":
+                    reply = f"BC Tech Computer Education સુરત, ગુજરાત, ભારતમાં આવેલું છે. વધુ વિગતો અને અન્ય શાખાના પત્તા માટે અધિકૃત વેબસાઇટની મુલાકાત લો:\n🔗 {BRANCH_LINK}"
+                elif lang == "HINDI":
+                    reply = f"BC Tech Computer Education सूरत, गुजरात, भारत में स्थित है। अधिक विवरण और अन्य शाखाओं के पते के लिए आप आधिकारिक वेबसाइट पर जा सकते हैं:\n🔗 {BRANCH_LINK}"
+                else:
+                    reply = f"BC Tech Computer Education is located in Surat, Gujarat, India. For more details and branch addresses, you can visit the official website:\n🔗 {BRANCH_LINK}"
+                
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                render_clean_copy_button(reply, f"branch_{len(st.session_state.messages)}")
+
+            elif check_is_creator_intent(query):
+                if lang == "GUJARATI":
+                    reply = "મને BC Tech Computer Education ના એડમિન અને ડેવલપર દ્વારા બનાવવામાં આવ્યો છે."
+                elif lang == "HINDI":
+                    reply = "मुझे BC Tech Computer Education के डेवलपर और एडमिन द्वारा बनाया गया है।"
+                else:
+                    reply = "I was created by the developer and admin of BC Tech Computer Education."
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                render_clean_copy_button(reply, f"creator_{len(st.session_state.messages)}")
+
+            else:
+                matched_records = search_student_all_sheets(query, df_sheet)
+                
+                if matched_records:
+                    full_reply = ""
+                    for record in matched_records:
+                        f_name = record.get("Student_Name_Std", "")
+                        f_exam = record.get("Exam_Std", "Course")
+                        f_teacher = record.get("_Sheet_Tab", "Teacher")
+                        
+                        valid_tests_count = 0
+                        t_marks = []
+                        p_marks = []
+                        
+                        for k, v in record.items():
+                            if "theory" in k.lower():
+                                val_str = str(v).strip()
+                                if val_str and val_str.lower() != "n/a" and val_str.lower() != "nan":
+                                    try:
+                                        m_val = float(val_str)
+                                        t_marks.append(m_val)
+                                        valid_tests_count += 1
+                                    except ValueError:
+                                        pass
+                            elif "practical" in k.lower():
+                                val_str = str(v).strip()
+                                if val_str and val_str.lower() != "n/a" and val_str.lower() != "nan":
+                                    try:
+                                        m_val = float(val_str)
+                                        p_marks.append(m_val)
+                                        valid_tests_count += 1
+                                    except ValueError:
+                                        pass
+                        
+                        tot_theory = int(sum(t_marks))
+                        tot_prac = int(sum(p_marks))
+                        total_obtained = tot_theory + tot_prac
+                        
+                        max_total = valid_tests_count * 50 if valid_tests_count > 0 else 50
+                        percentage = round((total_obtained / max_total) * 100, 2) if max_total > 0 else 0
+
+                        full_reply += f"""Student Name: {f_name}
 Exam Name: {f_exam}
 Teacher Name: {f_teacher}
 
@@ -609,76 +604,71 @@ Total Marks: {total_obtained} / {max_total}
 Percentage: {percentage}%
 
 """
-                st.write(full_reply.strip())
-                st.session_state.messages.append({"role": "assistant", "content": full_reply.strip()})
-                run_aerial_celebration()
-                render_clean_copy_button(full_reply.strip(), f"ast_curr_{len(st.session_state.messages)}")
-            else:
-                client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-                current_time_str = datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %I:%M:%S %p (%A)")
-                lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
-                
-                system_prop = f"""
-                You are BC Tech AI Assistant, a smart, professional assistant for BC Tech Computer Education.
-                
-                EXACT CURRENT INDIAN STANDARD TIME (IST):
-                - Current Date and Time: {current_time_str}
-                
-                CRITICAL INSTRUCTIONS:
-                1. BC Tech Computer Education is strictly located in Surat, Gujarat, India.
-                2. Reply strictly and naturally in {lang_name} without repeating words.
-                3. Course offerings & details: {KNOWLEDGE_BASE}
-                4. Location link: {BRANCH_LINK}
-                5. Keep answers direct, helpful, and concise.
-                """
+                    st.write(full_reply.strip())
+                    st.session_state.messages.append({"role": "assistant", "content": full_reply.strip()})
+                    run_aerial_celebration()
+                    render_clean_copy_button(full_reply.strip(), f"ast_curr_{len(st.session_state.messages)}")
+                else:
+                    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+                    current_time_str = datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %I:%M:%S %p (%A)")
+                    lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
+                    
+                    system_prop = f"""
+                    You are a helpful AI Assistant for BC Tech Computer Education. 
+                    Answer general knowledge or general queries accurately, politely, and directly in {lang_name}.
+                    Never loop or repeat phrases.
+                    Institute Location: Surat, Gujarat, India.
+                    Official Website & Info: {BRANCH_LINK}
+                    Courses: {KNOWLEDGE_BASE}
+                    """
 
-                with st.spinner("Thinking..."):
-                    try:
-                        models_resp = client.models.list()
-                        active_ids = [
-                            m.id for m in models_resp.data 
-                            if "whisper" not in m.id 
-                            and "guard" not in m.id 
-                            and "vision" not in m.id 
-                            and "audio" not in m.id
-                            and "embed" not in m.id
-                            and "canopy" not in m.id
-                        ]
-                        preferred = ["llama-3.1-8b-instant", "llama3-8b-8192", "gemma2-9b-it"]
-                        models_to_try = [m for m in preferred if m in active_ids] + [m for m in active_ids if m not in preferred]
+                    with st.spinner("Thinking..."):
+                        try:
+                            models_resp = client.models.list()
+                            active_ids = [
+                                m.id for m in models_resp.data 
+                                if "whisper" not in m.id 
+                                and "guard" not in m.id 
+                                and "vision" not in m.id 
+                                and "audio" not in m.id
+                                and "embed" not in m.id
+                                and "canopy" not in m.id
+                            ]
+                            preferred = ["llama-3.1-8b-instant", "llama3-8b-8192", "gemma2-9b-it"]
+                            models_to_try = [m for m in preferred if m in active_ids] + [m for m in active_ids if m not in preferred]
 
-                        answer = None
-                        last_api_err = None
+                            answer = None
+                            last_api_err = None
 
-                        api_messages = [{"role": "system", "content": system_prop}]
-                        for m in st.session_state.messages[:-1]:
-                            api_messages.append({"role": m["role"], "content": m["content"]})
-                        api_messages.append({"role": "user", "content": query})
+                            api_messages = [{"role": "system", "content": system_prop}]
+                            for m in st.session_state.messages[:-1]:
+                                api_messages.append({"role": m["role"], "content": m["content"]})
+                            api_messages.append({"role": "user", "content": query})
 
-                        for m_name in models_to_try:
-                            try:
-                                chat_completion = client.chat.completions.create(
-                                    messages=api_messages,
-                                    model=m_name,
-                                    temperature=0.3,
-                                    max_tokens=400
-                                )
-                                raw_answer = chat_completion.choices[0].message.content
-                                answer = clean_ai_response(raw_answer)
-                                if answer:
-                                    break
-                            except Exception as ex:
-                                last_api_err = str(ex)
-                                continue
-                        
-                        if answer:
-                            st.write(answer)
-                            st.session_state.messages.append({"role": "assistant", "content": answer})
-                            render_clean_copy_button(answer, f"ast_curr_{len(st.session_state.messages)}")
-                        else:
-                            st.error(f"API Error: {last_api_err}")
-                    except Exception as e:
-                        st.error(f"Error: {e}")
+                            for m_name in models_to_try:
+                                try:
+                                    chat_completion = client.chat.completions.create(
+                                        messages=api_messages,
+                                        model=m_name,
+                                        temperature=0.5,
+                                        max_tokens=300
+                                    )
+                                    raw_answer = chat_completion.choices[0].message.content
+                                    answer = clean_ai_response(raw_answer)
+                                    if answer:
+                                        break
+                                except Exception as ex:
+                                    last_api_err = str(ex)
+                                    continue
+                            
+                            if answer:
+                                st.write(answer)
+                                st.session_state.messages.append({"role": "assistant", "content": answer})
+                                render_clean_copy_button(answer, f"ast_curr_{len(st.session_state.messages)}")
+                            else:
+                                st.error(f"API Error: {last_api_err}")
+                        except Exception as e:
+                            st.error(f"Error: {e}")
 
 # Save state to browser's localStorage automatically
 msgs_json = json.dumps(st.session_state.messages)
