@@ -446,7 +446,6 @@ def is_greeting(text):
 def check_is_name_intro(text):
     t = text.lower().strip()
     name_triggers = ["mera naam", "my name is", "maru naam", "hu mara naam", "naam hai", "name is", "i am", "mein hu", "hu ", "maaru naam"]
-    # If the sentence explicitly states introducing name, return True
     if any(p in t for p in name_triggers) or t.startswith("naam "):
         return True
     return False
@@ -470,7 +469,6 @@ def check_is_where_from(text):
     return any(kw in text for kw in where_keywords)
 
 def search_student_all_sheets(query_text, df):
-    # CRITICAL: Strict block so name introductions never trigger sheet searches
     if check_is_name_intro(query_text):
         return []
 
@@ -639,7 +637,7 @@ if query:
 
             elif is_greeting(query):
                 if lang == "GUJARATI":
-                    reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                    reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                 elif lang == "HINDI":
                     reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                 else:
@@ -664,7 +662,7 @@ if query:
 
             elif check_is_creator_intent(query):
                 if lang == "GUJARATI":
-                    reply = "મને BC Tech Computer Education ના એડમિન અને ડેવલपर દ્વારા બનાવવામાં આવ્યો છે."
+                    reply = "મને BC Tech Computer Education ના એડમિન અને ડેવલપર દ્વારા બનાવવામાં આવ્યો છે."
                 elif lang == "HINDI":
                     reply = "मुझे BC Tech Computer Education के डेवलपर और एडमिन द्वारा बनाया गया है।"
                 else:
@@ -675,7 +673,13 @@ if query:
                 render_voice_and_copy_toolbar(reply, f"creator_{len(st.session_state.messages)}", lang_code)
 
             else:
-                matched_records = search_student_all_sheets(query, df_sheet)
+                # SMART CONTEXT MEMORY: If user already mentioned their name and asks for result/marks/exam, use remembered name!
+                search_query_to_use = query
+                result_intent_words = ["result", "marks", "exam", "mera", "meri", "score", "reult", "rizalt", "marksheet"]
+                if st.session_state.last_mentioned_name and any(w in query.lower() for w in result_intent_words):
+                    search_query_to_use = st.session_state.last_mentioned_name
+
+                matched_records = search_student_all_sheets(search_query_to_use, df_sheet)
                 
                 if matched_records:
                     full_reply = ""
