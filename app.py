@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Modern Chat Bubbles Styles + Floating Mic Icon Styling near Send Button
+# Custom Modern Chat Bubbles Styles
 st.markdown("""
 <style>
     #MainMenu, footer {visibility: hidden !important;}
@@ -257,123 +257,109 @@ def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="hi-IN"):
     """
     components.html(html_toolbar, height=35)
 
-# --- PERFECT FLOATING MIC BUTTON WIDGET (Positioned right next to Send button) ---
-def render_perfect_mic_widget():
+# --- CLEAN & WORKING VOICE INPUT WIDGET (Placed right above chat box) ---
+def render_voice_input_widget():
     mic_html = """
     <html>
     <head>
     <style>
-        body { margin: 0; padding: 0; background: transparent; }
-        .mic-fab {
-            position: fixed;
-            bottom: 22px;
-            right: 85px;
-            z-index: 99999;
-            background: #ffffff;
-            border: 1px solid #dadce0;
-            border-radius: 50%;
-            width: 38px;
-            height: 38px;
+        body { margin: 0; padding: 0; background: transparent; font-family: sans-serif; }
+        .mic-box {
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-end;
+            margin-bottom: 4px;
+        }
+        .mic-btn {
+            background-color: #f8f9fa;
+            color: #1a73e8;
+            border: 1px solid #dadce0;
+            border-radius: 18px;
+            padding: 5px 14px;
+            font-size: 13px;
             cursor: pointer;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-            font-size: 18px;
-            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+            transition: all 0.2s;
         }
-        .mic-fab:hover {
-            background: #f8f9fa;
-            border-color: #1a73e8;
-            transform: scale(1.05);
-        }
-        .listening {
-            background: #ea4335 !important;
-            border-color: #ea4335 !important;
-            color: white !important;
-            animation: pulse 1.5s infinite;
-        }
+        .mic-btn:hover { background-color: #e8f0fe; border-color: #4285f4; }
+        .listening { background-color: #ea4335 !important; color: white !important; border-color: #ea4335 !important; animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
     </style>
     </head>
     <body>
-        <div class="mic-fab" id="micBtn" onclick="toggleListening()" title="Speak to type">🎤</div>
+        <div class="mic-box">
+            <button class="mic-btn" id="micBtn" onclick="toggleMic()">
+                🎤 बोलकर टाइप करें (Voice Input)
+            </button>
+        </div>
         <script>
             let recognition = null;
             let isListening = false;
-
-            function toggleListening() {
+            
+            function toggleMic() {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (!SpeechRecognition) {
                     alert('Speech recognition is not supported in this browser. Please use Google Chrome.');
                     return;
                 }
-
+                
                 const btn = document.getElementById('micBtn');
                 const parentDoc = window.parent.document;
                 const inputEl = parentDoc.querySelector('input[aria-label*="chat"], input[type="text"], textarea');
-
+                
                 if (!isListening) {
                     recognition = new SpeechRecognition();
                     recognition.lang = 'hi-IN';
                     recognition.interimResults = false;
                     recognition.maxAlternatives = 1;
-
+                    
                     recognition.onstart = function() {
                         isListening = true;
                         btn.classList.add('listening');
-                        btn.innerHTML = '🛑';
+                        btn.innerHTML = '🛑 सुन रहे हैं... (सुनना बंद करने के लिए क्लिक करें)';
                     };
-
+                    
                     recognition.onresult = function(event) {
                         const transcript = event.results[0][0].transcript;
                         if (inputEl) {
                             inputEl.value = transcript;
                             inputEl.dispatchEvent(new Event('input', { bubbles: true }));
                             inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-                            
-                            // Automatically press enter/submit after a short moment
-                            setTimeout(() => {
-                                const enterEvent = new KeyboardEvent('keydown', {
-                                    key: 'Enter',
-                                    code: 'Enter',
-                                    keyCode: 13,
-                                    which: 13,
-                                    bubbles: true
-                                });
-                                inputEl.dispatchEvent(enterEvent);
-                            }, 500);
                         }
                     };
-
+                    
                     recognition.onerror = function() {
-                        stopListening();
+                        stopMic();
                     };
-
+                    
                     recognition.onend = function() {
-                        stopListening();
+                        stopMic();
                     };
-
+                    
                     recognition.start();
                 } else {
                     if (recognition) recognition.stop();
-                    stopListening();
+                    stopMic();
                 }
             }
-
-            function stopListening() {
+            
+            function stopMic() {
                 isListening = false;
                 const btn = document.getElementById('micBtn');
                 if (btn) {
                     btn.classList.remove('listening');
-                    btn.innerHTML = '🎤';
+                    btn.innerHTML = '🎤 बोलकर टाइप करें (Voice Input)';
                 }
             }
         </script>
     </body>
     </html>
     """
-    components.html(mic_html, height=0)
+    components.html(mic_html, height=35)
 
 def run_aerial_celebration():
     st.balloons()
@@ -473,9 +459,6 @@ with st.sidebar:
     st.markdown("📍 [Branch Location](https://sites.google.com/view/bctechcomputer/about-us)")
 
 st.title("🎓 BC Tech Ai Assistant")
-
-# Render Perfect Floating Mic Button next to Send button
-render_perfect_mic_widget()
 
 SHEET_ID = "1ES2A77U61GeS710Xfyc0dKIevUhzR2v7-aSjkr1R3tg"
 EXCEL_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
@@ -664,6 +647,9 @@ for idx, msg in enumerate(st.session_state.messages):
         if not is_user:
             lang_code = "hi-IN" if st.session_state.current_language == "HINDI" else ("gu-IN" if st.session_state.current_language == "GUJARATI" else "en-US")
             render_voice_and_copy_toolbar(msg["content"], f"hist_{idx}", lang_code)
+
+# Render Voice Input Widget right above the chat input box
+render_voice_input_widget()
 
 query = st.chat_input("")
 
