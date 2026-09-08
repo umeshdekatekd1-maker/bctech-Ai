@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Modern Chat Bubbles Styles + Integrated In-Input Mic Icon Styling
+# Custom Modern Chat Bubbles Styles + Floating Mic Icon Styling near Send Button
 st.markdown("""
 <style>
     #MainMenu, footer {visibility: hidden !important;}
@@ -29,14 +29,13 @@ st.markdown("""
     .viewerBadge_container__1QSob {display: none !important; visibility: hidden !important;}
     div[class*="viewerBadge"] {display: none !important; visibility: hidden !important;}
     
-    .block-container {padding-top: 1.5rem; max-width: 780px;}
+    .block-container {padding-top: 1.5rem; max-width: 780px; padding-bottom: 90px;}
     
     div[data-baseweb="input"] {
         border-radius: 28px !important;
         box-shadow: 0 1px 6px rgba(32,33,36,0.18) !important;
         border: 1px solid #dfe1e5 !important;
         padding-left: 10px;
-        position: relative;
     }
     div[data-baseweb="input"]:focus-within {
         box-shadow: 0 2px 8px rgba(32,33,36,0.3) !important;
@@ -258,58 +257,71 @@ def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="hi-IN"):
     """
     components.html(html_toolbar, height=35)
 
-# --- INTEGRATED IN-INPUT MIC BUTTON COMPONENT (Placed right next to send button) ---
-def render_in_input_mic_widget():
-    mic_inject_js = """
+# --- PERFECT FLOATING MIC BUTTON WIDGET (Positioned right next to Send button) ---
+def render_perfect_mic_widget():
+    mic_html = """
     <html>
     <head>
     <style>
         body { margin: 0; padding: 0; background: transparent; }
-        .mic-icon-btn {
-            background: #f1f3f4;
+        .mic-fab {
+            position: fixed;
+            bottom: 22px;
+            right: 85px;
+            z-index: 99999;
+            background: #ffffff;
             border: 1px solid #dadce0;
             border-radius: 50%;
-            width: 34px;
-            height: 34px;
-            display: inline-flex;
+            width: 38px;
+            height: 38px;
+            display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: 16px;
-            transition: all 0.2s;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            font-size: 18px;
+            transition: all 0.2s ease;
         }
-        .mic-icon-btn:hover { background: #e8eaed; border-color: #bdc1c6; }
-        .mic-listening { background: #ea4335 !important; color: white !important; animation: pulse 1.5s infinite; }
+        .mic-fab:hover {
+            background: #f8f9fa;
+            border-color: #1a73e8;
+            transform: scale(1.05);
+        }
+        .listening {
+            background: #ea4335 !important;
+            border-color: #ea4335 !important;
+            color: white !important;
+            animation: pulse 1.5s infinite;
+        }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
     </style>
     </head>
     <body>
-        <button class="mic-icon-btn" id="inlineMic" onclick="startListening()" title="Speak to type">🎤</button>
+        <div class="mic-fab" id="micBtn" onclick="toggleListening()" title="Speak to type">🎤</div>
         <script>
             let recognition = null;
-            let listening = false;
+            let isListening = false;
 
-            function startListening() {
+            function toggleListening() {
                 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
                 if (!SpeechRecognition) {
                     alert('Speech recognition is not supported in this browser. Please use Google Chrome.');
                     return;
                 }
 
-                const btn = document.getElementById('inlineMic');
+                const btn = document.getElementById('micBtn');
                 const parentDoc = window.parent.document;
                 const inputEl = parentDoc.querySelector('input[aria-label*="chat"], input[type="text"], textarea');
 
-                if (!listening) {
+                if (!isListening) {
                     recognition = new SpeechRecognition();
                     recognition.lang = 'hi-IN';
                     recognition.interimResults = false;
                     recognition.maxAlternatives = 1;
 
                     recognition.onstart = function() {
-                        listening = true;
-                        btn.classList.add('mic-listening');
+                        isListening = true;
+                        btn.classList.add('listening');
                         btn.innerHTML = '🛑';
                     };
 
@@ -319,6 +331,18 @@ def render_in_input_mic_widget():
                             inputEl.value = transcript;
                             inputEl.dispatchEvent(new Event('input', { bubbles: true }));
                             inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+                            
+                            // Automatically press enter/submit after a short moment
+                            setTimeout(() => {
+                                const enterEvent = new KeyboardEvent('keydown', {
+                                    key: 'Enter',
+                                    code: 'Enter',
+                                    keyCode: 13,
+                                    which: 13,
+                                    bubbles: true
+                                });
+                                inputEl.dispatchEvent(enterEvent);
+                            }, 500);
                         }
                     };
 
@@ -338,36 +362,18 @@ def render_in_input_mic_widget():
             }
 
             function stopListening() {
-                listening = false;
-                const btn = document.getElementById('inlineMic');
+                isListening = false;
+                const btn = document.getElementById('micBtn');
                 if (btn) {
-                    btn.classList.remove('mic-listening');
+                    btn.classList.remove('listening');
                     btn.innerHTML = '🎤';
                 }
             }
-
-            // Automatically inject the mic button right inside the chat input container next to the send button
-            setInterval(() => {
-                const parentDoc = window.parent.document;
-                const inputWrapper = parentDoc.querySelector('div[data-baseweb="input"]');
-                if (inputWrapper && !parentDoc.getElementById('injectedMicContainer')) {
-                    const container = parentDoc.createElement('div');
-                    container.id = 'injectedMicContainer';
-                    container.style.position = 'absolute';
-                    container.style.right = '55px';
-                    container.style.top = '50%';
-                    container.style.transform = 'translateY(-50%)';
-                    container.style.zIndex = '999';
-                    container.appendChild(document.getElementById('inlineMic') || document.body.firstElementChild);
-                    inputWrapper.style.position = 'relative';
-                    inputWrapper.appendChild(container);
-                }
-            }, 300);
         </script>
     </body>
     </html>
     """
-    components.html(mic_inject_js, height=0)
+    components.html(mic_html, height=0)
 
 def run_aerial_celebration():
     st.balloons()
@@ -468,8 +474,8 @@ with st.sidebar:
 
 st.title("🎓 BC Tech Ai Assistant")
 
-# Render Integrated In-Input Mic Widget
-render_in_input_mic_widget()
+# Render Perfect Floating Mic Button next to Send button
+render_perfect_mic_widget()
 
 SHEET_ID = "1ES2A77U61GeS710Xfyc0dKIevUhzR2v7-aSjkr1R3tg"
 EXCEL_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=xlsx"
