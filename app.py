@@ -491,7 +491,7 @@ def search_student_all_sheets(query_text, df):
         "result", "marks", "marx", "kya", "hai", "check", "batao", "bata do", "mera", "meri", "ka", "ki", "ko",
         "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam", "name",
         "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo", "mam", "sir", "karo", "kar do",
-        "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ"
+        "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ", "ka result", "ka marks"
     ]
     
     query_clean_words = [w for w in clean_q.split() if w not in fillers]
@@ -503,7 +503,11 @@ def search_student_all_sheets(query_text, df):
     matched = df[df["Student_Name_Std"].astype(str).str.lower().apply(lambda x: any(w == search_query_str or search_query_str in x.split() for w in x.split()))]
 
     if matched.empty:
-        matched = df[df["Student_Name_Std"].astype(str).str.lower().str.contains(r'\b' + re.escape(search_query_str) + r'\b', na=False)]
+        matched = df[df["Student_Name_Std"].astype(str).str.lower().str.contains(r'\b' + re.escape(search_query_str) + r'\b', na=False))]
+
+    # Partial substring search if full word doesn't match (e.g. "pooja pal")
+    if matched.empty:
+        matched = df[df["Student_Name_Std"].astype(str).str.lower().str.contains(re.escape(search_query_str), na=False)]
 
     if matched.empty:
         words = [w for w in query_clean_words if len(w) >= 2]
@@ -662,7 +666,7 @@ if query:
 
             elif check_is_creator_intent(query):
                 if lang == "GUJARATI":
-                    reply = "મને BC Tech Computer Education ના એડમિન અને ડેવલપર દ્વારા બનાવવામાં આવ્યો છે."
+                    reply = "મને BC Tech Computer Education ના એડમિન અને ડેવલपर દ્વારા બનાવવામાં આવ્યો છે."
                 elif lang == "HINDI":
                     reply = "मुझे BC Tech Computer Education के डेवलपर और एडमिन द्वारा बनाया गया है।"
                 else:
@@ -673,11 +677,14 @@ if query:
                 render_voice_and_copy_toolbar(reply, f"creator_{len(st.session_state.messages)}", lang_code)
 
             else:
-                # SMART CONTEXT MEMORY: If user already mentioned their name and asks for result/marks/exam, use remembered name!
+                # SMART CONTEXT MEMORY: If user says "mera result batao", fallback to st.session_state.last_mentioned_name
                 search_query_to_use = query
                 result_intent_words = ["result", "marks", "exam", "mera", "meri", "score", "reult", "rizalt", "marksheet"]
-                if st.session_state.last_mentioned_name and any(w in query.lower() for w in result_intent_words):
-                    search_query_to_use = st.session_state.last_mentioned_name
+                
+                if any(w in query.lower() for w in result_intent_words):
+                    if "mera" in query.lower() or "meri" in query.lower() or query.strip().lower() in ["result", "exam", "marks"]:
+                        if st.session_state.last_mentioned_name:
+                            search_query_to_use = st.session_state.last_mentioned_name
 
                 matched_records = search_student_all_sheets(search_query_to_use, df_sheet)
                 
