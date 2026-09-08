@@ -91,7 +91,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- PERSISTENT STORAGE DB MANAGER (Prevents wipe on refresh/reload) ---
+# --- PERSISTENT STORAGE DB MANAGER ---
 DB_FILE = "bctech_chat_storage.json"
 
 def load_db():
@@ -110,7 +110,6 @@ def save_db(db):
     except Exception:
         pass
 
-# Initialize Chat ID from URL Query Parameters for Permanent Refresh Persistence
 query_params = st.query_params
 if "chat_id" not in query_params or not query_params["chat_id"]:
     current_chat_id = str(uuid.uuid4())
@@ -128,7 +127,6 @@ if current_chat_id not in db_data:
     }
     save_db(db_data)
 
-# Bind Session States with Persistent DB
 if "messages" not in st.session_state:
     st.session_state.messages = db_data[current_chat_id]["messages"]
 if "recent_chats" not in st.session_state:
@@ -148,7 +146,6 @@ def persist_current_state():
     db[current_chat_id]["last_mentioned_name"] = st.session_state.last_mentioned_name
     save_db(db)
 
-# Clean One-Click Clipboard Button
 def render_clean_copy_button(text_to_copy, unique_id):
     json_text = json.dumps(text_to_copy)
     html_btn = f"""
@@ -275,7 +272,6 @@ def on_new_chat_clicked():
     st.session_state.current_language = "ENGLISH"
     st.session_state.last_mentioned_name = None
     
-    # Generate new chat ID for new chat session
     new_id = str(uuid.uuid4())
     st.query_params["chat_id"] = new_id
     persist_current_state()
@@ -380,17 +376,38 @@ def load_all_sheets_data():
 
 def update_language_state(text):
     text_clean = text.strip().lower()
+    
+    # Check Gujarati script
     if any('\u0A80' <= ch <= '\u0AFF' for ch in text):
         st.session_state.current_language = "GUJARATI"
         return "GUJARATI"
+        
+    # Check Hindi script (Devanagari)
     if any('\u0900' <= ch <= '\u097F' for ch in text):
         st.session_state.current_language = "HINDI"
         return "HINDI"
+    
+    # Check Hinglish / Hindi Romanized triggers (like "kaise ho", "kaha se ho", "kya hai", etc.)
+    hindi_romanized = [
+        "kaise", "kaisa", "kaisi", "kaha", "kahan", "kya", "hain", "ho", "hu", "mera", 
+        "meri", "karo", "batao", "bata do", "aap", "tum", "kaun", "kisne", "kyu", "kyon"
+    ]
+    words = text_clean.split()
+    if any(w in hindi_romanized for w in words):
+        st.session_state.current_language = "HINDI"
+        return "HINDI"
+        
+    # Check English triggers explicitly
+    english_romanized = ["how are you", "hello", "hi", "hey", "where", "what", "who", "is", "are", "you"]
+    if any(w in text_clean for w in english_romanized) and not any(w in hindi_romanized for w in words):
+        st.session_state.current_language = "ENGLISH"
+        return "ENGLISH"
+        
     return st.session_state.current_language
 
 def is_greeting(text):
     text_clean = text.lower().strip().replace("!", "").replace(".", "")
-    greetings = ["hi", "hello", "hey", "hii", "hiii", "namaste", "kem cho", "kem chho", "halo", "હેલો", "નમસ્ते"]
+    greetings = ["hi", "hello", "hey", "hii", "hiii", "namaste", "kem cho", "kem chho", "halo", "हेलो", "નમસ્ते"]
     return text_clean in greetings
 
 def check_is_name_intro(text):
@@ -412,7 +429,7 @@ def check_is_creator_intent(text):
 
 def check_is_where_from(text):
     text = text.lower().strip()
-    where_keywords = ["aap kaha se ho", "tum kaha se ho", "where are you from", "kaha se ho", "apka office kaha hai"]
+    where_keywords = ["aap kaha se ho", "tum kaha se ho", "where are you from", "kaha se ho", "apka office kaha hai", "kaise ho", "kya हाल है"]
     return any(kw in text for kw in where_keywords)
 
 def search_student_all_sheets(query_text, df):
@@ -485,7 +502,7 @@ About Bctech Computer Education:
 - Location/Address: Surat, Gujarat, India.
 """
 
-# Render chat history from persistent session state
+# Render chat history
 for idx, msg in enumerate(st.session_state.messages):
     is_user = (msg["role"] == "user")
     with st.chat_message(msg["role"], avatar="👤" if is_user else "🤖"):
@@ -497,13 +514,19 @@ query = st.chat_input("")
 
 if query:
     clean_q_lower = query.strip().lower()
+    lang = update_language_state(query)
     
     if clean_q_lower in ["or", "aur", "hi", "hello", "ok", "hey", "h", "k"]:
         st.session_state.messages.append({"role": "user", "content": query})
         with st.chat_message("user", avatar="👤"):
             st.write(query)
         with st.chat_message("assistant", avatar="🤖"):
-            reply = "हाँ, बताइए! मैं आपकी क्या मदद कर सकता हूँ? 😊"
+            if lang == "HINDI":
+                reply = "हाँ, बताइए! मैं आपकी क्या मदद कर सकता हूँ? 😊"
+            elif lang == "GUJARATI":
+                reply = "હા, જણાવો! હું આપને કેવી રીતે મદદ કરી શકું? 😊"
+            else:
+                reply = "Yes, please tell me! How can I help you? 😊"
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
             render_clean_copy_button(reply, f"hard_block_{len(st.session_state.messages)}")
@@ -515,7 +538,6 @@ if query:
             st.write(query)
 
         df_sheet, err = load_all_sheets_data()
-        lang = update_language_state(query)
         
         with st.chat_message("assistant", avatar="🤖"):
             if err:
@@ -533,8 +555,10 @@ if query:
 
                 if lang == "GUJARATI":
                     reply = f"નમસ્તે {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
-                else:
+                elif lang == "HINDI":
                     reply = f"नमस्ते {username}! BC Tech Computer Education में आपका स्वागत है। बताइए, मैं आपकी कैसे मदद कर सकता हूँ? 😊"
+                else:
+                    reply = f"Hello {username}! Welcome to BC Tech Computer Education. How can I help you today? 😊"
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 render_clean_copy_button(reply, f"name_reply_{len(st.session_state.messages)}")
@@ -543,9 +567,15 @@ if query:
                 if lang == "GUJARATI":
                     reply = "હું BC Tech Computer Education નો AI અસિસ્ટન્ટ છું, અને આપણી સંસ્થા સુરત, ગુજરાત, ભારતમાં આવેલી છે."
                 elif lang == "HINDI":
-                    reply = "मैं BC Tech Computer Education का AI असिस्टेंट हूँ, और हमारी संस्था सूरत, गुजरात, भारत में स्थित है।"
+                    if "kaise ho" in clean_q_lower or "kaisa hai" in clean_q_lower:
+                        reply = "मैं बहुत अच्छा हूँ! बताइए, मैं BC Tech Computer Education में आपकी कैसे मदद कर सकता हूँ? 😊"
+                    else:
+                        reply = "मैं BC Tech Computer Education का AI असिस्टेंट हूँ, और हमारी संस्था सूरत, गुजरात, भारत में स्थित है।"
                 else:
-                    reply = "I am the AI Assistant for BC Tech Computer Education, located in Surat, Gujarat, India."
+                    if "how are you" in clean_q_lower:
+                        reply = "I am doing well, thank you! How can I help you with BC Tech Computer Education today?"
+                    else:
+                        reply = "I am the AI Assistant for BC Tech Computer Education, located in Surat, Gujarat, India."
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 render_clean_copy_button(reply, f"where_{len(st.session_state.messages)}")
@@ -668,7 +698,8 @@ Percentage: {percentage}%
                     
                     system_prop = f"""
                     You are a helpful AI Assistant for BC Tech Computer Education. 
-                    Answer general knowledge or general queries accurately, politely, and directly in {lang_name}.
+                    CRITICAL LANGUAGE RULE: You MUST reply strictly in {lang_name} language corresponding to the user's input language. If the user asked in Hindi/Hinglish, reply in Hindi. If English, reply in English.
+                    Answer general knowledge or general queries accurately, politely, and directly.
                     Never loop or repeat phrases.
                     Institute Location: Surat, Gujarat, India.
                     Official Website & Info: {BRANCH_LINK}
@@ -703,7 +734,7 @@ Percentage: {percentage}%
                                     chat_completion = client.chat.completions.create(
                                         messages=api_messages,
                                         model=m_name,
-                                        temperature=0.5,
+                                        temperature=0.3,
                                         max_tokens=300
                                     )
                                     raw_answer = chat_completion.choices[0].message.content
