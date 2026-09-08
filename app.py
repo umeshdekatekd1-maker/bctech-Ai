@@ -29,7 +29,7 @@ st.markdown("""
     .viewerBadge_container__1QSob {display: none !important; visibility: hidden !important;}
     div[class*="viewerBadge"] {display: none !important; visibility: hidden !important;}
     
-    .block-container {padding-top: 1.5rem; max-width: 780px; padding-bottom: 90px;}
+    .block-container {padding-top: 1.5rem; max-width: 780px;}
     
     div[data-baseweb="input"] {
         border-radius: 28px !important;
@@ -256,124 +256,6 @@ def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="hi-IN"):
     </html>
     """
     components.html(html_toolbar, height=35)
-
-# --- VOICE INPUT WIDGET WITH AUTO-SUBMIT (Auto-Click Send Button) ---
-def render_voice_input_widget():
-    mic_html = """
-    <html>
-    <head>
-    <style>
-        body { margin: 0; padding: 0; background: transparent; font-family: sans-serif; }
-        .mic-box {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            margin-bottom: 4px;
-        }
-        .mic-btn {
-            background-color: #f8f9fa;
-            color: #1a73e8;
-            border: 1px solid #dadce0;
-            border-radius: 18px;
-            padding: 5px 14px;
-            font-size: 13px;
-            cursor: pointer;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-weight: 500;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
-            transition: all 0.2s;
-        }
-        .mic-btn:hover { background-color: #e8f0fe; border-color: #4285f4; }
-        .listening { background-color: #ea4335 !important; color: white !important; border-color: #ea4335 !important; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
-    </style>
-    </head>
-    <body>
-        <div class="mic-box">
-            <button class="mic-btn" id="micBtn" onclick="toggleMic()">
-                🎤 बोलकर टाइप करें (Voice Input)
-            </button>
-        </div>
-        <script>
-            let recognition = null;
-            let isListening = false;
-            
-            function toggleMic() {
-                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-                if (!SpeechRecognition) {
-                    alert('Speech recognition is not supported in this browser. Please use Google Chrome.');
-                    return;
-                }
-                
-                const btn = document.getElementById('micBtn');
-                const parentDoc = window.parent.document;
-                const inputEl = parentDoc.querySelector('input[aria-label*="chat"], input[type="text"], textarea');
-                
-                if (!isListening) {
-                    recognition = new SpeechRecognition();
-                    recognition.lang = 'hi-IN';
-                    recognition.interimResults = false;
-                    recognition.maxAlternatives = 1;
-                    
-                    recognition.onstart = function() {
-                        isListening = true;
-                        btn.classList.add('listening');
-                        btn.innerHTML = '🛑 सुन रहे हैं... (बोलना बंद करें)';
-                    };
-                    
-                    recognition.onresult = function(event) {
-                        const transcript = event.results[0][0].transcript;
-                        if (inputEl) {
-                            inputEl.value = transcript;
-                            inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-                            inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-                            
-                            // Automatically find and click Streamlit's native Send button to submit instantly
-                            setTimeout(() => {
-                                const sendButton = parentDoc.querySelector('[data-testid="stChatInput"] button') || parentDoc.querySelector('button[kind="secondary"]');
-                                if (sendButton) {
-                                    sendButton.click();
-                                } else {
-                                    // Fallback keydown event
-                                    const enterEvent = new KeyboardEvent('keydown', {
-                                        key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true
-                                    });
-                                    inputEl.dispatchEvent(enterEvent);
-                                }
-                            }, 500);
-                        }
-                    };
-                    
-                    recognition.onerror = function() {
-                        stopMic();
-                    };
-                    
-                    recognition.onend = function() {
-                        stopMic();
-                    };
-                    
-                    recognition.start();
-                } else {
-                    if (recognition) recognition.stop();
-                    stopMic();
-                }
-            }
-            
-            function stopMic() {
-                isListening = false;
-                const btn = document.getElementById('micBtn');
-                if (btn) {
-                    btn.classList.remove('listening');
-                    btn.innerHTML = '🎤 बोलकर टाइप करें (Voice Input)';
-                }
-            }
-        </script>
-    </body>
-    </html>
-    """
-    components.html(mic_html, height=35)
 
 def run_aerial_celebration():
     st.balloons()
@@ -653,7 +535,7 @@ About Bctech Computer Education:
 - Location/Address: Surat, Gujarat, India.
 """
 
-# Render chat history with Stop/Read Aloud & Copy buttons
+# Render chat history with Read Aloud & Copy buttons
 for idx, msg in enumerate(st.session_state.messages):
     is_user = (msg["role"] == "user")
     with st.chat_message(msg["role"], avatar="👤" if is_user else "🤖"):
@@ -661,9 +543,6 @@ for idx, msg in enumerate(st.session_state.messages):
         if not is_user:
             lang_code = "hi-IN" if st.session_state.current_language == "HINDI" else ("gu-IN" if st.session_state.current_language == "GUJARATI" else "en-US")
             render_voice_and_copy_toolbar(msg["content"], f"hist_{idx}", lang_code)
-
-# Render Voice Input Widget right above chat input box
-render_voice_input_widget()
 
 query = st.chat_input("")
 
@@ -734,7 +613,7 @@ if query:
                     else:
                         reply = "I am the AI Assistant for BC Tech Computer Education, located in Surat, Gujarat, India."
                 st.write(reply)
-                st.session_state.messages.append({"role": "assistant", "content": reply})
+py                st.session_state.messages.append({"role": "assistant", "content": reply})
                 lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
                 render_voice_and_copy_toolbar(reply, f"where_{len(st.session_state.messages)}", lang_code)
 
