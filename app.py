@@ -535,12 +535,18 @@ def clean_ai_response(text):
 
 BRANCH_LINK = "https://sites.google.com/view/bctechcomputer/about-us"
 
+# --- UPDATED KNOWLEDGE BASE (Strictly hides months/duration and course fees) ---
 KNOWLEDGE_BASE = f"""
 About Bctech Computer Education:
 - Institute: Bctech Computer Education
 - Official Branch & Location Info Link: {BRANCH_LINK}
 - Main Offerings: Professional computer training, practical learning, ISO certified courses, job assistance.
-- Popular Courses: Basic Computer Course, Graphic Designing (CorelDraw, Photoshop, Illustrator), Accounting & Tally Prime, Web Development, Programming (Python, C++), Digital Marketing, Advanced Excel.
+- Popular Courses (Strict Rule: NEVER mention duration in months or course fees/prices):
+  1. बेसिक कंप्यूटर (Basic Computer) - Topics: Windows, MS Office, इंटरनेट
+  2. ग्राफिक डिज़ाइन (Graphic Designing: CorelDraw, Photoshop, Illustrator) - Topics: लोगो डिज़ाइन, बैनर, फोटो एडिटिंग
+  3. एकाउंटिंग & टैली प्राइम (Accounting & Tally Prime) - Topics: बुनियादी लेखा, टैली में लेन-देन
+  4. वेब डेवलपमेंट (Web Development) - Topics: HTML, CSS, JavaScript, WordPress
+  5. प्रोग्रामिंग (Programming: Python / C++) - Topics: बेसिक से एडवांस, प्रोजेक्ट वर्क
 - Location/Address: Surat, Gujarat, India.
 """
 
@@ -757,11 +763,12 @@ Percentage: {percentage}%
                     system_prop = f"""
                     You are a helpful AI Assistant for BC Tech Computer Education. 
                     CRITICAL LANGUAGE RULE: You MUST reply strictly in {lang_name} language corresponding to the user's input language. If the user asked in Hindi/Hinglish, reply in Hindi. If English, reply in English.
+                    CRITICAL INSTRUCTION FOR COURSES: When listing or discussing courses, NEVER mention course duration (months) or course fees/prices under any circumstances. Only provide course names and their subjects.
                     Answer general knowledge or general queries accurately, politely, and directly.
                     Never loop or repeat phrases.
                     Institute Location: Surat, Gujarat, India.
                     Official Website & Info: {BRANCH_LINK}
-                    Courses: {KNOWLEDGE_BASE}
+                    Courses Data: {KNOWLEDGE_BASE}
                     """
 
                     with st.spinner("Thinking..."):
