@@ -383,6 +383,11 @@ def search_student_all_sheets(query_text, df):
     
     clean_q = query_text.strip().lower()
     
+    # Strict block for single words or short conversational filler words like "or", "aur", etc.
+    block_list = ["or", "aur", "hi", "hello", "ok", "yes", "no", "hey", "kya", "hai"]
+    if clean_q in block_list or len(clean_q) <= 2:
+        return []
+
     ignore_phrases = ["or batao", "aur batao", "kya haal hai", "or kya", "aur kya", "batao", "kya chal raha hai", "konsa course", "course kar sakti"]
     if any(p in clean_q for p in ignore_phrases) and len(clean_q.split()) <= 4:
         return []
@@ -404,10 +409,15 @@ def search_student_all_sheets(query_text, df):
     query_clean_words = [w for w in clean_q.split() if w not in fillers]
     search_query_str = " ".join(query_clean_words).strip()
     
-    if not search_query_str:
+    if not search_query_str or len(search_query_str) <= 2:
         return []
 
-    matched = df[df["Student_Name_Std"].astype(str).str.lower().str.contains(search_query_str, na=False)]
+    # Exact or safe substring match using word boundary or precise filtering to avoid partial letter mismatches like 'or' inside names
+    matched = df[df["Student_Name_Std"].astype(str).str.lower().apply(lambda x: any(w == search_query_str or search_query_str in x.split() for w in x.split()))]
+
+    if matched.empty:
+        # Fallback to standard contains only if the search string is substantial (> 2 chars)
+        matched = df[df["Student_Name_Std"].astype(str).str.lower().str.contains(search_query_str, na=False)]
 
     if matched.empty:
         words = [w for w in query_clean_words if len(w) >= 2]
@@ -532,7 +542,7 @@ if query:
             st.session_state.messages.append({"role": "assistant", "content": reply})
             render_clean_copy_button(reply, f"creator_{len(st.session_state.messages)}")
 
-        elif len(query.strip()) <= 3 and query.strip().lower() in ["ok", "h", "k", "hi", "ok.", "okay", "ha", "haan"]:
+        elif len(query.strip()) <= 3 and query.strip().lower() in ["ok", "h", "k", "hi", "ok.", "okay", "ha", "haan", "or"]:
             reply = "हाँ, बताइए! मैं आपकी क्या मदद कर सकता हूँ? 😊"
             st.write(reply)
             st.session_state.messages.append({"role": "assistant", "content": reply})
@@ -576,7 +586,6 @@ if query:
                     tot_prac = int(sum(p_marks))
                     total_obtained = tot_theory + tot_prac
                     
-                    # Dynamically count only the attempted/present exams (each exam is 50 marks)
                     max_total = valid_tests_count * 50 if valid_tests_count > 0 else 50
                     percentage = round((total_obtained / max_total) * 100, 2) if max_total > 0 else 0
 
