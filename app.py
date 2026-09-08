@@ -146,7 +146,7 @@ def persist_current_state():
     db[current_chat_id]["last_mentioned_name"] = st.session_state.last_mentioned_name
     save_db(db)
 
-# --- VOICE INPUT & TEXT-TO-SPEECH CONTROLS COMPONENT ---
+# --- READ ALOUD & STOP CONTROLS COMPONENT ---
 def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="hi-IN"):
     json_text = json.dumps(text_to_speak)
     html_toolbar = f"""
@@ -183,27 +183,40 @@ def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="hi-IN"):
     </style>
     </head>
     <body>
-        <button class="action-btn" id="speak_{unique_id}" onclick="doSpeak()">
+        <button class="action-btn" id="speak_{unique_id}" onclick="toggleSpeak()">
             🔊 Read Aloud
         </button>
         <button class="action-btn" id="copy_{unique_id}" onclick="doCopy()">
             📋 Copy
         </button>
         <script>
-            function doSpeak() {{
+            let utterance_{unique_id} = null;
+
+            function toggleSpeak() {{
+                const btn = document.getElementById('speak_{unique_id}');
+                
+                if (window.speechSynthesis.speaking) {{
+                    window.speechSynthesis.cancel();
+                    btn.innerHTML = '🔊 Read Aloud';
+                    return;
+                }}
+
                 const text = {json_text};
                 if ('speechSynthesis' in window) {{
-                    window.speechSynthesis.cancel();
-                    const utterance = new SpeechSynthesisUtterance(text);
-                    utterance.lang = '{lang_code}';
-                    utterance.rate = 1.0;
-                    window.speechSynthesis.speak(utterance);
+                    utterance_{unique_id} = new SpeechSynthesisUtterance(text);
+                    utterance_{unique_id}.lang = '{lang_code}';
+                    utterance_{unique_id}.rate = 1.0;
                     
-                    const btn = document.getElementById('speak_{unique_id}');
-                    btn.innerHTML = '🔊 Playing...';
-                    utterance.onend = function() {{
+                    btn.innerHTML = '⏹️ Stop';
+                    
+                    utterance_{unique_id}.onend = function() {{
                         btn.innerHTML = '🔊 Read Aloud';
                     }};
+                    utterance_{unique_id}.onerror = function() {{
+                        btn.innerHTML = '🔊 Read Aloud';
+                    }};
+                    
+                    window.speechSynthesis.speak(utterance_{unique_id});
                 }} else {{
                     alert('Text-to-speech is not supported in this browser.');
                 }}
@@ -244,7 +257,7 @@ def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="hi-IN"):
     """
     components.html(html_toolbar, height=35)
 
-# Render Voice Input (Speech-to-Text) Button at Top/Input helper
+# --- VOICE INPUT (SPEECH-TO-TEXT WITH AUTO-SEND) WIDGET ---
 def render_voice_input_widget():
     mic_html = """
     <html>
@@ -274,7 +287,7 @@ def render_voice_input_widget():
     <body>
         <div class="mic-container">
             <button class="mic-btn" id="micBtn" onclick="toggleMic()">
-                🎤 Speak to Type (बोलकर टाइप करें)
+                🎤 Speak & Auto-Send (बोलकर भेजें)
             </button>
             <span id="micStatus" style="font-size:12px; color:#5f6368;"></span>
         </div>
@@ -294,26 +307,37 @@ def render_voice_input_widget():
                 
                 if (!isListening) {
                     recognition = new SpeechRecognition();
-                    recognition.lang = 'hi-IN'; // Default Hindi/English support
+                    recognition.lang = 'hi-IN';
                     recognition.interimResults = false;
                     recognition.maxAlternatives = 1;
                     
                     recognition.onstart = function() {
                         isListening = true;
                         btn.classList.add('listening');
-                        btn.innerHTML = '🛑 Listening... (सुन रहे हैं)';
-                        status.innerHTML = 'Speak now...';
+                        btn.innerHTML = '🛑 Listening... (बोलिए)';
+                        status.innerHTML = 'Listening...';
                     };
                     
                     recognition.onresult = function(event) {
                         const speechToText = event.results[0][0].transcript;
-                        // Find streamlit input box and set value
                         const parentDoc = window.parent.document;
                         const inputEl = parentDoc.querySelector('input[aria-label*="chat"], input[type="text"], textarea');
                         if (inputEl) {
                             inputEl.value = speechToText;
                             inputEl.dispatchEvent(new Event('input', { bubbles: true }));
                             inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+                            
+                            // Auto-trigger Enter key to submit message instantly
+                            setTimeout(() => {
+                                const enterEvent = new KeyboardEvent('keydown', {
+                                    key: 'Enter',
+                                    code: 'Enter',
+                                    keyCode: 13,
+                                    which: 13,
+                                    bubbles: true
+                                });
+                                inputEl.dispatchEvent(enterEvent);
+                            }, 400);
                         }
                     };
                     
@@ -339,7 +363,7 @@ def render_voice_input_widget():
                 const status = document.getElementById('micStatus');
                 if (btn) {
                     btn.classList.remove('listening');
-                    btn.innerHTML = '🎤 Speak to Type (बोलकर टाइप करें)';
+                    btn.innerHTML = '🎤 Speak & Auto-Send (बोलकर भेजें)';
                 }
                 if (status) status.innerHTML = '';
             }
@@ -630,7 +654,7 @@ About Bctech Computer Education:
 - Location/Address: Surat, Gujarat, India.
 """
 
-# Render chat history with Read Aloud & Copy buttons
+# Render chat history with Stop/Read Aloud & Copy buttons
 for idx, msg in enumerate(st.session_state.messages):
     is_user = (msg["role"] == "user")
     with st.chat_message(msg["role"], avatar="👤" if is_user else "🤖"):
