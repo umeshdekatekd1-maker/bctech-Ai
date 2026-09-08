@@ -445,7 +445,9 @@ def is_greeting(text):
 
 def check_is_name_intro(text):
     t = text.lower().strip()
-    return "mera naam" in t or "my name is" in t or "hu mara naam" in t or "maru naam" in t or t.startswith("naam ")
+    # Expanded patterns to catch name introductions safely without triggering sheet search
+    name_triggers = ["mera naam", "my name is", "maru naam", "hu mara naam", "naam hai", "name is", "i am", "mein hu", "hu ","maaru naam"]
+    return any(p in t for p in name_triggers) or t.startswith("naam ")
 
 def check_is_branch_intent(text):
     text = text.lower()
@@ -466,6 +468,10 @@ def check_is_where_from(text):
     return any(kw in text for kw in where_keywords)
 
 def search_student_all_sheets(query_text, df):
+    # If it's a name introduction, strictly DO NOT search sheet
+    if check_is_name_intro(query_text):
+        return []
+
     if df is None or df.empty or "Student_Name_Std" not in df.columns:
         return []
     
@@ -579,9 +585,9 @@ if query:
                 st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
             
             elif check_is_name_intro(query):
-                name_match = re.search(r"(?:mera naam|my name is|maru naam)\s+([a-zA-Z\u0900-\u097F]+)", query, re.IGNORECASE)
+                name_match = re.search(r"(?:mera naam|my name is|maru naam|hu mara naam|naam hai|name is|i am|hu)\s+([a-zA-Z\u0900-\u097F]+)", query, re.IGNORECASE)
                 if not name_match:
-                    words = [w for w in query.split() if w.lower() not in ["mera", "naam", "hai", "is", "my", "name"]]
+                    words = [w for w in query.split() if w.lower() not in ["mera", "naam", "hai", "is", "my", "name", "hu", "i", "am"]]
                     username = words[0].capitalize() if words else "User"
                 else:
                     username = name_match.group(1).capitalize()
@@ -631,7 +637,7 @@ if query:
 
             elif is_greeting(query):
                 if lang == "GUJARATI":
-                    reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                    reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                 elif lang == "HINDI":
                     reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                 else:
@@ -656,7 +662,7 @@ if query:
 
             elif check_is_creator_intent(query):
                 if lang == "GUJARATI":
-                    reply = "મને BC Tech Computer Education ના એડમિન અને ડેવલપર દ્વારા બનાવવામાં આવ્યો છે."
+                    reply = "મને BC Tech Computer Education ના એડમિન અને ડેવલपर દ્વારા બનાવવામાં આવ્યો છે."
                 elif lang == "HINDI":
                     reply = "मुझे BC Tech Computer Education के डेवलपर और एडमिन द्वारा बनाया गया है।"
                 else:
