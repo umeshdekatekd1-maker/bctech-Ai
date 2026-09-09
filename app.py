@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Modern Chat Bubbles Styles with Extra Rounded Chat Input Box
+# Custom Modern Chat Bubbles Styles with Capsule Shape Fully Rounded Chat Input Box
 st.markdown("""
 <style>
     #MainMenu, footer {visibility: hidden !important;}
@@ -28,13 +28,13 @@ st.markdown("""
     
     .block-container {padding-top: 1.5rem; max-width: 780px;}
     
-    /* Extra Rounded Chat Input Box */
+    /* Fully Rounded Capsule Shape Chat Input Box */
     div[data-baseweb="input"] {
-        border-radius: 40px !important;
+        border-radius: 50px !important;
         box-shadow: 0 1px 6px rgba(32,33,36,0.18) !important;
         border: 1px solid #dfe1e5 !important;
-        padding-left: 14px;
-        padding-right: 6px;
+        padding-left: 16px;
+        padding-right: 8px;
     }
     div[data-baseweb="input"]:focus-within {
         box-shadow: 0 2px 8px rgba(32,33,36,0.3) !important;
@@ -557,7 +557,8 @@ for idx, msg in enumerate(st.session_state.messages):
             lang_code = "hi-IN" if st.session_state.current_language == "HINDI" else ("gu-IN" if st.session_state.current_language == "GUJARATI" else "en-US")
             render_voice_and_copy_toolbar(msg["content"], f"hist_{idx}", lang_code)
 
-query = st.chat_input("")
+# Chat input with "Ask..." placeholder
+query = st.chat_input("Ask...")
 
 if query:
     clean_q_lower = query.strip().lower()
@@ -602,7 +603,7 @@ if query:
                 st.session_state.last_mentioned_name = username.lower()
 
                 if lang == "GUJARATI":
-                    reply = f"નમસ્ते {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
+                    reply = f"નમસ્તે {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
                 elif lang == "HINDI":
                     reply = f"नमस्ते {username}! BC Tech Computer Education में आपका स्वागत है। बताइए, मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                 else:
@@ -740,7 +741,7 @@ Theory Tests
 
 Practical Tests
 - Test 1: {record.get('practical-1', 'N/A')}
-- Test 2: {record.get('practical-2', 'N/A')}
+- Test 2: {record.get('practical-2', 'N/App')}
 - Test 3: {record.get('practical-3', 'N/A')}
 - Total Practical: {tot_prac}
 
