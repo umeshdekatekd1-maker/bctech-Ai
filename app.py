@@ -16,28 +16,16 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Modern Chat Bubbles Styles + Complete Branding/Badge Hide CSS
+# Custom Modern Chat Bubbles + JavaScript to permanently remove Streamlit Footer & Badge
 st.markdown("""
 <style>
     #MainMenu, footer {visibility: hidden !important;}
     header {visibility: visible !important;}
     
-    footer {display: none !important;}
+    footer {display: none !important; height: 0px !important;}
     .stApp > header {background-color: transparent;}
     [data-testid="stDecoration"] {display: none !important;}
     [data-testid="stStatusWidget"] {display: none !important; visibility: hidden !important;}
-    
-    /* Completely hide Streamlit Hosting Badge and Viewer Badges */
-    .viewerBadge_container__1QSob, 
-    div[class*="viewerBadge"], 
-    [data-testid="stToolbar"], 
-    .styles_viewerBadge__1yG5_, 
-    #stDecoration {
-        display: none !important;
-        visibility: hidden !important;
-        opacity: 0 !important;
-        pointer-events: none !important;
-    }
     
     .block-container {padding-top: 1.5rem; max-width: 780px;}
     
@@ -99,6 +87,16 @@ st.markdown("""
         width: 100% !important;
     }
 </style>
+
+<script>
+    // Automatically remove Streamlit branding and footer elements from DOM
+    const removeElements = () => {
+        const doc = window.parent.document;
+        const footers = doc.querySelectorAll('footer, .viewerBadge_container__1QSob, div[class*="viewerBadge"], a[href*="streamlit.io"]');
+        footers.forEach(el => el.remove());
+    };
+    setInterval(removeElements, 100);
+</script>
 """, unsafe_allow_html=True)
 
 # --- PERSISTENT STORAGE DB MANAGER ---
@@ -272,8 +270,7 @@ def run_aerial_celebration():
     anim_js = """
     <script>
     const parentDoc = window.parent.document;
-    // Also inject a small JS to remove viewer badge if rendered dynamically
-    const badges = parentDoc.querySelectorAll('.viewerBadge_container__1QSob, div[class*="viewerBadge"]');
+    const badges = parentDoc.querySelectorAll('.viewerBadge_container__1QSob, div[class*="viewerBadge"], footer');
     badges.forEach(b => b.remove());
 
     for(let i = 0; i < 45; i++) {
@@ -617,7 +614,7 @@ if query:
                 st.session_state.last_mentioned_name = username.lower()
 
                 if lang == "GUJARATI":
-                    reply = f"નમસ્તે {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
+                    reply = f"નમસ્ते {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
                 elif lang == "HINDI":
                     reply = f"नमस्ते {username}! BC Tech Computer Education में आपका स्वागत है। बताइए, मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                 else:
@@ -659,7 +656,7 @@ if query:
 
             elif is_greeting(query):
                 if lang == "GUJARATI":
-                    reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                    reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                 elif lang == "HINDI":
                     reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                 else:
@@ -802,7 +799,7 @@ Percentage: {percentage}%
                             answer = None
                             last_api_err = None
 
-                            api_messages = [{"role": "system", "content": system_prop}]
+    api_messages = [{"role": "system", "content": system_prop}]
                             for m in st.session_state.messages[:-1]:
                                 api_messages.append({"role": m["role"], "content": m["content"]})
                             api_messages.append({"role": "user", "content": query})
