@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Modern Chat Bubbles Styles
+# Custom Modern Chat Bubbles Styles + Complete Branding/Badge Hide CSS
 st.markdown("""
 <style>
     #MainMenu, footer {visibility: hidden !important;}
@@ -26,8 +26,18 @@ st.markdown("""
     .stApp > header {background-color: transparent;}
     [data-testid="stDecoration"] {display: none !important;}
     [data-testid="stStatusWidget"] {display: none !important; visibility: hidden !important;}
-    .viewerBadge_container__1QSob {display: none !important; visibility: hidden !important;}
-    div[class*="viewerBadge"] {display: none !important; visibility: hidden !important;}
+    
+    /* Completely hide Streamlit Hosting Badge and Viewer Badges */
+    .viewerBadge_container__1QSob, 
+    div[class*="viewerBadge"], 
+    [data-testid="stToolbar"], 
+    .styles_viewerBadge__1yG5_, 
+    #stDecoration {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
     
     .block-container {padding-top: 1.5rem; max-width: 780px;}
     
@@ -262,6 +272,10 @@ def run_aerial_celebration():
     anim_js = """
     <script>
     const parentDoc = window.parent.document;
+    // Also inject a small JS to remove viewer badge if rendered dynamically
+    const badges = parentDoc.querySelectorAll('.viewerBadge_container__1QSob, div[class*="viewerBadge"]');
+    badges.forEach(b => b.remove());
+
     for(let i = 0; i < 45; i++) {
         let el = parentDoc.createElement('div');
         el.innerText = ['🎆', '✨', '🏮', '🚀', '⭐', '🎉'][Math.floor(Math.random() * 6)];
@@ -535,7 +549,6 @@ def clean_ai_response(text):
 
 BRANCH_LINK = "https://sites.google.com/view/bctechcomputer/about-us"
 
-# --- UPDATED KNOWLEDGE BASE (Strictly hides months/duration and course fees) ---
 KNOWLEDGE_BASE = f"""
 About Bctech Computer Education:
 - Institute: Bctech Computer Education
