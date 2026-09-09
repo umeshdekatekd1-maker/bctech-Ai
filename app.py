@@ -16,17 +16,17 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Styling & Aggressive JavaScript to clear Streamlit badges and show clean White Footer
+# Custom Modern Chat Bubbles Styles (Without bottom white strip)
 st.markdown("""
 <style>
-    #MainMenu {visibility: hidden !important;}
+    #MainMenu, footer {visibility: hidden !important;}
     header {visibility: visible !important;}
     
     .stApp > header {background-color: transparent;}
     [data-testid="stDecoration"] {display: none !important;}
     [data-testid="stStatusWidget"] {display: none !important; visibility: hidden !important;}
     
-    .block-container {padding-top: 1.5rem; max-width: 780px; padding-bottom: 80px;}
+    .block-container {padding-top: 1.5rem; max-width: 780px;}
     
     div[data-baseweb="input"] {
         border-radius: 28px !important;
@@ -86,20 +86,6 @@ st.markdown("""
         width: 100% !important;
     }
 </style>
-
-<div id="bctech_custom_footer" style="position: fixed; bottom: 0; left: 0; width: 100%; background-color: #ffffff; color: #3c4043; text-align: center; padding: 10px; font-size: 13px; font-weight: 500; border-top: 1px solid #dadce0; z-index: 9999999; box-shadow: 0 -2px 6px rgba(0,0,0,0.08);">
-    🎓 BC Tech Computer Education | AI Assistant
-</div>
-
-<script>
-    // Aggressively remove Streamlit default branding badges so only custom footer remains neat
-    const cleanStreamlitBadges = () => {
-        const doc = window.parent.document;
-        const badges = doc.querySelectorAll('.viewerBadge_container__1QSob, div[class*="viewerBadge"], a[href*="streamlit.io/cloud"]');
-        badges.forEach(b => b.remove());
-    };
-    setInterval(cleanStreamlitBadges, 50);
-</script>
 """, unsafe_allow_html=True)
 
 # --- PERSISTENT STORAGE DB MANAGER ---
@@ -656,7 +642,7 @@ if query:
 
             elif is_greeting(query):
                 if lang == "GUJARATI":
-                    reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                    reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                 elif lang == "HINDI":
                     reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                 else:
