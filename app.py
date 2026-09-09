@@ -16,17 +16,17 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Modern Chat Bubbles + Bottom White Footer Strip CSS
+# Fixed Bottom White Footer Strip with strict positioning so it stays at the very bottom
 st.markdown("""
 <style>
-    #MainMenu, footer {visibility: hidden !important;}
+    #MainMenu {visibility: hidden !important;}
     header {visibility: visible !important;}
     
     .stApp > header {background-color: transparent;}
     [data-testid="stDecoration"] {display: none !important;}
     [data-testid="stStatusWidget"] {display: none !important; visibility: hidden !important;}
     
-    .block-container {padding-top: 1.5rem; max-width: 780px; padding-bottom: 70px;}
+    .block-container {padding-top: 1.5rem; max-width: 780px; padding-bottom: 80px;}
     
     div[data-baseweb="input"] {
         border-radius: 28px !important;
@@ -86,36 +86,28 @@ st.markdown("""
         width: 100% !important;
     }
 
-    /* Custom Fixed White Footer Strip at the bottom */
-    .custom-bottom-footer {
-        position: fixed;
-        left: 0;
-        bottom: 0;
-        width: 100%;
-        background-color: #ffffff;
-        color: #5f6368;
-        text-align: center;
-        padding: 10px 0;
-        font-size: 13px;
-        font-weight: 500;
-        border-top: 1px solid #dadce0;
-        z-index: 99999;
-        box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
+    /* Strict Bottom White Footer Strip */
+    footer {
+        visibility: visible !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        background-color: #ffffff !important;
+        color: #5f6368 !important;
+        text-align: center !important;
+        padding: 12px 0 !important;
+        font-size: 13px !important;
+        font-weight: 500 !important;
+        border-top: 1px solid #dadce0 !important;
+        z-index: 999999 !important;
+        box-shadow: 0 -2px 6px rgba(0,0,0,0.08) !important;
     }
 </style>
 
-<div class="custom-bottom-footer">
+<div style="position: fixed; bottom: 0; left: 0; width: 100%; background-color: #ffffff; color: #3c4043; text-align: center; padding: 10px; font-size: 13px; font-weight: 500; border-top: 1px solid #dadce0; z-index: 999999; box-shadow: 0 -2px 6px rgba(0,0,0,0.08);">
     🎓 BC Tech Computer Education | AI Assistant
 </div>
-
-<script>
-    const removeElements = () => {
-        const doc = window.parent.document;
-        const badges = doc.querySelectorAll('.viewerBadge_container__1QSob, div[class*="viewerBadge"]');
-        badges.forEach(b => b.remove());
-    };
-    setInterval(removeElements, 100);
-</script>
 """, unsafe_allow_html=True)
 
 # --- PERSISTENT STORAGE DB MANAGER ---
@@ -826,7 +818,7 @@ Percentage: {percentage}%
                                         messages=api_messages,
                                         model=m_name,
                                         temperature=0.3,
-                                        max_tokens=300
+                                    max_tokens=300
                                     )
                                     raw_answer = chat_completion.choices[0].message.content
                                     answer = clean_ai_response(raw_answer)
