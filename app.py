@@ -160,9 +160,21 @@ def persist_current_state():
     db[current_chat_id]["last_mentioned_name"] = st.session_state.last_mentioned_name
     save_db(db)
 
+# --- EMOJI REMOVER UTILITY FOR VOICE ---
+def remove_emojis(text):
+    # Regex to clean emojis so text-to-speech doesn't read them aloud
+    return re.sub(
+        r'[\U00010000-\U0010ffff]|[\u2600-\u27BF]|[\uD800-\uDBFF][\uDC00-\uDFFF]|[\U0001f300-\U0001f5ff]|[\U0001f600-\U0001f64f]|[\U0001f680-\U0001f6ff]|[\u2600-\u26ff]|[\u2700-\u27bf]|[\U0001f900-\U0001f9ff]|[\U0001fa70-\U0001faff]|[\u231a-\u231b]|[\u23e9-\u23ec]|[\u23f0]|[\u23f3]|[\u25aa-\u25ab]|[\u25b6]|[\u25c0]|[\u25fb-\u25fe]|[\u2600-\u27ef]|[\u2b50]|[\u2b55]|[\u3030]|[\u303d]|[\u3297]|[\u3299]',
+        '',
+        text
+    )
+
 # --- READ ALOUD & STOP CONTROLS COMPONENT ---
 def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="hi-IN"):
-    json_text = json.dumps(text_to_speak)
+    clean_speech_text = remove_emojis(text_to_speak)
+    json_speech = json.dumps(clean_speech_text)
+    json_copy = json.dumps(text_to_speak)
+    
     html_toolbar = f"""
     <html>
     <head>
@@ -215,7 +227,7 @@ def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="hi-IN"):
                     return;
                 }}
 
-                const text = {json_text};
+                const text = {json_speech};
                 if ('speechSynthesis' in window) {{
                     utterance_{unique_id} = new SpeechSynthesisUtterance(text);
                     utterance_{unique_id}.lang = '{lang_code}';
@@ -237,7 +249,7 @@ def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="hi-IN"):
             }}
 
             function doCopy() {{
-                const text = {json_text};
+                const text = {json_copy};
                 if (navigator.clipboard && window.isSecureContext) {{
                     navigator.clipboard.writeText(text).then(showSuccess);
                 }} else {{
@@ -618,7 +630,7 @@ if query:
                 st.session_state.last_mentioned_name = username.lower()
 
                 if lang == "GUJARATI":
-                    reply = f"નમસ્ते {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
+                    reply = f"નમસ્તે {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
                 elif lang == "HINDI":
                     reply = f"नमस्ते {username}! BC Tech Computer Education में आपका स्वागत है। बताइए, मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                 else:
