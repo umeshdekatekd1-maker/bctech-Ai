@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Modern Chat Bubbles Styles (Without bottom white strip)
+# Custom Modern Chat Bubbles Styles with Extra Rounded Chat Input Box
 st.markdown("""
 <style>
     #MainMenu, footer {visibility: hidden !important;}
@@ -28,11 +28,13 @@ st.markdown("""
     
     .block-container {padding-top: 1.5rem; max-width: 780px;}
     
+    /* Extra Rounded Chat Input Box */
     div[data-baseweb="input"] {
-        border-radius: 28px !important;
+        border-radius: 40px !important;
         box-shadow: 0 1px 6px rgba(32,33,36,0.18) !important;
         border: 1px solid #dfe1e5 !important;
-        padding-left: 10px;
+        padding-left: 14px;
+        padding-right: 6px;
     }
     div[data-baseweb="input"]:focus-within {
         box-shadow: 0 2px 8px rgba(32,33,36,0.3) !important;
@@ -600,7 +602,7 @@ if query:
                 st.session_state.last_mentioned_name = username.lower()
 
                 if lang == "GUJARATI":
-                    reply = f"નમસ્તે {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
+                    reply = f"નમસ્ते {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
                 elif lang == "HINDI":
                     reply = f"नमस्ते {username}! BC Tech Computer Education में आपका स्वागत है। बताइए, मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                 else:
