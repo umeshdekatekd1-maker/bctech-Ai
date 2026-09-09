@@ -1,0 +1,11 @@
+[theme]
+base="light"
+
+[client]
+showSidebarNavigation = true
+
+[ui]
+hideTopBar = false
+
+[server]
+headless = true
