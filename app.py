@@ -16,18 +16,17 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Modern Chat Bubbles + JavaScript to permanently remove Streamlit Footer & Badge
+# Custom Modern Chat Bubbles + Bottom White Footer Strip CSS
 st.markdown("""
 <style>
     #MainMenu, footer {visibility: hidden !important;}
     header {visibility: visible !important;}
     
-    footer {display: none !important; height: 0px !important;}
     .stApp > header {background-color: transparent;}
     [data-testid="stDecoration"] {display: none !important;}
     [data-testid="stStatusWidget"] {display: none !important; visibility: hidden !important;}
     
-    .block-container {padding-top: 1.5rem; max-width: 780px;}
+    .block-container {padding-top: 1.5rem; max-width: 780px; padding-bottom: 70px;}
     
     div[data-baseweb="input"] {
         border-radius: 28px !important;
@@ -86,13 +85,34 @@ st.markdown("""
         float: none !important;
         width: 100% !important;
     }
+
+    /* Custom Fixed White Footer Strip at the bottom */
+    .custom-bottom-footer {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        background-color: #ffffff;
+        color: #5f6368;
+        text-align: center;
+        padding: 10px 0;
+        font-size: 13px;
+        font-weight: 500;
+        border-top: 1px solid #dadce0;
+        z-index: 99999;
+        box-shadow: 0 -2px 5px rgba(0,0,0,0.05);
+    }
 </style>
+
+<div class="custom-bottom-footer">
+    🎓 BC Tech Computer Education | AI Assistant
+</div>
 
 <script>
     const removeElements = () => {
         const doc = window.parent.document;
-        const footers = doc.querySelectorAll('footer, .viewerBadge_container__1QSob, div[class*="viewerBadge"], a[href*="streamlit.io"]');
-        footers.forEach(el => el.remove());
+        const badges = doc.querySelectorAll('.viewerBadge_container__1QSob, div[class*="viewerBadge"]');
+        badges.forEach(b => b.remove());
     };
     setInterval(removeElements, 100);
 </script>
@@ -269,9 +289,6 @@ def run_aerial_celebration():
     anim_js = """
     <script>
     const parentDoc = window.parent.document;
-    const badges = parentDoc.querySelectorAll('.viewerBadge_container__1QSob, div[class*="viewerBadge"], footer');
-    badges.forEach(b => b.remove());
-
     for(let i = 0; i < 45; i++) {
         let el = parentDoc.createElement('div');
         el.innerText = ['🎆', '✨', '🏮', '🚀', '⭐', '🎉'][Math.floor(Math.random() * 6)];
@@ -655,7 +672,7 @@ if query:
 
             elif is_greeting(query):
                 if lang == "GUJARATI":
-                    reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                    reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                 elif lang == "HINDI":
                     reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                 else:
