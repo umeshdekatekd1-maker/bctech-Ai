@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Modern Chat Bubbles Styles with Capsule Shape Fully Rounded Chat Input Box
+# Custom Modern Chat Bubbles Styles with Perfect Full Capsule Shape Chat Input Box
 st.markdown("""
 <style>
     #MainMenu, footer {visibility: hidden !important;}
@@ -28,16 +28,23 @@ st.markdown("""
     
     .block-container {padding-top: 1.5rem; max-width: 780px;}
     
-    /* Fully Rounded Capsule Shape Chat Input Box */
+    /* Perfect Full Capsule Shape Chat Input Container & Box */
+    [data-testid="stChatInput"] {
+        border-radius: 50px !important;
+        background-color: #ffffff !important;
+    }
+    
     div[data-baseweb="input"] {
         border-radius: 50px !important;
-        box-shadow: 0 1px 6px rgba(32,33,36,0.18) !important;
+        box-shadow: 0 2px 8px rgba(32,33,36,0.15) !important;
         border: 1px solid #dfe1e5 !important;
-        padding-left: 16px;
-        padding-right: 8px;
+        background-color: #ffffff !important;
+        padding-left: 18px !important;
+        padding-right: 10px !important;
     }
+    
     div[data-baseweb="input"]:focus-within {
-        box-shadow: 0 2px 8px rgba(32,33,36,0.3) !important;
+        box-shadow: 0 4px 12px rgba(32,33,36,0.25) !important;
         border-color: #4285F4 !important;
     }
     
@@ -741,7 +748,7 @@ Theory Tests
 
 Practical Tests
 - Test 1: {record.get('practical-1', 'N/A')}
-- Test 2: {record.get('practical-2', 'N/App')}
+- Test 2: {record.get('practical-2', 'N/A')}
 - Test 3: {record.get('practical-3', 'N/A')}
 - Total Practical: {tot_prac}
 
