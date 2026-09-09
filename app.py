@@ -16,7 +16,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom Modern Chat Bubbles Styles with Perfect Full Capsule Shape Chat Input Box
+# Custom Modern Chat Bubbles Styles with Full Capsule Rounded Chat Input Box
 st.markdown("""
 <style>
     #MainMenu, footer {visibility: hidden !important;}
@@ -28,24 +28,32 @@ st.markdown("""
     
     .block-container {padding-top: 1.5rem; max-width: 780px;}
     
-    /* Perfect Full Capsule Shape Chat Input Container & Box */
+    /* Full Capsule Round Shape for Chat Input Container and Box */
     [data-testid="stChatInput"] {
         border-radius: 50px !important;
+        background-color: transparent !important;
+    }
+    
+    [data-testid="stChatInput"] > div {
+        border-radius: 50px !important;
+        border: 1px solid #dfe1e5 !important;
+        background-color: #f8f9fa !important;
+        box-shadow: 0 2px 8px rgba(32,33,36,0.12) !important;
+        padding-left: 10px !important;
+        padding-right: 6px !important;
+    }
+    
+    [data-testid="stChatInput"] > div:focus-within {
+        box-shadow: 0 4px 12px rgba(32,33,36,0.22) !important;
+        border-color: #4285F4 !important;
         background-color: #ffffff !important;
     }
     
     div[data-baseweb="input"] {
         border-radius: 50px !important;
-        box-shadow: 0 2px 8px rgba(32,33,36,0.15) !important;
-        border: 1px solid #dfe1e5 !important;
-        background-color: #ffffff !important;
-        padding-left: 18px !important;
-        padding-right: 10px !important;
-    }
-    
-    div[data-baseweb="input"]:focus-within {
-        box-shadow: 0 4px 12px rgba(32,33,36,0.25) !important;
-        border-color: #4285F4 !important;
+        background-color: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
     }
     
     /* Target User messages to align to Right cleanly */
@@ -610,7 +618,7 @@ if query:
                 st.session_state.last_mentioned_name = username.lower()
 
                 if lang == "GUJARATI":
-                    reply = f"નમસ્તે {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
+                    reply = f"નમસ્ते {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
                 elif lang == "HINDI":
                     reply = f"नमस्ते {username}! BC Tech Computer Education में आपका स्वागत है। बताइए, मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                 else:
