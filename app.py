@@ -655,7 +655,7 @@ if query:
 
             elif is_greeting(query):
                 if lang == "GUJARATI":
-                    reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                    reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                 elif lang == "HINDI":
                     reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                 else:
@@ -771,7 +771,7 @@ Percentage: {percentage}%
                     
                     system_prop = f"""
                     You are a helpful AI Assistant for BC Tech Computer Education. 
-                    CRITICAL LANGUAGE RULE: You MUST reply strictly in {lang_name} language corresponding to the user's input language.F If the user asked in Hindi/Hinglish, reply in Hindi. If English, reply in English.
+                    CRITICAL LANGUAGE RULE: You MUST reply strictly in {lang_name} language corresponding to the user's input language. If the user asked in Hindi/Hinglish, reply in Hindi. If English, reply in English.
                     CRITICAL INSTRUCTION FOR COURSES: When listing or discussing courses, NEVER mention course duration (months) or course fees/prices under any circumstances. Only provide course names and their subjects.
                     Answer general knowledge or general queries accurately, politely, and directly.
                     Never loop or repeat phrases.
@@ -803,14 +803,14 @@ Percentage: {percentage}%
                                 api_messages.append({"role": m["role"], "content": m["content"]})
                             api_messages.append({"role": "user", "content": query})
 
-                            for m_name inmodels_to_try:
+                            for m_name in models_to_try:
                                 try:
                                     chat_completion = client.chat.completions.create(
                                         messages=api_messages,
                                         model=m_name,
                                         temperature=0.3,
                                         max_tokens=300
-                                )
+                                    )
                                     raw_answer = chat_completion.choices[0].message.content
                                     answer = clean_ai_response(raw_answer)
                                     if answer:
@@ -823,7 +823,7 @@ Percentage: {percentage}%
                                 st.write(answer)
                                 st.session_state.messages.append({"role": "assistant", "content": answer})
                                 lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
-                                render_voice_and_copy_toolbar(answer, f"ast_crop_{len(st.session_state.messages)}", lang_code)
+                                render_voice_and_copy_toolbar(answer, f"ast_curr_{len(st.session_state.messages)}", lang_code)
                             else:
                                 st.error(f"API Error: {last_api_err}")
                         except Exception as e:
