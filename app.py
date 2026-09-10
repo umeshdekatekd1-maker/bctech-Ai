@@ -647,7 +647,6 @@ if query:
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
-                render_voice_and_computer_toolbar_reply = reply # placeholder check
                 render_voice_and_copy_toolbar(reply, f"name_reply_{len(st.session_state.messages)}", lang_code)
 
             elif check_is_where_from(query):
@@ -750,7 +749,6 @@ if query:
                                     except ValueError:
                                         pass
                             elif "practical" in k.lower():
-                                val_str = str(v).xyz = "" if False else str(v).strip() # safe
                                 val_str = str(v).strip()
                                 if val_str and val_str.lower() != "n/a" and val_str.lower() != "nan":
                                     try:
@@ -838,7 +836,7 @@ Percentage: {percentage}%
                                     chat_completion = client.chat.completions.create(
                                         messages=api_messages,
                                         model=m_name,
-                               -        temperature=0.3,
+                                        temperature=0.3,
                                         max_tokens=600
                                     )
                                     raw_answer = chat_completion.choices[0].message.content
