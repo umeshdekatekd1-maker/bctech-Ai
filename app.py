@@ -465,14 +465,13 @@ def update_language_state(text):
         st.session_state.current_language = "HINDI"
         return "HINDI"
     
-    # Force detection of Hindi/Hinglish questions like "kab hai", "kaise", "kya", etc.
     hindi_romanized = [
         "kaise", "kaisa", "kaisi", "kaha", "kahan", "kya", "hain", "ho", "hu", "mera", 
         "meri", "karo", "batao", "bata do", "aap", "tum", "kaun", "kisne", "kyu", "kyon",
-        "kab", "mein", "main", "hai", "kya hai", "kon hai"
+        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai"
     ]
     words = text_clean.split()
-    if any(w in hindi_romanized for w in words) or any(phrase in text_clean for phrase in ["kab hai", "kon hai", "kya hai", "kaise hai"]):
+    if any(w in hindi_romanized for w in words) or any(phrase in text_clean for phrase in ["kab hai", "kon hai", "kya hai", "kaise hai", "kaha ke hai"]):
         st.session_state.current_language = "HINDI"
         return "HINDI"
         
@@ -796,13 +795,12 @@ Percentage: {percentage}%
                     You are an expert, highly knowledgeable, and precise AI Assistant for BC Tech Computer Education, Surat, Gujarat, India.
                     Current Date Reference: {current_time_str}.
                     
-                    CRITICAL LANGUAGE RULE (MOST IMPORTANT): 
-                    - The user is asking in {lang_name} (Hindi/Hinglish or Gujarati or English). You MUST reply strictly and exclusively in {lang_name} language (e.g., if user asks in Hindi/Hinglish, reply in proper, clear Hindi/Hinglish). Never switch to English if the user asked in Hindi or Gujarati!
+                    CRITICAL FACTUAL TRUTH & CORRECTION RULE:
+                    - C. Joseph Vijay (Vijay Thalapathy) is the current Chief Minister of Tamil Nadu (assumed office in May 2026) and the leader of the Tamilaga Vettri Kazhagam (TVK) party. 
+                    - Ganesh Visarjan (Anant Chaturdashi) in the year 2026 falls on September 25, 2026 (25 सितंबर 2026).
+                    - Always verify real-world current affairs and facts accurately.
                     
-                    CALENDAR & FACTUAL ACCURACY RULE:
-                    - Ganesh Visarjan (Anant Chaturdashi) in the year 2026 falls on September 25, 2026 (25 सितंबर 2026). Always provide accurate dates.
-                    - You have access to universal knowledge across any past, present, or future year.
-                    
+                    CRITICAL LANGUAGE RULE: Reply strictly and exclusively in the user's input language ({lang_name}). If the user asks in Hindi/Hinglish, reply in proper Hindi. Never switch languages unnecessarily.
                     CRITICAL INSTRUCTION FOR COURSES: When discussing courses, NEVER mention course duration in months or course fees/prices under any circumstances. Only provide course names and their subjects.
                     
                     Institute Location: Surat, Gujarat, India.
