@@ -468,11 +468,11 @@ def update_language_state(text):
     hindi_romanized = [
         "kaise", "kaisa", "kaisi", "kaha", "kahan", "kya", "hain", "ho", "hu", "mera", 
         "meri", "karo", "batao", "bata do", "aap", "tum", "kaun", "kisne", "kyu", "kyon",
-        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai", "ka bhi"
+        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai", "ka bhi", "kare", "show"
     ]
     words = text_clean.split()
     
-    english_indicators = ["my name is", "what is", "how are", "hello", "hi", "where is", "can you", "show my", "thank you", "result of"]
+    english_indicators = ["my name is", "what is", "how are", "hello", "hi", "where is", "can you", "thank you", "result of"]
     if any(ind in text_clean for ind in english_indicators) and not any(w in hindi_romanized for w in words):
         st.session_state.current_language = "ENGLISH"
         return "ENGLISH"
@@ -481,7 +481,7 @@ def update_language_state(text):
         st.session_state.current_language = "HINDI"
         return "HINDI"
         
-    english_common = ["name", "is", "the", "and", "you", "your", "what", "where", "how", "result", "show", "am"]
+    english_common = ["name", "is", "the", "and", "you", "your", "what", "where", "how", "am"]
     if any(w in english_common for w in words) and not any(w in hindi_romanized for w in words):
         st.session_state.current_language = "ENGLISH"
         return "ENGLISH"
@@ -495,7 +495,7 @@ def is_greeting(text):
 
 def check_is_name_intro(text):
     t = text.lower().strip()
-    result_intent_words = ["result", "marks", "exam", "score", "reult", "rizalt", "marksheet", "show", "ka bhi", "bhi"]
+    result_intent_words = ["result", "marks", "exam", "score", "reult", "rizalt", "marksheet", "show", "kare", "ka bhi", "bhi"]
     if any(w in t for w in result_intent_words):
         return False
         
@@ -544,7 +544,7 @@ def search_student_all_sheets(query_text, df):
     fillers = [
         "result", "marks", "marx", "kya", "hai", "check", "batao", "bata do", "mera", "meri", "ka", "ki", "ko",
         "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam", "name",
-        "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo", "mam", "sir", "karo", "kar do",
+        "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo", "mam", "sir", "karo", "kar do", "kare",
         "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ", "ka result", "ka marks", "hai", "my", "is", "ka bhi", "bhi"
     ]
     
@@ -729,10 +729,10 @@ if query:
 
             else:
                 search_query_to_use = query
-                result_intent_words = ["result", "marks", "exam", "mera", "meri", "score", "reult", "rizalt", "marksheet", "ka bhi", "bhi"]
+                result_intent_words = ["result", "marks", "exam", "mera", "meri", "score", "reult", "rizalt", "marksheet", "ka bhi", "bhi", "kare"]
                 
                 if any(w in query.lower() for w in result_intent_words):
-                    if "mera" in query.lower() or "meri" in query.lower() or "ka bhi" in query.lower() or query.strip().lower() in ["result", "exam", "marks"]:
+                    if "mera" in query.lower() or "meri" in query.lower() or "ka bhi" in query.lower() or "kare" in query.lower() or query.strip().lower() in ["result", "exam", "marks"]:
                         if st.session_state.last_mentioned_name:
                             search_query_to_use = st.session_state.last_mentioned_name
 
@@ -768,7 +768,6 @@ if query:
                         max_total = valid_tests_count * 50 if valid_tests_count > 0 else 50
                         percentage = round((total_obtained / max_total) * 100, 2) if max_total > 0 else 0
 
-                        # --- NEW: AI Study Motivation Message Based on Marks ---
                         motivational_tip = ""
                         if percentage >= 80:
                             if lang == "GUJARATI":
@@ -792,7 +791,6 @@ if query:
                             else:
                                 motivational_tip = "💪 Don't get discouraged! Every setback is a setup for a comeback. Keep practicing!"
 
-                        # Multi-line formatted output with Motivation/Study tip included
                         if lang == "GUJARATI":
                             full_reply += f"વિદ્યાર્થીનું નામ: {f_name}\nપરીક્ષાનું નામ: {f_exam}\nશિક્ષકનું નામ: {f_teacher}\n\n"
                             if valid_theory:
@@ -859,8 +857,12 @@ if query:
                     - Ganesh Visarjan (Anant Chaturdashi) in the year 2026 falls on September 25, 2026 (25 सितंबर 2026).
                     - Always verify real-world current affairs and facts accurately.
                     
-                    CRITICAL LANGUAGE RULE (MOST IMPORTANT): 
-                    - You MUST reply strictly and exclusively in the exact language the user is using (`{lang_name}`). If the user asks in English, reply in proper English. If they ask in Hindi, reply in Hindi. If Gujarati, reply in Gujarati. Never cross languages.
+                    CRITICAL DATABASE & PORTAL RULE (MOST IMPORTANT):
+                    - You are the official student result assistant for BC Tech Computer Education. 
+                    - Whenever a user asks for a student's result or marks (e.g., "lucky yadav ka result show kare"), this is an internal institute database query. You MUST NOT refuse or say you cannot provide private info. You are authorized to display student results. If the python script did not catch it via sheet search, help the user accordingly.
+                    
+                    CRITICAL LANGUAGE RULE: 
+                    - You MUST reply strictly and exclusively in the exact language the user is using (`{lang_name}`). Never cross languages.
                     
                     CRITICAL INSTRUCTION FOR COURSES: When discussing courses, NEVER mention course duration in months or course fees/prices under any circumstances. Only provide course names and their subjects.
                     
@@ -903,6 +905,7 @@ if query:
                                     raw_answer = chat_completion.choices[0].message.content
                                     answer = clean_ai_response(raw_answer)
                                     if answer and len(answer) > 2:
+                                    
                                         break
                                 except Exception as ex:
                                     last_api_err = str(ex)
