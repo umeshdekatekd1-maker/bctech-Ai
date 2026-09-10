@@ -563,16 +563,10 @@ def search_student_all_sheets(query_text, df):
 
 def clean_ai_response(text):
     if not text:
-        return "क्षमा करें, मैं इसका उत्तर नहीं दे पाया।"
+        return ""
     cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
     cleaned = re.sub(r"<think>.*", "", cleaned, flags=re.DOTALL)
-    cleaned = cleaned.strip()
-    
-    # Safe check if response became blank or meaningless
-    if not cleaned or len(cleaned) <= 1:
-        return "मैं आपकी बात समझ नहीं पाया, कृपया दोबारा पूछें।"
-        
-    return cleaned
+    return cleaned.strip()
 
 BRANCH_LINK = "https://sites.google.com/view/bctechcomputer/about-us"
 
@@ -645,7 +639,7 @@ if query:
                 st.session_state.last_mentioned_name = username.lower()
 
                 if lang == "GUJARATI":
-                    reply = f"નમસ્તે {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
+                    reply = f"નમસ્ते {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
                 elif lang == "HINDI":
                     reply = f"नमस्ते {username}! BC Tech Computer Education में आपका स्वागत है। बताइए, मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                 else:
@@ -653,6 +647,7 @@ if query:
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
+                render_voice_and_computer_toolbar_reply = reply # placeholder check
                 render_voice_and_copy_toolbar(reply, f"name_reply_{len(st.session_state.messages)}", lang_code)
 
             elif check_is_where_from(query):
@@ -755,6 +750,7 @@ if query:
                                     except ValueError:
                                         pass
                             elif "practical" in k.lower():
+                                val_str = str(v).xyz = "" if False else str(v).strip() # safe
                                 val_str = str(v).strip()
                                 if val_str and val_str.lower() != "n/a" and val_str.lower() != "nan":
                                     try:
@@ -802,11 +798,13 @@ Percentage: {percentage}%
                     lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                     
                     system_prop = f"""
-                    You are a helpful AI Assistant for BC Tech Computer Education. 
-                    CRITICAL LANGUAGE RULE: You MUST reply strictly in {lang_name} language corresponding to the user's input language. If the user asked in Hindi/Hinglish, reply in Hindi. If English, reply in English.
-                    CRITICAL INSTRUCTION FOR COURSES: When listing or discussing courses, NEVER mention course duration (months) or course fees/prices under any circumstances. Only provide course names and their subjects.
-                    Answer general knowledge or general queries accurately, politely, and directly.
-                    Never loop or repeat phrases.
+                    You are a professional and highly knowledgeable AI Assistant for BC Tech Computer Education, located in Surat, Gujarat, India.
+                    You have complete and accurate knowledge about computers, technology, computer courses, programming, software, as well as general knowledge (GK), current affairs, history, entertainment, and general facts.
+                    
+                    CRITICAL INSTRUCTION FOR UNKNOWN FACTS: If a user asks a question about a fact, person, or general knowledge topic that you do not know or are unsure about, do NOT guess or make up words. Simply state clearly and politely in the user's language that you do not know (e.g., in Hindi: "मुझे इसकी सही जानकारी नहीं है" or in English: "I don't have information about that").
+                    
+                    CRITICAL LANGUAGE RULE: You MUST reply strictly in {lang_name} language corresponding to the user's input language. If the user asked in Hindi/Hinglish, reply in clear, proper Hindi. If English, reply in English. Avoid broken or distorted words.
+                    CRITICAL INSTRUCTION FOR COURSES: When listing or discussing courses, NEVER mention course duration in months or course fees/prices under any circumstances. Only provide course names and their subjects.
                     Institute Location: Surat, Gujarat, India.
                     Official Website & Info: {BRANCH_LINK}
                     Courses Data: {KNOWLEDGE_BASE}
@@ -832,8 +830,7 @@ Percentage: {percentage}%
 
                             api_messages = [{"role": "system", "content": system_prop}]
                             for m in st.session_state.messages[:-1]:
-                                api_messages.append({"role": m["role"], "content": m["content"]
-                                })
+                                api_messages.append({"role": m["role"], "content": m["content"]})
                             api_messages.append({"role": "user", "content": query})
 
                             for m_name in models_to_try:
@@ -841,8 +838,8 @@ Percentage: {percentage}%
                                     chat_completion = client.chat.completions.create(
                                         messages=api_messages,
                                         model=m_name,
-                                        temperature=0.3,
-                                        max_tokens=500
+                               -        temperature=0.3,
+                                        max_tokens=600
                                     )
                                     raw_answer = chat_completion.choices[0].message.content
                                     answer = clean_ai_response(raw_answer)
