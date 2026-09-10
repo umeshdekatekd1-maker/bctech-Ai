@@ -136,7 +136,7 @@ if current_chat_id not in db_data:
     db_data[current_chat_id] = {
         "messages": [],
         "recent_chats": [],
-        "current_language": "ENGLISH",
+        "current_language": "HINDI",
         "last_mentioned_name": None
     }
     save_db(db_data)
@@ -349,7 +349,7 @@ def on_new_chat_clicked():
         st.session_state.recent_chats = st.session_state.recent_chats[:3]
 
     st.session_state.messages = []
-    st.session_state.current_language = "ENGLISH"
+    st.session_state.current_language = "HINDI"
     st.session_state.last_mentioned_name = None
     
     new_id = str(uuid.uuid4())
@@ -465,19 +465,16 @@ def update_language_state(text):
         st.session_state.current_language = "HINDI"
         return "HINDI"
     
+    # Force detection of Hindi/Hinglish questions like "kab hai", "kaise", "kya", etc.
     hindi_romanized = [
         "kaise", "kaisa", "kaisi", "kaha", "kahan", "kya", "hain", "ho", "hu", "mera", 
-        "meri", "karo", "batao", "bata do", "aap", "tum", "kaun", "kisne", "kyu", "kyon"
+        "meri", "karo", "batao", "bata do", "aap", "tum", "kaun", "kisne", "kyu", "kyon",
+        "kab", "mein", "main", "hai", "kya hai", "kon hai"
     ]
     words = text_clean.split()
-    if any(w in hindi_romanized for w in words):
+    if any(w in hindi_romanized for w in words) or any(phrase in text_clean for phrase in ["kab hai", "kon hai", "kya hai", "kaise hai"]):
         st.session_state.current_language = "HINDI"
         return "HINDI"
-        
-    english_romanized = ["how are you", "hello", "hi", "hey", "where", "what", "who", "is", "are", "you"]
-    if any(w in text_clean for w in english_romanized) and not any(w in hindi_romanized for w in words):
-        st.session_state.current_language = "ENGLISH"
-        return "ENGLISH"
         
     return st.session_state.current_language
 
@@ -792,19 +789,20 @@ Percentage: {percentage}%
                     render_voice_and_copy_toolbar(full_reply.strip(), f"ast_curr_{len(st.session_state.messages)}", lang_code)
                 else:
                     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-                    current_time_str = datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d %I:%M:%S %p (%A)")
+                    current_time_str = "September 10, 2026"
                     lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                     
                     system_prop = f"""
                     You are an expert, highly knowledgeable, and precise AI Assistant for BC Tech Computer Education, Surat, Gujarat, India.
-                    Current Date Reference: September 10, 2026.
+                    Current Date Reference: {current_time_str}.
                     
-                    CRITICAL CALENDAR & FACTUAL ACCURACY RULE: 
-                    - When answering questions about calendar dates, festivals, events, history, or future years (e.g., Ganesh Visarjan / Anant Chaturdashi in 2026, which falls on September 25, 2026), you must cross-verify and provide absolutely accurate calendar data. Never mix up months (e.g., September vs August).
+                    CRITICAL LANGUAGE RULE (MOST IMPORTANT): 
+                    - The user is asking in {lang_name} (Hindi/Hinglish or Gujarati or English). You MUST reply strictly and exclusively in {lang_name} language (e.g., if user asks in Hindi/Hinglish, reply in proper, clear Hindi/Hinglish). Never switch to English if the user asked in Hindi or Gujarati!
+                    
+                    CALENDAR & FACTUAL ACCURACY RULE:
+                    - Ganesh Visarjan (Anant Chaturdashi) in the year 2026 falls on September 25, 2026 (25 सितंबर 2026). Always provide accurate dates.
                     - You have access to universal knowledge across any past, present, or future year.
-                    - If you are ever unsure of a specific date or fact, explicitly state that you need to verify rather than guessing incorrectly.
                     
-                    CRITICAL LANGUAGE RULE: Reply strictly in {lang_name} matching the user's language. Use clear, natural, and correct grammar without broken or distorted terms.
                     CRITICAL INSTRUCTION FOR COURSES: When discussing courses, NEVER mention course duration in months or course fees/prices under any circumstances. Only provide course names and their subjects.
                     
                     Institute Location: Surat, Gujarat, India.
@@ -840,7 +838,7 @@ Percentage: {percentage}%
                                     chat_completion = client.chat.completions.create(
                                         messages=api_messages,
                                         model=m_name,
-                                        temperature=0.1,  # Lower temperature to reduce hallucinations and make it more factual
+                                        temperature=0.1,
                                         max_tokens=600
                                     )
                                     raw_answer = chat_completion.choices[0].message.content
