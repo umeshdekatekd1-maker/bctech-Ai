@@ -136,7 +136,7 @@ if current_chat_id not in db_data:
     db_data[current_chat_id] = {
         "messages": [],
         "recent_chats": [],
-        "current_language": "HINDI",
+        "current_language": "ENGLISH",
         "last_mentioned_name": None
     }
     save_db(db_data)
@@ -169,7 +169,7 @@ def remove_emojis(text):
     )
 
 # --- READ ALOUD & STOP CONTROLS COMPONENT ---
-def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="hi-IN"):
+def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="en-US"):
     clean_speech_text = remove_emojis(text_to_speak)
     json_speech = json.dumps(clean_speech_text)
     json_copy = json.dumps(text_to_speak)
@@ -349,7 +349,7 @@ def on_new_chat_clicked():
         st.session_state.recent_chats = st.session_state.recent_chats[:3]
 
     st.session_state.messages = []
-    st.session_state.current_language = "HINDI"
+    st.session_state.current_language = "ENGLISH"
     st.session_state.last_mentioned_name = None
     
     new_id = str(uuid.uuid4())
@@ -468,11 +468,11 @@ def update_language_state(text):
     hindi_romanized = [
         "kaise", "kaisa", "kaisi", "kaha", "kahan", "kya", "hain", "ho", "hu", "mera", 
         "meri", "karo", "batao", "bata do", "aap", "tum", "kaun", "kisne", "kyu", "kyon",
-        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai", "ka bhi", "kare", "show"
+        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai", "ka bhi", "kare"
     ]
     words = text_clean.split()
     
-    english_indicators = ["my name is", "what is", "how are", "hello", "hi", "where is", "can you", "thank you", "result of"]
+    english_indicators = ["my name is", "what is", "how are", "hello", "hi", "where is", "can you", "thank you", "result of", "show", "result"]
     if any(ind in text_clean for ind in english_indicators) and not any(w in hindi_romanized for w in words):
         st.session_state.current_language = "ENGLISH"
         return "ENGLISH"
@@ -791,6 +791,7 @@ if query:
                             else:
                                 motivational_tip = "💪 Don't get discouraged! Every setback is a setup for a comeback. Keep practicing!"
 
+                        # Strict Language-based formatting for result output
                         if lang == "GUJARATI":
                             full_reply += f"વિદ્યાર્થીનું નામ: {f_name}\nપરીક્ષાનું નામ: {f_exam}\nશિક્ષકનું નામ: {f_teacher}\n\n"
                             if valid_theory:
@@ -859,7 +860,7 @@ if query:
                     
                     CRITICAL DATABASE & PORTAL RULE (MOST IMPORTANT):
                     - You are the official student result assistant for BC Tech Computer Education. 
-                    - Whenever a user asks for a student's result or marks (e.g., "lucky yadav ka result show kare"), this is an internal institute database query. You MUST NOT refuse or say you cannot provide private info. You are authorized to display student results. If the python script did not catch it via sheet search, help the user accordingly.
+                    - Whenever a user asks for a student's result or marks, this is an internal institute database query. You MUST NOT refuse or say you cannot provide private info. You are authorized to display student results.
                     
                     CRITICAL LANGUAGE RULE: 
                     - You MUST reply strictly and exclusively in the exact language the user is using (`{lang_name}`). Never cross languages.
@@ -905,7 +906,6 @@ if query:
                                     raw_answer = chat_completion.choices[0].message.content
                                     answer = clean_ai_response(raw_answer)
                                     if answer and len(answer) > 2:
-                                    
                                         break
                                 except Exception as ex:
                                     last_api_err = str(ex)
