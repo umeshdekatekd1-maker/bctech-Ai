@@ -745,101 +745,71 @@ if query:
                         f_exam = record.get("Exam_Std", "Course")
                         f_teacher = record.get("_Sheet_Tab", "Teacher")
                         
-                        valid_tests_count = 0
-                        t_marks = []
-                        p_marks = []
+                        # Collect only valid tests that have actual marks (ignoring N/A, empty or NaN)
+                        valid_theory = []
+                        valid_practical = []
                         
                         for k, v in record.items():
-                            if "theory" in k.lower():
-                                val_str = str(v).strip()
-                                if val_str and val_str.lower() != "n/a" and val_str.lower() != "nan":
-                                    try:
-                                        m_val = float(val_str)
-                                        t_marks.append(m_val)
-                                        valid_tests_count += 1
-                                    except ValueError:
-                                        pass
-                            elif "practical" in k.lower():
-                                val_str = str(v).strip()
-                                if val_str and val_str.lower() != "n/a" and val_str.lower() != "nan":
-                                    try:
-                                        m_val = float(val_str)
-                                        p_marks.append(m_val)
-                                        valid_tests_count += 1
-                                    except ValueError:
-                                        pass
+                            val_str = str(v).strip()
+                            if val_str and val_str.lower() != "n/a" and val_str.lower() != "nan" and val_str != "0":
+                                try:
+                                    m_val = float(val_str)
+                                    if "theory" in k.lower():
+                                        valid_theory.append((k, m_val))
+                                    elif "practical" in k.lower():
+                                        valid_practical.append((k, m_val))
+                                except ValueError:
+                                    pass
                         
-                        tot_theory = int(sum(t_marks))
-                        tot_prac = int(sum(p_marks))
+                        tot_theory = int(sum([item[1] for item in valid_theory])) if valid_theory else 0
+                        tot_prac = int(sum([item[1] for item in valid_practical])) if valid_practical else 0
                         total_obtained = tot_theory + tot_prac
                         
+                        valid_tests_count = len(valid_theory) + len(valid_practical)
                         max_total = valid_tests_count * 50 if valid_tests_count > 0 else 50
                         percentage = round((total_obtained / max_total) * 100, 2) if max_total > 0 else 0
 
-                        # Proper Multi-Line Formatted Result Display
+                        # Multi-line formatted output showing ONLY attempted tests
                         if lang == "GUJARATI":
-                            full_reply += f"""વિદ્યાર્થીનું નામ: {f_name}
-પરીક્ષાનું નામ: {f_exam}
-શિક્ષકનું નામ: {f_teacher}
-
-થિયરી ટેસ્ટ
-- ટેસ્ટ ૧: {record.get('Theory-1', 'N/A')}
-- ટેસ્ટ ૨: {record.get('Theory-2', 'N/A')}
-- ટેસ્ટ ૩: {record.get('Theory-3', 'N/A')}
-- કુલ થિયરી: {tot_theory}
-
-પ્રૅક્ટિકલ ટેસ્ટ
-- ટેસ્ટ ૧: {record.get('practical-1', 'N/A')}
-- ટેસ્ટ ૨: {record.get('practical-2', 'N/A')}
-- ટેસ્ટ ૩: {record.get('practical-3', 'N/A')}
-- કુલ પ્રૅક્ટિકલ: {tot_prac}
-
-કુલ ગુણ: {total_obtained} / {max_total}
-ટકાવારી: {percentage}%
-
-"""
+                            full_reply += f"વિદ્યાર્થીનું નામ: {f_name}\nપરીક્ષાનું નામ: {f_exam}\nશિક્ષકનું નામ: {f_teacher}\n\n"
+                            if valid_theory:
+                                full_reply += "થિયરી ટેસ્ટ:\n"
+                                for tk, tv in valid_theory:
+                                    full_reply += f"- {tk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
+                                full_reply += f"- કુલ થિયરી: {tot_theory}\n\n"
+                            if valid_practical:
+                                full_reply += "પ્રૅક્ટિકલ ટેસ્ટ:\n"
+                                for pk, pv in valid_practical:
+                                    full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else pv}\n"
+                                full_reply += f"- કુલ પ્રૅક્ટિકલ: {tot_prac}\n\n"
+                            full_reply += f"કુલ ગુણ: {total_obtained} / {max_total}\nટકાવારી: {percentage}%\n\n"
                         elif lang == "HINDI":
-                            full_reply += f"""विद्यार्थी का नाम: {f_name}
-परीक्षा का नाम: {f_exam}
-शिक्षक का नाम: {f_teacher}
-
-थ्योरी टेस्ट:
-- टेस्ट 1: {record.get('Theory-1', 'N/A')}
-- टेस्ट 2: {record.get('Theory-2', 'N/A')}
-- टेस्ट 3: {record.get('Theory-3', 'N/A')}
-- कुल थ्योरी: {tot_theory}
-
-प्रैक्टिकल टेस्ट:
-- टेस्ट 1: {record.get('practical-1', 'N/A')}
-- टेस्ट 2: {record.get('practical-2', 'N/A')}
-- टेस्ट 3: {record.get('practical-3', 'N/A')}
-- कुल प्रैक्टिकल: {tot_prac}
-
-कुल अंक: {total_obtained} / {max_total}
-प्रतिशत: {percentage}%
-
-"""
+                            full_reply += f"विद्यार्थी का नाम: {f_name}\nपरीक्षा का नाम: {f_exam}\nशिक्षक का नाम: {f_teacher}\n\n"
+                            if valid_theory:
+                                full_reply += "थ्योरी टेस्ट:\n"
+                                for tk, tv in valid_theory:
+                                    full_reply += f"- {tk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
+                                full_reply += f"- कुल थ्योरी: {tot_theory}\n\n"
+                            if valid_practical:
+                                full_reply += "प्रैक्टिकल टेस्ट:\n"
+                                for pk, pv in valid_practical:
+                                    full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else pv}\n"
+                                full_reply += f"- कुल प्रैक्टिकल: {tot_prac}\n\n"
+                            full_reply += f"कुल अंक: {total_obtained} / {max_total}\nप्रतिशत: {percentage}%\n\n"
                         else:
-                            full_reply += f"""Student Name: {f_name}
-Exam Name: {f_exam}
-Teacher Name: {f_teacher}
+                            full_reply += f"Student Name: {f_name}\nExam Name: {f_exam}\nTeacher Name: {f_teacher}\n\n"
+                            if valid_theory:
+                                full_reply += "Theory Tests:\n"
+                                for tk, tv in valid_theory:
+                                    full_reply += f"- {tk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
+                                full_reply += f"- Total Theory: {tot_theory}\n\n"
+                            if valid_practical:
+                                full_reply += "Practical Tests:\n"
+                                for pk, pv in valid_practical:
+                                    full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else pv}\n"
+                                    full_reply += f"- Total Practical: {tot_prac}\n\n"
+                            full_reply += f"Total Marks: {total_obtained} / {max_total}\nPercentage: {percentage}%\n\n"
 
-Theory Tests:
-- Test 1: {record.get('Theory-1', 'N/A')}
-- Test 2: {record.get('Theory-2', 'N/A')}
-- Test 3: {record.get('Theory-3', 'N/A')}
-- Total Theory: {tot_theory}
-
-Practical Tests:
-- Test 1: {record.get('practical-1', 'N/A')}
-- Test 2: {record.get('practical-2', 'N/A')}
-- Test 3: {record.get('practical-3', 'N/A')}
-- Total Practical: {tot_prac}
-
-Total Marks: {total_obtained} / {max_total}
-Percentage: {percentage}%
-
-"""
                     st.markdown(full_reply.strip())
                     st.session_state.messages.append({"role": "assistant", "content": full_reply.strip()})
                     run_aerial_celebration()
