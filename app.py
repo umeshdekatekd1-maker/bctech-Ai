@@ -136,7 +136,7 @@ if current_chat_id not in db_data:
     db_data[current_chat_id] = {
         "messages": [],
         "recent_chats": [],
-        "current_language": "ENGLISH",
+        "current_language": "HINDI",
         "last_mentioned_name": None
     }
     save_db(db_data)
@@ -349,7 +349,7 @@ def on_new_chat_clicked():
         st.session_state.recent_chats = st.session_state.recent_chats[:3]
 
     st.session_state.messages = []
-    st.session_state.current_language = "ENGLISH"
+    st.session_state.current_language = "HINDI"
     st.session_state.last_mentioned_name = None
     
     new_id = str(uuid.uuid4())
@@ -468,11 +468,10 @@ def update_language_state(text):
     hindi_romanized = [
         "kaise", "kaisa", "kaisi", "kaha", "kahan", "kya", "hain", "ho", "hu", "mera", 
         "meri", "karo", "batao", "bata do", "aap", "tum", "kaun", "kisne", "kyu", "kyon",
-        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai"
+        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai", "ka bhi"
     ]
     words = text_clean.split()
     
-    # Check explicitly if it is English based on common English patterns/phrases
     english_indicators = ["my name is", "what is", "how are", "hello", "hi", "where is", "can you", "show my", "thank you", "result of"]
     if any(ind in text_clean for ind in english_indicators) and not any(w in hindi_romanized for w in words):
         st.session_state.current_language = "ENGLISH"
@@ -496,7 +495,7 @@ def is_greeting(text):
 
 def check_is_name_intro(text):
     t = text.lower().strip()
-    result_intent_words = ["result", "marks", "exam", "score", "reult", "rizalt", "marksheet", "show"]
+    result_intent_words = ["result", "marks", "exam", "score", "reult", "rizalt", "marksheet", "show", "ka bhi", "bhi"]
     if any(w in t for w in result_intent_words):
         return False
         
@@ -546,7 +545,7 @@ def search_student_all_sheets(query_text, df):
         "result", "marks", "marx", "kya", "hai", "check", "batao", "bata do", "mera", "meri", "ka", "ki", "ko",
         "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam", "name",
         "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo", "mam", "sir", "karo", "kar do",
-        "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ", "ka result", "ka marks", "hai", "my", "is"
+        "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ", "ka result", "ka marks", "hai", "my", "is", "ka bhi", "bhi"
     ]
     
     query_clean_words = [w for w in clean_q.split() if w not in fillers]
@@ -730,10 +729,10 @@ if query:
 
             else:
                 search_query_to_use = query
-                result_intent_words = ["result", "marks", "exam", "mera", "meri", "score", "reult", "rizalt", "marksheet"]
+                result_intent_words = ["result", "marks", "exam", "mera", "meri", "score", "reult", "rizalt", "marksheet", "ka bhi", "bhi"]
                 
                 if any(w in query.lower() for w in result_intent_words):
-                    if "mera" in query.lower() or "meri" in query.lower() or query.strip().lower() in ["result", "exam", "marks"]:
+                    if "mera" in query.lower() or "meri" in query.lower() or "ka bhi" in query.lower() or query.strip().lower() in ["result", "exam", "marks"]:
                         if st.session_state.last_mentioned_name:
                             search_query_to_use = st.session_state.last_mentioned_name
 
@@ -777,17 +776,61 @@ if query:
                         max_total = valid_tests_count * 50 if valid_tests_count > 0 else 50
                         percentage = round((total_obtained / max_total) * 100, 2) if max_total > 0 else 0
 
-                        full_reply += f"""Student Name: {f_name}
+                        # Proper Multi-Line Formatted Result Display
+                        if lang == "GUJARATI":
+                            full_reply += f"""વિદ્યાર્થીનું નામ: {f_name}
+પરીક્ષાનું નામ: {f_exam}
+શિક્ષકનું નામ: {f_teacher}
+
+થિયરી ટેસ્ટ
+- ટેસ્ટ ૧: {record.get('Theory-1', 'N/A')}
+- ટેસ્ટ ૨: {record.get('Theory-2', 'N/A')}
+- ટેસ્ટ ૩: {record.get('Theory-3', 'N/A')}
+- કુલ થિયરી: {tot_theory}
+
+પ્રૅક્ટિકલ ટેસ્ટ
+- ટેસ્ટ ૧: {record.get('practical-1', 'N/A')}
+- ટેસ્ટ ૨: {record.get('practical-2', 'N/A')}
+- ટેસ્ટ ૩: {record.get('practical-3', 'N/A')}
+- કુલ પ્રૅક્ટિકલ: {tot_prac}
+
+કુલ ગુણ: {total_obtained} / {max_total}
+ટકાવારી: {percentage}%
+
+"""
+                        elif lang == "HINDI":
+                            full_reply += f"""विद्यार्थी का नाम: {f_name}
+परीक्षा का नाम: {f_exam}
+शिक्षक का नाम: {f_teacher}
+
+थ्योरी टेस्ट:
+- टेस्ट 1: {record.get('Theory-1', 'N/A')}
+- टेस्ट 2: {record.get('Theory-2', 'N/A')}
+- टेस्ट 3: {record.get('Theory-3', 'N/A')}
+- कुल थ्योरी: {tot_theory}
+
+प्रैक्टिकल टेस्ट:
+- टेस्ट 1: {record.get('practical-1', 'N/A')}
+- टेस्ट 2: {record.get('practical-2', 'N/A')}
+- टेस्ट 3: {record.get('practical-3', 'N/A')}
+- कुल प्रैक्टिकल: {tot_prac}
+
+कुल अंक: {total_obtained} / {max_total}
+प्रतिशत: {percentage}%
+
+"""
+                        else:
+                            full_reply += f"""Student Name: {f_name}
 Exam Name: {f_exam}
 Teacher Name: {f_teacher}
 
-Theory Tests
+Theory Tests:
 - Test 1: {record.get('Theory-1', 'N/A')}
 - Test 2: {record.get('Theory-2', 'N/A')}
 - Test 3: {record.get('Theory-3', 'N/A')}
 - Total Theory: {tot_theory}
 
-Practical Tests
+Practical Tests:
 - Test 1: {record.get('practical-1', 'N/A')}
 - Test 2: {record.get('practical-2', 'N/A')}
 - Test 3: {record.get('practical-3', 'N/A')}
@@ -797,7 +840,7 @@ Total Marks: {total_obtained} / {max_total}
 Percentage: {percentage}%
 
 """
-                    st.write(full_reply.strip())
+                    st.markdown(full_reply.strip())
                     st.session_state.messages.append({"role": "assistant", "content": full_reply.strip()})
                     run_aerial_celebration()
                     lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
@@ -818,7 +861,7 @@ Percentage: {percentage}%
                     - Always verify real-world current affairs and facts accurately.
                     
                     CRITICAL LANGUAGE RULE (MOST IMPORTANT): 
-                    - You MUST reply strictly and exclusively in the exact language the user is using (`{lang_name}`). If the user asks in English (e.g., "my name is..."), you MUST reply in proper English. If they ask in Hindi, reply in Hindi. Never cross languages.
+                    - You MUST reply strictly and exclusively in the exact language the user is using (`{lang_name}`). If the user asks in English, reply in proper English. If they ask in Hindi, reply in Hindi. If Gujarati, reply in Gujarati. Never cross languages.
                     
                     CRITICAL INSTRUCTION FOR COURSES: When discussing courses, NEVER mention course duration in months or course fees/prices under any circumstances. Only provide course names and their subjects.
                     
@@ -867,7 +910,7 @@ Percentage: {percentage}%
                                     continue
                             
                             if answer:
-                                st.write(answer)
+                                st.markdown(answer)
                                 st.session_state.messages.append({"role": "assistant", "content": answer})
                                 lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
                                 render_voice_and_copy_toolbar(answer, f"ast_curr_{len(st.session_state.messages)}", lang_code)
