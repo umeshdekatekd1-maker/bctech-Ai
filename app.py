@@ -468,10 +468,10 @@ def update_language_state(text):
     hindi_romanized = [
         "kaise", "kaisa", "kaisi", "kaha", "kahan", "kya", "hain", "ho", "hu", "mera", 
         "meri", "karo", "batao", "bata do", "aap", "tum", "kaun", "kisne", "kyu", "kyon",
-        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai"
+        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai", "result"
     ]
     words = text_clean.split()
-    if any(w in hindi_romanized for w in words) or any(phrase in text_clean for phrase in ["kab hai", "kon hai", "kya hai", "kaise hai", "kaha ke hai"]):
+    if any(w in hindi_romanized for w in words) or any(phrase in text_clean for phrase in ["kab hai", "kon hai", "kya hai", "kaise hai", "kaha ke hai", "result show"]):
         st.session_state.current_language = "HINDI"
         return "HINDI"
         
@@ -484,6 +484,11 @@ def is_greeting(text):
 
 def check_is_name_intro(text):
     t = text.lower().strip()
+    # If user is asking for result along with name, do NOT treat it as a pure name intro!
+    result_intent_words = ["result", "marks", "exam", "score", "reult", "rizalt", "marksheet", "show"]
+    if any(w in t for w in result_intent_words):
+        return False
+        
     name_triggers = ["mera naam", "my name is", "maru naam", "hu mara naam", "naam hai", "name is", "i am", "mein hu", "hu ", "maaru naam"]
     if any(p in t for p in name_triggers) or t.startswith("naam "):
         return True
@@ -530,7 +535,7 @@ def search_student_all_sheets(query_text, df):
         "result", "marks", "marx", "kya", "hai", "check", "batao", "bata do", "mera", "meri", "ka", "ki", "ko",
         "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam", "name",
         "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo", "mam", "sir", "karo", "kar do",
-        "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ", "ka result", "ka marks"
+        "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ", "ka result", "ka marks", "hai"
     ]
     
     query_clean_words = [w for w in clean_q.split() if w not in fillers]
