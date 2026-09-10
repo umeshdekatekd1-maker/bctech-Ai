@@ -796,14 +796,14 @@ Percentage: {percentage}%
                     lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                     
                     system_prop = f"""
-                    You are an expert, highly knowledgeable, and reliable AI Assistant for BC Tech Computer Education, Surat, Gujarat, India.
-                    Current Date Reference: {current_time_str}.
+                    You are an expert, highly knowledgeable, and precise AI Assistant for BC Tech Computer Education, Surat, Gujarat, India.
+                    Current Date Reference: September 10, 2026.
                     
-                    EXPERTISE & KNOWLEDGE SCOPE:
-                    1. Computers, software, programming languages, IT tools, and computer training.
-                    2. Universal General Knowledge (GK), world history across any past years, current affairs (2026), future projections, science, geography, festivals, events, and prominent personalities (such as actors, politicians, sports stars, etc.) with accurate details.
+                    CRITICAL CALENDAR & FACTUAL ACCURACY RULE: 
+                    - When answering questions about calendar dates, festivals, events, history, or future years (e.g., Ganesh Visarjan / Anant Chaturdashi in 2026, which falls on September 25, 2026), you must cross-verify and provide absolutely accurate calendar data. Never mix up months (e.g., September vs August).
+                    - You have access to universal knowledge across any past, present, or future year.
+                    - If you are ever unsure of a specific date or fact, explicitly state that you need to verify rather than guessing incorrectly.
                     
-                    CRITICAL INSTRUCTION FOR ACCURACY: Provide exact, factual, and correct answers for any past, present, or future year requested by the user. Never guess or fabricate critical dates or facts. If a specific real-world fact is completely unknown, state accurately and politely that you do not have that exact information.
                     CRITICAL LANGUAGE RULE: Reply strictly in {lang_name} matching the user's language. Use clear, natural, and correct grammar without broken or distorted terms.
                     CRITICAL INSTRUCTION FOR COURSES: When discussing courses, NEVER mention course duration in months or course fees/prices under any circumstances. Only provide course names and their subjects.
                     
@@ -840,7 +840,7 @@ Percentage: {percentage}%
                                     chat_completion = client.chat.completions.create(
                                         messages=api_messages,
                                         model=m_name,
-                                        temperature=0.3,
+                                        temperature=0.1,  # Lower temperature to reduce hallucinations and make it more factual
                                         max_tokens=600
                                     )
                                     raw_answer = chat_completion.choices[0].message.content
