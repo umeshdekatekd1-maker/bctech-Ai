@@ -136,7 +136,7 @@ if current_chat_id not in db_data:
     db_data[current_chat_id] = {
         "messages": [],
         "recent_chats": [],
-        "current_language": "HINDI",
+        "current_language": "ENGLISH",
         "last_mentioned_name": None
     }
     save_db(db_data)
@@ -349,7 +349,7 @@ def on_new_chat_clicked():
         st.session_state.recent_chats = st.session_state.recent_chats[:3]
 
     st.session_state.messages = []
-    st.session_state.current_language = "HINDI"
+    st.session_state.current_language = "ENGLISH"
     st.session_state.last_mentioned_name = None
     
     new_id = str(uuid.uuid4())
@@ -468,12 +468,24 @@ def update_language_state(text):
     hindi_romanized = [
         "kaise", "kaisa", "kaisi", "kaha", "kahan", "kya", "hain", "ho", "hu", "mera", 
         "meri", "karo", "batao", "bata do", "aap", "tum", "kaun", "kisne", "kyu", "kyon",
-        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai", "result"
+        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai"
     ]
     words = text_clean.split()
-    if any(w in hindi_romanized for w in words) or any(phrase in text_clean for phrase in ["kab hai", "kon hai", "kya hai", "kaise hai", "kaha ke hai", "result show"]):
+    
+    # Check explicitly if it is English based on common English patterns/phrases
+    english_indicators = ["my name is", "what is", "how are", "hello", "hi", "where is", "can you", "show my", "thank you", "result of"]
+    if any(ind in text_clean for ind in english_indicators) and not any(w in hindi_romanized for w in words):
+        st.session_state.current_language = "ENGLISH"
+        return "ENGLISH"
+        
+    if any(w in hindi_romanized for w in words):
         st.session_state.current_language = "HINDI"
         return "HINDI"
+        
+    english_common = ["name", "is", "the", "and", "you", "your", "what", "where", "how", "result", "show", "am"]
+    if any(w in english_common for w in words) and not any(w in hindi_romanized for w in words):
+        st.session_state.current_language = "ENGLISH"
+        return "ENGLISH"
         
     return st.session_state.current_language
 
@@ -484,7 +496,6 @@ def is_greeting(text):
 
 def check_is_name_intro(text):
     t = text.lower().strip()
-    # If user is asking for result along with name, do NOT treat it as a pure name intro!
     result_intent_words = ["result", "marks", "exam", "score", "reult", "rizalt", "marksheet", "show"]
     if any(w in t for w in result_intent_words):
         return False
@@ -535,7 +546,7 @@ def search_student_all_sheets(query_text, df):
         "result", "marks", "marx", "kya", "hai", "check", "batao", "bata do", "mera", "meri", "ka", "ki", "ko",
         "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam", "name",
         "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo", "mam", "sir", "karo", "kar do",
-        "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ", "ka result", "ka marks", "hai"
+        "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ", "ka result", "ka marks", "hai", "my", "is"
     ]
     
     query_clean_words = [w for w in clean_q.split() if w not in fillers]
@@ -801,11 +812,14 @@ Percentage: {percentage}%
                     Current Date Reference: {current_time_str}.
                     
                     CRITICAL FACTUAL TRUTH & CORRECTION RULE:
-                    - C. Joseph Vijay (Vijay Thalapathy) is the current Chief Minister of Tamil Nadu (assumed office in May 2026) and the leader of the Tamilaga Vettri Kazhagam (TVK) party. 
+                    - C. Joseph Vijay (Vijay Thalapathy) is a popular South Indian actor and film star who entered politics (TVK party). He is NOT a Chief Minister (CM).
+                    - Current Chief Minister of Tamil Nadu in 2026 is M. K. Stalin.
                     - Ganesh Visarjan (Anant Chaturdashi) in the year 2026 falls on September 25, 2026 (25 सितंबर 2026).
                     - Always verify real-world current affairs and facts accurately.
                     
-                    CRITICAL LANGUAGE RULE: Reply strictly and exclusively in the user's input language ({lang_name}). If the user asks in Hindi/Hinglish, reply in proper Hindi. Never switch languages unnecessarily.
+                    CRITICAL LANGUAGE RULE (MOST IMPORTANT): 
+                    - You MUST reply strictly and exclusively in the exact language the user is using (`{lang_name}`). If the user asks in English (e.g., "my name is..."), you MUST reply in proper English. If they ask in Hindi, reply in Hindi. Never cross languages.
+                    
                     CRITICAL INSTRUCTION FOR COURSES: When discussing courses, NEVER mention course duration in months or course fees/prices under any circumstances. Only provide course names and their subjects.
                     
                     Institute Location: Surat, Gujarat, India.
