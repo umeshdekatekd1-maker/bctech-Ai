@@ -168,7 +168,7 @@ def remove_emojis(text):
         text
     )
 
-# --- READ ALOUD & STOP CONTROLS COMPONENT (WITH HUMAN-LIKE VOICE TUNING) ---
+# --- READ ALOUD & STOP CONTROLS COMPONENT ---
 def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="hi-IN"):
     clean_speech_text = remove_emojis(text_to_speak)
     json_speech = json.dumps(clean_speech_text)
@@ -230,12 +230,9 @@ def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="hi-IN"):
                 if ('speechSynthesis' in window) {{
                     utterance_{unique_id} = new SpeechSynthesisUtterance(text);
                     utterance_{unique_id}.lang = '{lang_code}';
-                    
-                    // Human-like tuning: natural speaking rate and pitch
                     utterance_{unique_id}.rate = 0.93; 
                     utterance_{unique_id}.pitch = 1.0; 
 
-                    // Select best natural neural/Google/Microsoft voice if available
                     const voices = window.speechSynthesis.getVoices();
                     const targetLang = '{lang_code}'.substring(0, 2);
                     
@@ -566,18 +563,16 @@ def search_student_all_sheets(query_text, df):
 
 def clean_ai_response(text):
     if not text:
-        return ""
+        return "क्षमा करें, मैं इसका उत्तर नहीं दे पाया।"
     cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
     cleaned = re.sub(r"<think>.*", "", cleaned, flags=re.DOTALL)
+    cleaned = cleaned.strip()
     
-    words = cleaned.split()
-    if len(words) > 10:
-        for i in range(1, len(words) // 2):
-            phrase = " ".join(words[:i])
-            if phrase and cleaned.count(phrase) > 3:
-                cleaned = phrase + "."
-                break
-    return cleaned.strip()
+    # Safe check if response became blank or meaningless
+    if not cleaned or len(cleaned) <= 1:
+        return "मैं आपकी बात समझ नहीं पाया, कृपया दोबारा पूछें।"
+        
+    return cleaned
 
 BRANCH_LINK = "https://sites.google.com/view/bctechcomputer/about-us"
 
@@ -650,7 +645,7 @@ if query:
                 st.session_state.last_mentioned_name = username.lower()
 
                 if lang == "GUJARATI":
-                    reply = f"નમસ્ते {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
+                    reply = f"નમસ્તે {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
                 elif lang == "HINDI":
                     reply = f"नमस्ते {username}! BC Tech Computer Education में आपका स्वागत है। बताइए, मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                 else:
@@ -837,7 +832,8 @@ Percentage: {percentage}%
 
                             api_messages = [{"role": "system", "content": system_prop}]
                             for m in st.session_state.messages[:-1]:
-                                api_messages.append({"role": m["role"], "content": m["content"]})
+                                api_messages.append({"role": m["role"], "content": m["content"]
+                                })
                             api_messages.append({"role": "user", "content": query})
 
                             for m_name in models_to_try:
@@ -846,11 +842,11 @@ Percentage: {percentage}%
                                         messages=api_messages,
                                         model=m_name,
                                         temperature=0.3,
-                                        max_tokens=300
+                                        max_tokens=500
                                     )
                                     raw_answer = chat_completion.choices[0].message.content
                                     answer = clean_ai_response(raw_answer)
-                                    if answer:
+                                    if answer and len(answer) > 2:
                                         break
                                 except Exception as ex:
                                     last_api_err = str(ex)
