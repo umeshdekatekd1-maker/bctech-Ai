@@ -745,7 +745,6 @@ if query:
                         f_exam = record.get("Exam_Std", "Course")
                         f_teacher = record.get("_Sheet_Tab", "Teacher")
                         
-                        # Collect only valid tests that have actual marks (ignoring N/A, empty or NaN)
                         valid_theory = []
                         valid_practical = []
                         
@@ -769,7 +768,31 @@ if query:
                         max_total = valid_tests_count * 50 if valid_tests_count > 0 else 50
                         percentage = round((total_obtained / max_total) * 100, 2) if max_total > 0 else 0
 
-                        # Multi-line formatted output showing ONLY attempted tests
+                        # --- NEW: AI Study Motivation Message Based on Marks ---
+                        motivational_tip = ""
+                        if percentage >= 80:
+                            if lang == "GUJARATI":
+                                motivational_tip = "🌟 ખૂબ જ સરસ! તમારું પરિણામ ઉત્કૃષ્ટ છે. આવી જ મહેનત ચાલુ રાખો!"
+                            elif lang == "HINDI":
+                                motivational_tip = "🌟 बहुत बढ़िया! आपका प्रदर्शन शानदार है। इसी तरह कड़ी मेहनत जारी रखें!"
+                            else:
+                                motivational_tip = "🌟 Outstanding performance! Keep up the brilliant work!"
+                        elif percentage >= 50:
+                            if lang == "GUJARATI":
+                                motivational_tip = "👍 સરસ પ્રયાસ! તમે સારી મહેનત કરી છે, થોડી વધુ મહેનતથી તમે ટોપ પર પહોંચી શકો છો."
+                            elif lang == "HINDI":
+                                motivational_tip = "👍 अच्छा प्रयास! आपने अच्छी मेहनत की है, थोड़ी और लगन से आप और भी बेहतर कर सकते हैं।"
+                            else:
+                                motivational_tip = "👍 Good effort! With a little more practice, you can achieve even higher goals."
+                        else:
+                            if lang == "GUJARATI":
+                                motivational_tip = "💪 હિંમત ન हारो! નિષ્ફળતા જ સફળતાની પહેલી સીડી છે. થોડી વધુ પ્રેક્ટિસ કરો, તમે ચોક્કસ સફળ થશો!"
+                            elif lang == "HINDI":
+                                motivational_tip = "💪 निराश न हों! असफलता ही सफलता की पहली सीढ़ी है। थोड़ी और मेहनत करें, आप जरूर सफल होंगे!"
+                            else:
+                                motivational_tip = "💪 Don't get discouraged! Every setback is a setup for a comeback. Keep practicing!"
+
+                        # Multi-line formatted output with Motivation/Study tip included
                         if lang == "GUJARATI":
                             full_reply += f"વિદ્યાર્થીનું નામ: {f_name}\nપરીક્ષાનું નામ: {f_exam}\nશિક્ષકનું નામ: {f_teacher}\n\n"
                             if valid_theory:
@@ -782,7 +805,9 @@ if query:
                                 for pk, pv in valid_practical:
                                     full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else pv}\n"
                                 full_reply += f"- કુલ પ્રૅક્ટિકલ: {tot_prac}\n\n"
-                            full_reply += f"કુલ ગુણ: {total_obtained} / {max_total}\nટકાવારી: {percentage}%\n\n"
+                            full_reply += f"કુલ ગુણ: {total_obtained} / {max_total}\n"
+                            full_reply += f"ટકાવારી: {percentage}%\n\n"
+                            full_reply += f"💡 **પ્રેરણાત્મક સલાહ:** {motivational_tip}\n\n"
                         elif lang == "HINDI":
                             full_reply += f"विद्यार्थी का नाम: {f_name}\nपरीक्षा का नाम: {f_exam}\nशिक्षक का नाम: {f_teacher}\n\n"
                             if valid_theory:
@@ -794,8 +819,10 @@ if query:
                                 full_reply += "प्रैक्टिकल टेस्ट:\n"
                                 for pk, pv in valid_practical:
                                     full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else pv}\n"
-                                full_reply += f"- कुल प्रैक्टिकल: {tot_prac}\n\n"
-                            full_reply += f"कुल अंक: {total_obtained} / {max_total}\nप्रतिशत: {percentage}%\n\n"
+                                    full_reply += f"- कुल प्रैक्टिकल: {tot_prac}\n\n"
+                            full_reply += f"कुल अंक: {total_obtained} / {max_total}\n"
+                            full_reply += f"प्रतिशत: {percentage}%\n\n"
+                            full_reply += f"💡 **प्रेरणादायक संदेश:** {motivational_tip}\n\n"
                         else:
                             full_reply += f"Student Name: {f_name}\nExam Name: {f_exam}\nTeacher Name: {f_teacher}\n\n"
                             if valid_theory:
@@ -808,7 +835,9 @@ if query:
                                 for pk, pv in valid_practical:
                                     full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else pv}\n"
                                     full_reply += f"- Total Practical: {tot_prac}\n\n"
-                            full_reply += f"Total Marks: {total_obtained} / {max_total}\nPercentage: {percentage}%\n\n"
+                            full_reply += f"Total Marks: {total_obtained} / {max_total}\n"
+                            full_reply += f"Percentage: {percentage}%\n\n"
+                            full_reply += f"💡 **Study Tip / Motivation:** {motivational_tip}\n\n"
 
                     st.markdown(full_reply.strip())
                     st.session_state.messages.append({"role": "assistant", "content": full_reply.strip()})
