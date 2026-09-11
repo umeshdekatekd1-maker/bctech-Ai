@@ -8,6 +8,7 @@ import re
 import json
 import os
 import uuid
+import base64
 from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
@@ -747,19 +748,20 @@ if query:
                     else:
                         st.write(f"📂 Here is your requested paper: **{d_name}**")
                         
-                        # 100% Reliable Native Streamlit Download / Open Button (Bypasses Chrome iframe block)
+                        # Pure HTML Anchor Link opening directly in a new tab without download
                         with open(p_info["path"], "rb") as pf:
-                            pdf_bytes = pf.read()
+                            b64_pdf = base64.b64encode(pf.read()).decode('utf-8')
                         
-                        st.download_button(
-                            label=f"📂 Click to Open {d_name}",
-                            data=pdf_bytes,
-                            file_name=p_info["filename"],
-                            mime="application/pdf",
-                            key=f"dl_btn_safe_{paper_requested}_{len(st.session_state.messages)}"
-                        )
+                        open_tab_html = f"""
+                        <div style="margin-top: 10px;">
+                            <a href="data:application/pdf;base64,{b64_pdf}#toolbar=0&navpanes=0&scrollbar=0" target="_blank" style="background-color: #1a73e8; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block; font-family: sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
+                                📂 Click to Open {d_name} in New Tab
+                            </a>
+                        </div>
+                        """
+                        components.html(open_tab_html, height=55)
                         
-                        reply = f"Opened open button for: {d_name}"
+                        reply = f"Opened secure tab link for: {d_name}"
                         st.session_state.messages.append({"role": "assistant", "content": reply})
                 
                 elif err:
