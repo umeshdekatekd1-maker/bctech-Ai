@@ -748,14 +748,43 @@ if query:
                     else:
                         st.write(f"📂 Here is your requested paper: **{d_name}**")
                         
-                        # Generate data URI for safe separate tab viewing
+                        # Safe Blob URL JavaScript Viewer Launcher (Completely bypasses browser data-uri security blocks)
                         with open(p_info["path"], "rb") as pf:
                             b64_pdf = base64.b64encode(pf.read()).decode('utf-8')
                         
-                        # Clickable button opening in a separate secure tab with disabled toolbar
+                        viewer_html_code = f"""
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>{d_name}</title>
+                            <style>
+                                body {{ margin:0; padding:0; background: #525659; display: flex; justify-content: center; align-items: center; height: 100vh; }}
+                                iframe {{ width: 100%; height: 100%; border: none; }}
+                            </style>
+                        </head>
+                        <body>
+                            <iframe id="pdfFrame"></iframe>
+                            <script>
+                                const b64Data = "{b64_pdf}";
+                                const byteCharacters = atob(b64Data);
+                                const byteNumbers = new Array(byteCharacters.length);
+                                for (let i = 0; i < byteCharacters.length; i++) {{
+                                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                                }}
+                                const byteArray = new Uint8Array(byteNumbers);
+                                const blob = new Blob([byteArray], {{ type: 'application/pdf' }});
+                                const blobUrl = URL.createObjectURL(blob);
+                                document.getElementById('pdfFrame').src = blobUrl + "#toolbar=0&navpanes=0&scrollbar=0";
+                            </script>
+                        </body>
+                        </html>
+                        """
+                        
+                        b64_viewer = base64.b64encode(viewer_html_code.encode('utf-8')).decode('utf-8')
+                        
                         open_link_html = f"""
                         <div style="margin-top: 10px;">
-                            <a href="data:application/pdf;base64,{b64_pdf}#toolbar=0&navpanes=0&scrollbar=0" target="_blank" style="background-color: #1a73e8; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block; font-family: sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
+                            <a href="data:text/html;base64,{b64_viewer}" target="_blank" style="background-color: #1a73e8; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block; font-family: sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
                                 📂 Click to Open {d_name} (Secure View)
                             </a>
                         </div>
