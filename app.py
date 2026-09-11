@@ -107,6 +107,7 @@ st.markdown("""
 
 # --- PERSISTENT STORAGE DB MANAGER ---
 DB_FILE = "bctech_chat_storage.json"
+PAPERS_META_FILE = "bctech_papers_store.json"
 
 def load_db():
     if os.path.exists(DB_FILE):
@@ -123,6 +124,25 @@ def save_db(db):
             json.dump(db, f, ensure_ascii=False, indent=2)
     except Exception:
         pass
+
+def load_papers_db():
+    if os.path.exists(PAPERS_META_FILE):
+        try:
+            with open(PAPERS_META_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def save_papers_db(papers_db):
+    try:
+        with open(PAPERS_META_FILE, "w", encoding="utf-8") as f:
+            json.dump(papers_db, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+if "papers_data" not in st.session_state:
+    st.session_state.papers_data = load_papers_db()
 
 query_params = st.query_params
 if "chat_id" not in query_params or not query_params["chat_id"]:
@@ -372,7 +392,7 @@ def clean_val_display(val):
     except Exception:
         return str(val).strip()
 
-# Sidebar
+# Sidebar - Admin Panel for Password Protected Paper Uploads
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -391,7 +411,47 @@ with st.sidebar:
                 )
         else:
             st.caption("No recent chats yet.")
+
+    st.markdown("---")
+    st.markdown("### 🔒 Teacher / Admin Panel")
+    with st.expander("📁 Upload & Manage Papers", expanded=False):
+        admin_pass = st.text_input("Enter Password", type="password", key="admin_pass_input")
+        if admin_pass == "bctech1AA@":
+            st.success("Access Granted!")
+            paper_name_input = st.text_input("Paper Key Name (e.g., tally paper 1)")
+            uploaded_pdf = st.file_uploader("Upload Question Paper (PDF)", type=["pdf"])
             
+            if st.button("Upload & Save Paper"):
+                if paper_name_input and uploaded_pdf:
+                    p_key = paper_name_input.strip().lower()
+                    os.makedirs("uploaded_papers", exist_ok=True)
+                    file_path = os.path.join("uploaded_papers", uploaded_pdf.name)
+                    with open(file_path, "wb") as f:
+                        f.write(uploaded_pdf.getbuffer())
+                    
+                    st.session_state.papers_data[p_key] = {
+                        "filename": uploaded_pdf.name,
+                        "path": file_path,
+                        "locked": False
+                    }
+                    save_papers_db(st.session_state.papers_data)
+                    st.success(f"Paper '{p_key}' successfully uploaded!")
+                else:
+                    st.warning("Please provide both paper name and PDF file.")
+            
+            if st.session_state.papers_data:
+                st.markdown("**Existing Papers Status:**")
+                for pk, p_info in list(st.session_state.papers_data.items()):
+                    status_str = "🔒 Locked" if p_info["locked"] else "🟢 Open"
+                    col1, col2 = st.columns([2, 1])
+                    col1.text(f"{pk} ({status_str})")
+                    if col2.button("Toggle Lock", key=f"tog_{pk}"):
+                        st.session_state.papers_data[pk]["locked"] = not p_info["locked"]
+                        save_papers_db(st.session_state.papers_data)
+                        st.rerun()
+        elif admin_pass != "":
+            st.error("Incorrect Password!")
+
     st.markdown("---")
     st.markdown("**📌 Quick Links:**")
     st.markdown("🌐 [Official Website](https://sites.google.com/view/bctechcomputer)")
@@ -611,7 +671,43 @@ if query:
     clean_q_lower = query.strip().lower()
     lang = update_language_state(query)
     
-    if clean_q_lower in ["or", "aur", "hi", "hello", "ok", "hey", "h", "k"]:
+    # Check for Teacher Lock/Unlock commands via chat
+    lock_match = re.search(r"(?:lock|band|not_open|not open)\s+(tally paper \d+|paper \d+|[\w\s]+)", clean_q_lower)
+    unlock_match = re.search(r"(?:unlock|open|chalu)\s+(tally paper \d+|paper \d+|[\w\s]+)", clean_q_lower)
+    
+    if "tally paper not_open" in clean_q_lower or "lock tally paper" in clean_q_lower or ("tally paper" in clean_q_lower and "not open" in clean_q_lower):
+        for pk in st.session_state.papers_data:
+            if "tally" in pk:
+                st.session_state.papers_data[pk]["locked"] = True
+        save_papers_db(st.session_state.papers_data)
+        
+        st.session_state.messages.append({"role": "user", "content": query})
+        with st.chat_message("user", avatar="👤"):
+            st.write(query)
+        with st.chat_message("assistant", avatar="🤖"):
+            reply = "🔒 Tally paper has been successfully locked and cannot be opened by anyone now."
+            st.write(reply)
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+            render_voice_and_copy_toolbar(reply, f"lock_ack_{len(st.session_state.messages)}", "hi-IN")
+        persist_current_state()
+
+    elif "unlock tally paper" in clean_q_lower or "open tally paper" in clean_q_lower:
+        for pk in st.session_state.papers_data:
+            if "tally" in pk:
+                st.session_state.papers_data[pk]["locked"] = False
+        save_papers_db(st.session_state.papers_data)
+        
+        st.session_state.messages.append({"role": "user", "content": query})
+        with st.chat_message("user", avatar="👤"):
+            st.write(query)
+        with st.chat_message("assistant", avatar="🤖"):
+            reply = "🔓 Tally paper has been unlocked and is now available."
+            st.write(reply)
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+            render_voice_and_copy_toolbar(reply, f"unlock_ack_{len(st.session_state.messages)}", "hi-IN")
+        persist_current_state()
+
+    elif clean_q_lower in ["or", "aur", "hi", "hello", "ok", "hey", "h", "k"]:
         st.session_state.messages.append({"role": "user", "content": query})
         with st.chat_message("user", avatar="👤"):
             st.write(query)
@@ -633,10 +729,36 @@ if query:
         with st.chat_message("user", avatar="👤"):
             st.write(query)
 
+        # Check if user is asking to open a specific uploaded paper
+        paper_requested = None
+        for pk in st.session_state.papers_data:
+            if pk in clean_q_lower:
+                paper_requested = pk
+                break
+
         df_sheet, err = load_all_sheets_data()
         
         with st.chat_message("assistant", avatar="🤖"):
-            if err:
+            if paper_requested:
+                p_info = st.session_state.papers_data[paper_requested]
+                if p_info["locked"]:
+                    reply = f"⛔ Sorry! The paper '{paper_requested}' is currently locked by the teacher/admin and cannot be opened."
+                    st.write(reply)
+                    st.session_state.messages.append({"role": "assistant", "content": reply})
+                    render_voice_and_copy_toolbar(reply, f"locked_p_{len(st.session_state.messages)}", "hi-IN")
+                else:
+                    st.write(f"📂 Here is your requested paper: **{p_info['filename']}**")
+                    with open(p_info["path"], "rb") as pf:
+                        st.download_button(
+                            label=f"📥 Download / Open {p_info['filename']}",
+                            data=pf,
+                            file_name=p_info["filename"],
+                            mime="application/pdf"
+                        )
+                    reply = f"Opened paper: {p_info['filename']}"
+                    st.session_state.messages.append({"role": "assistant", "content": reply})
+            
+            elif err:
                 st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
             
             elif check_is_name_intro(query):
