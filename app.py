@@ -8,6 +8,7 @@ import re
 import json
 import os
 import uuid
+import base64
 from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
@@ -392,7 +393,7 @@ def clean_val_display(val):
     except Exception:
         return str(val).strip()
 
-# Sidebar - Admin Panel for Password Protected Paper Uploads with Auto PDF Name
+# Sidebar - Admin Panel for Password Protected Paper Uploads with Auto PDF Name & Lock/Unlock
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -422,7 +423,6 @@ with st.sidebar:
             
             if uploaded_pdf is not None:
                 original_filename = uploaded_pdf.name
-                # Remove extension to get clean display name
                 base_name = os.path.splitext(original_filename)[0]
                 st.info(f"Detected Paper Name: **{base_name}**")
                 
@@ -735,7 +735,7 @@ if query:
             with st.chat_message("user", avatar="👤"):
                 st.write(query)
 
-            # Check if user is asking to open/download a specific uploaded paper by its exact name
+            # Check if user is asking to open a specific uploaded paper by its exact name
             paper_requested = None
             for pk, p_info in st.session_state.papers_data.items():
                 d_name_lower = p_info.get("display_name", pk).lower()
@@ -755,15 +755,14 @@ if query:
                         st.session_state.messages.append({"role": "assistant", "content": reply})
                         render_voice_and_copy_toolbar(reply, f"locked_p_{len(st.session_state.messages)}", "hi-IN")
                     else:
-                        st.write(f"📂 Here is your requested paper: **{p_info['filename']}**")
+                        st.write(f"📂 Here is your requested paper: **{d_name}**")
+                        # Embed PDF directly in chat for viewing without download/print options
                         with open(p_info["path"], "rb") as pf:
-                            st.download_button(
-                                label=f"📥 Download / Open {p_info['filename']}",
-                                data=pf,
-                                file_name=p_info["filename"],
-                                mime="application/pdf"
-                            )
-                        reply = f"Opened paper: {p_info['filename']}"
+                            base64_pdf = base64.b64encode(pf.read()).decode('utf-8')
+                        pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}#toolbar=0&navpanes=0&scrollbar=0" width="100%" height="500px" style="border:none;"></iframe>'
+                        st.markdown(pdf_display, unsafe_allow_html=True)
+                        
+                        reply = f"Opened paper viewer for: {d_name}"
                         st.session_state.messages.append({"role": "assistant", "content": reply})
                 
                 elif err:
