@@ -8,7 +8,6 @@ import re
 import json
 import os
 import uuid
-import base64
 from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
@@ -697,14 +696,11 @@ if query:
                 break
                 
             elif "unlock" in clean_q_lower or "open" in clean_q_lower:
-                # Check if it's explicitly an unlock/open command for this paper
-                if "unlock" in clean_q_lower or "open" in clean_q_lower:
+                if "lock" in clean_q_lower and clean_q_lower.find("lock") < clean_q_lower.find("open"):
+                    pass
+                else:
                     st.session_state.papers_data[pk]["locked"] = False
                     save_papers_db(st.session_state.papers_data)
-                    # If the user typed "lock" along with open, don't unlock
-                    if "lock" in clean_q_lower and clean_q_lower.find("lock") < clean_q_lower.find("open"):
-                        st.session_state.papers_data[pk]["locked"] = True
-                        save_papers_db(st.session_state.papers_data)
 
     if not handled_paper_command:
         if clean_q_lower in ["or", "aur", "hi", "hello", "ok", "hey", "h", "k"]:
@@ -750,11 +746,10 @@ if query:
                         render_voice_and_copy_toolbar(reply, f"locked_p_{len(st.session_state.messages)}", "hi-IN")
                     else:
                         st.write(f"📂 Here is your requested paper: **{d_name}**")
-                        # Embed PDF directly in chat for viewing without download/print options
+                        # Native Streamlit PDF Display (Prevents Chrome security block)
                         with open(p_info["path"], "rb") as pf:
-                            base64_pdf = base64.b64encode(pf.read()).decode('utf-8')
-                        pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}#toolbar=0&navpanes=0&scrollbar=0" width="100%" height="500px" style="border:none;"></iframe>'
-                        st.markdown(pdf_display, unsafe_allow_html=True)
+                            pdf_bytes = pf.read()
+                        st.pdf(pdf_bytes, height=500)
                         
                         reply = f"Opened paper viewer for: {d_name}"
                         st.session_state.messages.append({"role": "assistant", "content": reply})
