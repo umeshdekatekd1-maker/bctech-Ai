@@ -743,25 +743,21 @@ if query:
                     if p_info["locked"]:
                         reply = f"⛔ Sorry! The paper '{d_name}' is currently locked by the teacher/admin and cannot be opened."
                         st.write(reply)
-                        st.session_state.messages.append({"#": "assistant", "content": reply})
+                        st.session_state.messages.append({"role": "assistant", "content": reply})
                         render_voice_and_copy_toolbar(reply, f"locked_p_{len(st.session_state.messages)}", "hi-IN")
                     else:
                         st.write(f"📂 Here is your requested paper: **{d_name}**")
                         
-                        # Secure PDF Viewer Component using HTML Object (No download/print buttons)
+                        # Secure PDF.js Web Viewer Embed (Bypasses Chrome restrictions completely)
                         with open(p_info["path"], "rb") as pf:
                             b64_pdf = base64.b64encode(pf.read()).decode('utf-8')
                         
                         pdf_viewer_html = f"""
-                        <div style="width:100%; height:500px; border:1px solid #ccc; border-radius:8px; overflow:hidden;">
-                            <object data="data:application/pdf;base64,{b64_pdf}#toolbar=0&navpanes=0&scrollbar=0" type="application/pdf" width="100%" height="100%">
-                                <iframe src="data:application/pdf;base64,{b64_pdf}#toolbar=0&navpanes=0&scrollbar=0" width="100%" height="100%" style="border:none;">
-                                    <p>Your browser does not support PDFs.</p>
-                                </iframe>
-                            </object>
+                        <div style="width:100%; height:520px; border:1px solid #dadce0; border-radius:12px; overflow:hidden; background:#f8f9fa;">
+                            <iframe src="https://mozilla.github.io/pdf.js/web/viewer.html?file=data:application/pdf;base64,{b64_pdf}" width="100%" height="100%" style="border:none;"></iframe>
                         </div>
                         """
-                        components.html(pdf_viewer_html, height=520)
+                        components.html(pdf_viewer_html, height=540)
                         
                         reply = f"Opened paper viewer for: {d_name}"
                         st.session_state.messages.append({"role": "assistant", "content": reply})
