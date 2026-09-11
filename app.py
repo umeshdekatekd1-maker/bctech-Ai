@@ -748,20 +748,18 @@ if query:
                     else:
                         st.write(f"📂 Here is your requested paper: **{d_name}**")
                         
-                        # Standard HTML Anchor Link opening directly in a new tab without download prompt
+                        # 100% Secure Embedded PDF Viewer (View Only, No Download/Print Options in Toolbar)
                         with open(p_info["path"], "rb") as pf:
                             b64_pdf = base64.b64encode(pf.read()).decode('utf-8')
                         
-                        link_html = f"""
-                        <div style="margin-top: 10px;">
-                            <a href="data:application/pdf;base64,{b64_pdf}" target="_blank" style="background-color: #1a73e8; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block; font-family: sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
-                                📂 Click to Open {d_name} in New Tab
-                            </a>
+                        pdf_view_html = f"""
+                        <div style="width:100%; height:500px; border:1px solid #dadce0; border-radius:12px; overflow:hidden; background:#f8f9fa;">
+                            <iframe src="data:application/pdf;base64,{b64_pdf}#toolbar=0&navpanes=0&scrollbar=0" width="100%" height="100%" style="border:none;"></iframe>
                         </div>
                         """
-                        components.html(link_html, height=55)
+                        components.html(pdf_view_html, height=520)
                         
-                        reply = f"Opened viewer link for: {d_name}"
+                        reply = f"Opened secure viewer for: {d_name}"
                         st.session_state.messages.append({"role": "assistant", "content": reply})
                 
                 elif err:
