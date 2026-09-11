@@ -8,7 +8,6 @@ import re
 import json
 import os
 import uuid
-import base64
 from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
@@ -748,50 +747,19 @@ if query:
                     else:
                         st.write(f"📂 Here is your requested paper: **{d_name}**")
                         
-                        # Safe Blob URL JavaScript Viewer Launcher (Completely bypasses browser data-uri security blocks)
+                        # Native Streamlit secure download button for absolute reliability
                         with open(p_info["path"], "rb") as pf:
-                            b64_pdf = base64.b64encode(pf.read()).decode('utf-8')
+                            pdf_bytes = pf.read()
                         
-                        viewer_html_code = f"""
-                        <!DOCTYPE html>
-                        <html>
-                        <head>
-                            <title>{d_name}</title>
-                            <style>
-                                body {{ margin:0; padding:0; background: #525659; display: flex; justify-content: center; align-items: center; height: 100vh; }}
-                                iframe {{ width: 100%; height: 100%; border: none; }}
-                            </style>
-                        </head>
-                        <body>
-                            <iframe id="pdfFrame"></iframe>
-                            <script>
-                                const b64Data = "{b64_pdf}";
-                                const byteCharacters = atob(b64Data);
-                                const byteNumbers = new Array(byteCharacters.length);
-                                for (let i = 0; i < byteCharacters.length; i++) {{
-                                    byteNumbers[i] = byteCharacters.charCodeAt(i);
-                                }}
-                                const byteArray = new Uint8Array(byteNumbers);
-                                const blob = new Blob([byteArray], {{ type: 'application/pdf' }});
-                                const blobUrl = URL.createObjectURL(blob);
-                                document.getElementById('pdfFrame').src = blobUrl + "#toolbar=0&navpanes=0&scrollbar=0";
-                            </script>
-                        </body>
-                        </html>
-                        """
+                        st.download_button(
+                            label=f"📂 Click to Open {d_name}",
+                            data=pdf_bytes,
+                            file_name=p_info["filename"],
+                            mime="application/pdf",
+                            key=f"dl_btn_{paper_requested}_{len(st.session_state.messages)}"
+                        )
                         
-                        b64_viewer = base64.b64encode(viewer_html_code.encode('utf-8')).decode('utf-8')
-                        
-                        open_link_html = f"""
-                        <div style="margin-top: 10px;">
-                            <a href="data:text/html;base64,{b64_viewer}" target="_blank" style="background-color: #1a73e8; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block; font-family: sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
-                                📂 Click to Open {d_name} (Secure View)
-                            </a>
-                        </div>
-                        """
-                        st.markdown(open_link_html, unsafe_allow_html=True)
-                        
-                        reply = f"Generated secure open link for: {d_name}"
+                        reply = f"Generated paper button for: {d_name}"
                         st.session_state.messages.append({"role": "assistant", "content": reply})
                 
                 elif err:
@@ -820,7 +788,7 @@ if query:
 
                 elif check_is_where_from(query):
                     if lang == "GUJARATI":
-                        reply = "હું BC Tech Computer Education નો AI અસિસ્ટન્ટ છું, અને આપણી સંસ્થા સુરત, ગુજરાત, ભારતમાં આવેલી છે."
+                        reply = "હું BC Tech Computer Education નો અસિસ્ટન્ટ છું, અને આપણી સંસ્થા સુરત, ગુજરાત, ભારતમાં આવેલી છે."
                     elif lang == "HINDI":
                         if "kaise ho" in clean_q_lower or "kaisa hai" in clean_q_lower:
                             reply = "मैं बहुत अच्छा हूँ! बताइए, मैं BC Tech Computer Education में आपकी कैसे मदद कर सकता हूँ? 😊"
