@@ -8,6 +8,7 @@ import re
 import json
 import os
 import uuid
+import base64
 from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
@@ -747,19 +748,18 @@ if query:
                     else:
                         st.write(f"📂 Here is your requested paper: **{d_name}**")
                         
-                        # 100% Reliable Native Streamlit Download Button to View/Open Paper safely
+                        # Secure Direct In-Chat PDF Viewer (No Download, Clean View)
                         with open(p_info["path"], "rb") as pf:
-                            pdf_bytes = pf.read()
+                            b64_pdf = base64.b64encode(pf.read()).decode('utf-8')
                         
-                        st.download_button(
-                            label=f"📂 Click to Open / View {d_name}",
-                            data=pdf_bytes,
-                            file_name=p_info["filename"],
-                            mime="application/pdf",
-                            key=f"dl_btn_safe_{paper_requested}_{len(st.session_state.messages)}"
-                        )
+                        view_only_html = f"""
+                        <div style="width:100%; height:500px; border:1px solid #dadce0; border-radius:12px; overflow:hidden; background:#ffffff;">
+                            <iframe src="data:application/pdf;base64,{b64_pdf}#toolbar=0&navpanes=0&scrollbar=0" width="100%" height="100%" style="border:none;"></iframe>
+                        </div>
+                        """
+                        components.html(view_only_html, height=520)
                         
-                        reply = f"Opened secure button for: {d_name}"
+                        reply = f"Displayed view-only viewer for: {d_name}"
                         st.session_state.messages.append({"role": "assistant", "content": reply})
                 
                 elif err:
@@ -957,7 +957,7 @@ if query:
                                 if valid_practical:
                                     full_reply += "Practical Tests:\n"
                                     for pk, pv in valid_practical:
-                                        full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else tv}\n"
+                                        full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else pv}\n"
                                         full_reply += f"- Total Practical: {tot_prac}\n\n"
                                 full_reply += f"Total Marks: {total_obtained} / {max_total}\n"
                                 full_reply += f"Percentage: {percentage}%\n\n"
