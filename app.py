@@ -8,7 +8,6 @@ import re
 import json
 import os
 import uuid
-import base64
 from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
@@ -748,22 +747,19 @@ if query:
                     else:
                         st.write(f"📂 Here is your requested paper: **{d_name}**")
                         
-                        # Secure In-Chat PDF Viewer using reliable base64 embedding inside standard object tag
+                        # 100% Reliable Native Streamlit Download Button to View/Open Paper safely
                         with open(p_info["path"], "rb") as pf:
-                            b64_pdf = base64.b64encode(pf.read()).decode('utf-8')
+                            pdf_bytes = pf.read()
                         
-                        safe_viewer_html = f"""
-                        <div style="width:100%; height:500px; border:1px solid #dadce0; border-radius:12px; overflow:hidden; background:#ffffff;">
-                            <object data="data:application/pdf;base64,{b64_pdf}#toolbar=0&navpanes=0&scrollbar=0" type="application/pdf" width="100%" height="100%">
-                                <iframe src="data:application/pdf;base64,{b64_pdf}#toolbar=0&navpanes=0&scrollbar=0" width="100%" height="100%" style="border:none;">
-                                    <p style="text-align:center; padding:20px;">PDF Viewer not supported in this browser.</p>
-                                </iframe>
-                            </object>
-                        </div>
-                        """
-                        components.html(safe_viewer_html, height=520)
+                        st.download_button(
+                            label=f"📂 Click to Open / View {d_name}",
+                            data=pdf_bytes,
+                            file_name=p_info["filename"],
+                            mime="application/pdf",
+                            key=f"dl_btn_safe_{paper_requested}_{len(st.session_state.messages)}"
+                        )
                         
-                        reply = f"Displayed secure paper viewer for: {d_name}"
+                        reply = f"Opened secure button for: {d_name}"
                         st.session_state.messages.append({"role": "assistant", "content": reply})
                 
                 elif err:
@@ -961,7 +957,7 @@ if query:
                                 if valid_practical:
                                     full_reply += "Practical Tests:\n"
                                     for pk, pv in valid_practical:
-                                        full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else pv}\n"
+                                        full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else tv}\n"
                                         full_reply += f"- Total Practical: {tot_prac}\n\n"
                                 full_reply += f"Total Marks: {total_obtained} / {max_total}\n"
                                 full_reply += f"Percentage: {percentage}%\n\n"
