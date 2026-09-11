@@ -8,7 +8,6 @@ import re
 import json
 import os
 import uuid
-import base64
 from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
@@ -108,7 +107,6 @@ st.markdown("""
 
 # --- PERSISTENT STORAGE DB MANAGER ---
 DB_FILE = "bctech_chat_storage.json"
-PAPERS_META_FILE = "bctech_papers_store.json"
 
 def load_db():
     if os.path.exists(DB_FILE):
@@ -125,25 +123,6 @@ def save_db(db):
             json.dump(db, f, ensure_ascii=False, indent=2)
     except Exception:
         pass
-
-def load_papers_db():
-    if os.path.exists(PAPERS_META_FILE):
-        try:
-            with open(PAPERS_META_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return {}
-    return {}
-
-def save_papers_db(papers_db):
-    try:
-        with open(PAPERS_META_FILE, "w", encoding="utf-8") as f:
-            json.dump(papers_db, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
-
-if "papers_data" not in st.session_state:
-    st.session_state.papers_data = load_papers_db()
 
 query_params = st.query_params
 if "chat_id" not in query_params or not query_params["chat_id"]:
@@ -393,7 +372,7 @@ def clean_val_display(val):
     except Exception:
         return str(val).strip()
 
-# Sidebar - Admin Panel for Password Protected Paper Uploads with Auto PDF Name & Lock/Unlock
+# Sidebar - Clean Sidebar without Paper Uploads/Management
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -412,49 +391,6 @@ with st.sidebar:
                 )
         else:
             st.caption("No recent chats yet.")
-
-    st.markdown("---")
-    st.markdown("### 🔒 Teacher / Admin Panel")
-    with st.expander("📁 Upload & Manage Papers", expanded=False):
-        admin_pass = st.text_input("Enter Password", type="password", key="admin_pass_input")
-        if admin_pass == "bctech1AA@":
-            st.success("Access Granted!")
-            uploaded_pdf = st.file_uploader("Upload Question Paper (PDF)", type=["pdf"])
-            
-            if uploaded_pdf is not None:
-                original_filename = uploaded_pdf.name
-                base_name = os.path.splitext(original_filename)[0]
-                st.info(f"Detected Paper Name: **{base_name}**")
-                
-                if st.button("Upload & Save Paper"):
-                    p_key = base_name.strip().lower()
-                    os.makedirs("uploaded_papers", exist_ok=True)
-                    file_path = os.path.join("uploaded_papers", original_filename)
-                    with open(file_path, "wb") as f:
-                        f.write(uploaded_pdf.getbuffer())
-                    
-                    st.session_state.papers_data[p_key] = {
-                        "display_name": base_name,
-                        "filename": original_filename,
-                        "path": file_path,
-                        "locked": False
-                    }
-                    save_papers_db(st.session_state.papers_data)
-                    st.success(f"Paper '{base_name}' successfully uploaded!")
-            
-            if st.session_state.papers_data:
-                st.markdown("**Existing Papers Status:**")
-                for pk, p_info in list(st.session_state.papers_data.items()):
-                    d_name = p_info.get("display_name", pk)
-                    status_str = "🔒 Lock" if p_info["locked"] else "🟢 Unlock"
-                    col1, col2 = st.columns([2, 1])
-                    col1.text(f"{d_name} ({status_str})")
-                    if col2.button("Toggle Lock", key=f"tog_{pk}"):
-                        st.session_state.papers_data[pk]["locked"] = not p_info["locked"]
-                        save_papers_db(st.session_state.papers_data)
-                        st.rerun()
-        elif admin_pass != "":
-            st.error("Incorrect Password!")
 
     st.markdown("---")
     st.markdown("**📌 Quick Links:**")
@@ -532,7 +468,7 @@ def update_language_state(text):
     hindi_romanized = [
         "kaise", "kaisa", "kaisi", "kaha", "kahan", "kya", "hain", "ho", "hu", "mera", 
         "meri", "karo", "batao", "bata do", "aap", "tum", "kaun", "kisne", "kyu", "kyon",
-        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai", "ka bhi", "kare", "show", "dekh", "samay", "time", "date", "tarikh", "lock", "unlock", "open"
+        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai", "ka bhi", "kare", "show", "dekh", "samay", "time", "date", "tarikh"
     ]
     words = text_clean.split()
     
@@ -545,7 +481,7 @@ def update_language_state(text):
         st.session_state.current_language = "HINDI"
         return "HINDI"
         
-    english_common = ["name", "is", "the", "and", "you", "your", "what", "where", "how", "am", "time", "date", "lock", "unlock", "open"]
+    english_common = ["name", "is", "the", "and", "you", "your", "what", "where", "how", "am", "time", "date"]
     if any(w in english_common for w in words) and not any(w in hindi_romanized for w in words):
         st.session_state.current_language = "ENGLISH"
         return "ENGLISH"
@@ -675,383 +611,321 @@ if query:
     clean_q_lower = query.strip().lower()
     lang = update_language_state(query)
     
-    # Check for direct chat-based Lock/Unlock commands matching exact paper names
-    handled_paper_command = False
-    for pk, p_info in list(st.session_state.papers_data.items()):
-        d_name_lower = p_info.get("display_name", pk).lower()
-        if d_name_lower in clean_q_lower:
-            if "lock" in clean_q_lower and "unlock" not in clean_q_lower:
-                st.session_state.papers_data[pk]["locked"] = True
-                save_papers_db(st.session_state.papers_data)
-                handled_paper_command = True
-                
-                st.session_state.messages.append({"role": "user", "content": query})
-                with st.chat_message("user", avatar="👤"):
-                    st.write(query)
-                with st.chat_message("assistant", avatar="🤖"):
-                    reply = f"🔒 Paper '{p_info.get('display_name', pk)}' has been successfully locked."
-                    st.write(reply)
-                    st.session_state.messages.append({"role": "assistant", "content": reply})
-                    render_voice_and_copy_toolbar(reply, f"lock_ack_{len(st.session_state.messages)}", "hi-IN")
-                persist_current_state()
-                break
-                
-            elif "unlock" in clean_q_lower or "open" in clean_q_lower:
-                if "lock" in clean_q_lower and clean_q_lower.find("lock") < clean_q_lower.find("open"):
-                    pass
-                else:
-                    st.session_state.papers_data[pk]["locked"] = False
-                    save_papers_db(st.session_state.papers_data)
+    if clean_q_lower in ["or", "aur", "hi", "hello", "ok", "hey", "h", "k"]:
+        st.session_state.messages.append({"role": "user", "content": query})
+        with st.chat_message("user", avatar="👤"):
+            st.write(query)
+        with st.chat_message("assistant", avatar="🤖"):
+            if lang == "HINDI":
+                reply = "हाँ, बताइए! मैं आपकी क्या मदद कर सकता हूँ? 😊"
+            elif lang == "GUJARATI":
+                reply = "હા, જણાવો! હું આપને કેવી રીતે મદદ કરી શકું? 😊"
+            else:
+                reply = "Yes, please tell me! How can I help you? 😊"
+            st.write(reply)
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+            lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
+            render_voice_and_copy_toolbar(reply, f"hard_block_{len(st.session_state.messages)}", lang_code)
+        persist_current_state()
+    else:
+        st.session_state.messages.append({"role": "user", "content": query})
+        
+        with st.chat_message("user", avatar="👤"):
+            st.write(query)
 
-    if not handled_paper_command:
-        if clean_q_lower in ["or", "aur", "hi", "hello", "ok", "hey", "h", "k"]:
-            st.session_state.messages.append({"role": "user", "content": query})
-            with st.chat_message("user", avatar="👤"):
-                st.write(query)
-            with st.chat_message("assistant", avatar="🤖"):
-                if lang == "HINDI":
-                    reply = "हाँ, बताइए! मैं आपकी क्या मदद कर सकता हूँ? 😊"
-                elif lang == "GUJARATI":
-                    reply = "હા, જણાવો! હું આપને કેવી રીતે મદદ કરી શકું? 😊"
+        df_sheet, err = load_all_sheets_data()
+        
+        with st.chat_message("assistant", avatar="🤖"):
+            if err:
+                st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
+            
+            elif check_is_name_intro(query):
+                name_match = re.search(r"(?:mera naam|my name is|maru naam|hu mara naam|naam hai|name is|i am|hu|maaru naam)\s+([a-zA-Z\u0900-\u097F]+)", query, re.IGNORECASE)
+                if not name_match:
+                    words = [w for w in query.split() if w.lower() not in ["mera", "naam", "hai", "is", "my", "name", "hu", "i", "am", "ka", "ki"]]
+                    username = words[0].capitalize() if words else "User"
                 else:
-                    reply = "Yes, please tell me! How can I help you? 😊"
+                    username = name_match.group(1).capitalize()
+                
+                st.session_state.last_mentioned_name = username.lower()
+
+                if lang == "GUJARATI":
+                    reply = f"નમસ્ते {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
+                elif lang == "HINDI":
+                    reply = f"नमस्ते {username}! BC Tech Computer Education में आपका स्वागत है। बताइए, मैं आपकी कैसे मदद कर सकता हूँ? 😊"
+                else:
+                    reply = f"Hello {username}! Welcome to BC Tech Computer Education. How can I help you today? 😊"
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
-                render_voice_and_copy_toolbar(reply, f"hard_block_{len(st.session_state.messages)}", lang_code)
-            persist_current_state()
-        else:
-            st.session_state.messages.append({"role": "user", "content": query})
-            
-            with st.chat_message("user", avatar="👤"):
-                st.write(query)
+                render_voice_and_copy_toolbar(reply, f"name_reply_{len(st.session_state.messages)}", lang_code)
 
-            # Check if user is asking to open a specific uploaded paper by its exact name
-            paper_requested = None
-            for pk, p_info in st.session_state.papers_data.items():
-                d_name_lower = p_info.get("display_name", pk).lower()
-                if d_name_lower in clean_q_lower:
-                    paper_requested = pk
-                    break
-
-            df_sheet, err = load_all_sheets_data()
-            
-            with st.chat_message("assistant", avatar="🤖"):
-                if paper_requested:
-                    p_info = st.session_state.papers_data[paper_requested]
-                    d_name = p_info.get("display_name", paper_requested)
-                    if p_info["locked"]:
-                        reply = f"⛔ Sorry! The paper '{d_name}' is currently locked by the teacher/admin and cannot be opened."
-                        st.write(reply)
-                        st.session_state.messages.append({"role": "assistant", "content": reply})
-                        render_voice_and_copy_toolbar(reply, f"locked_p_{len(st.session_state.messages)}", "hi-IN")
+            elif check_is_where_from(query):
+                if lang == "GUJARATI":
+                    reply = "હું BC Tech Computer Education નો AI અસિસ્ટન્ટ છું, અને આપણી સંસ્થા સુરત, ગુજરાત, ભારતમાં આવેલી છે."
+                elif lang == "HINDI":
+                    if "kaise ho" in clean_q_lower or "kaisa hai" in clean_q_lower:
+                        reply = "मैं बहुत अच्छा हूँ! बताइए, मैं BC Tech Computer Education में आपकी कैसे मदद कर सकता हूँ? 😊"
                     else:
-                        st.write(f"📂 Here is your requested paper: **{d_name}**")
-                        
-                        # Secure Direct In-Chat PDF Viewer (No Download, Clean View)
-                        with open(p_info["path"], "rb") as pf:
-                            b64_pdf = base64.b64encode(pf.read()).decode('utf-8')
-                        
-                        view_only_html = f"""
-                        <div style="width:100%; height:500px; border:1px solid #dadce0; border-radius:12px; overflow:hidden; background:#ffffff;">
-                            <iframe src="data:application/pdf;base64,{b64_pdf}#toolbar=0&navpanes=0&scrollbar=0" width="100%" height="100%" style="border:none;"></iframe>
-                        </div>
-                        """
-                        components.html(view_only_html, height=520)
-                        
-                        reply = f"Displayed view-only viewer for: {d_name}"
-                        st.session_state.messages.append({"role": "assistant", "content": reply})
-                
-                elif err:
-                    st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
-                
-                elif check_is_name_intro(query):
-                    name_match = re.search(r"(?:mera naam|my name is|maru naam|hu mara naam|naam hai|name is|i am|hu|maaru naam)\s+([a-zA-Z\u0900-\u097F]+)", query, re.IGNORECASE)
-                    if not name_match:
-                        words = [w for w in query.split() if w.lower() not in ["mera", "naam", "hai", "is", "my", "name", "hu", "i", "am", "ka", "ki"]]
-                        username = words[0].capitalize() if words else "User"
-                    else:
-                        username = name_match.group(1).capitalize()
-                    
-                    st.session_state.last_mentioned_name = username.lower()
-
-                    if lang == "GUJARATI":
-                        reply = f"નમસ્ते {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
-                    elif lang == "HINDI":
-                        reply = f"नमस्ते {username}! BC Tech Computer Education में आपका स्वागत है। बताइए, मैं आपकी कैसे मदद कर सकता हूँ? 😊"
-                    else:
-                        reply = f"Hello {username}! Welcome to BC Tech Computer Education. How can I help you today? 😊"
-                    st.write(reply)
-                    st.session_state.messages.append({"role": "assistant", "content": reply})
-                    lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
-                    render_voice_and_copy_toolbar(reply, f"name_reply_{len(st.session_state.messages)}", lang_code)
-
-                elif check_is_where_from(query):
-                    if lang == "GUJARATI":
-                        reply = "હું BC Tech Computer Education નો AI અસિસ્ટન્ટ છું, અને આપણી સંસ્થા સુરત, ગુજરાત, ભારતમાં આવેલી છે."
-                    elif lang == "HINDI":
-                        if "kaise ho" in clean_q_lower or "kaisa hai" in clean_q_lower:
-                            reply = "मैं बहुत अच्छा हूँ! बताइए, मैं BC Tech Computer Education में आपकी कैसे मदद कर सकता हूँ? 😊"
-                        else:
-                            reply = "मैं BC Tech Computer Education का AI असिस्टेंट हूँ, और हमारी संस्था सूरत, गुजरात, भारत में स्थित है।"
-                    else:
-                        if "how are you" in clean_q_lower:
-                            reply = "I am doing well, thank you! How can I help you with BC Tech Computer Education today?"
-                        else:
-                            reply = "I am the AI Assistant for BC Tech Computer Education, located in Surat, Gujarat, India."
-                    st.write(reply)
-                    st.session_state.messages.append({"role": "assistant", "content": reply})
-                    lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
-                    render_voice_and_copy_toolbar(reply, f"where_{len(st.session_state.messages)}", lang_code)
-
-                elif query.strip().lower() in ["gujarati", "gujrati", "gujarati ma", "gujarati mein baat karte hai", "gujarati main baat karte hai ok", "gujarati ma vaat kariye"]:
-                    reply = "ચોક્કસ! હવે આપણે ગુજરાતીમાં વાત કરીશું. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
-                    st.write(reply)
-                    st.session_state.messages.append({"role": "assistant", "content": reply})
-                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", "gu-IN")
-
-                elif query.strip().lower() in ["hindi", "in hindi", "hindi me", "hindi main baat karo", "hindi me baat karte hai"]:
-                    reply = "ज़रूर! अब हम हिंदी में बात करेंगे। मैं आपकी क्या सहायता कर सकता हूँ? 😊"
-                    st.write(reply)
-                    st.session_state.messages.append({"role": "assistant", "content": reply})
-                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", "hi-IN")
-
-                elif is_greeting(query):
-                    if lang == "GUJARATI":
-                        reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
-                    elif lang == "HINDI":
-                        reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
-                    else:
-                        reply = "Hello! Welcome to BC Tech Computer Education. How can I help you today? 😊"
-                    st.write(reply)
-                    st.session_state.messages.append({"role": "assistant", "content": reply})
-                    lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
-                    render_voice_and_copy_toolbar(reply, f"greet_{len(st.session_state.messages)}", lang_code)
-
-                elif check_is_branch_intent(query):
-                    if lang == "GUJARATI":
-                        reply = f"BC Tech Computer Education સુરત, ગુજરાત, ભારતમાં આવેલું છે. વધુ વિગતો અને અન્ય શાખાના પત્તા માટે અધિકૃત વેબસાઇટની મુલાકાત લો:\n🔗 {BRANCH_LINK}"
-                    elif lang == "HINDI":
-                        reply = f"BC Tech Computer Education सूरत, गुजरात, भारत में स्थित है। अधिक विवरण और अन्य शाखाओं के पते के लिए आप आधिकारिक वेबसाइट पर जा सकते हैं:\n🔗 {BRANCH_LINK}"
-                    else:
-                        reply = f"BC Tech Computer Education is located in Surat, Gujarat, India. For more details and branch addresses, you can visit the official website:\n🔗 {BRANCH_LINK}"
-                    
-                    st.write(reply)
-                    st.session_state.messages.append({"role": "assistant", "content": reply})
-                    lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
-                    render_voice_and_copy_toolbar(reply, f"branch_{len(st.session_state.messages)}", lang_code)
-
-                elif check_is_creator_intent(query):
-                    if lang == "GUJARATI":
-                        reply = "મને BC Tech Computer Education ના એડમિન અને ડેવલपर દ્વારા બનાવવામાં આવ્યો છે."
-                    elif lang == "HINDI":
-                        reply = "मुझे BC Tech Computer Education के डेवलपर और एडमिन द्वारा बनाया गया है।"
-                    else:
-                        reply = "I was created by the developer and admin of BC Tech Computer Education."
-                    st.write(reply)
-                    st.session_state.messages.append({"role": "assistant", "content": reply})
-                    lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
-                    render_voice_and_copy_toolbar(reply, f"creator_{len(st.session_state.messages)}", lang_code)
-
+                        reply = "मैं BC Tech Computer Education का AI असिस्टेंट हूँ, और हमारी संस्था सूरत, गुजरात, भारत में स्थित है।"
                 else:
-                    search_query_to_use = query
-                    result_intent_words = ["result", "marks", "exam", "mera", "meri", "score", "reult", "rizalt", "marksheet", "show", "kare", "ka bhi", "bhi", "dekh", "dikha"]
-                    
-                    if any(w in query.lower() for w in result_intent_words):
-                        if "mera" in query.lower() or "meri" in query.lower() or "ka bhi" in query.lower() or "kare" in query.lower() or "dekh" in query.lower() or "dikha" in query.lower() or query.strip().lower() in ["result", "exam", "marks"]:
-                            if st.session_state.last_mentioned_name:
-                                search_query_to_use = st.session_state.last_mentioned_name
-
-                    matched_records = search_student_all_sheets(search_query_to_use, df_sheet)
-                    
-                    if matched_records:
-                        full_reply = ""
-                        for record in matched_records:
-                            f_name = record.get("Student_Name_Std", "")
-                            f_exam = record.get("Exam_Std", "Course")
-                            f_teacher = record.get("_Sheet_Tab", "Teacher")
-                            
-                            valid_theory = []
-                            valid_practical = []
-                            
-                            for k, v in record.items():
-                                val_str = str(v).strip()
-                                if val_str and val_str.lower() != "n/a" and val_str.lower() != "nan" and val_str != "0":
-                                    try:
-                                        m_val = float(val_str)
-                                        if "theory" in k.lower():
-                                            valid_theory.append((k, m_val))
-                                        elif "practical" in k.lower():
-                                            valid_practical.append((k, m_val))
-                                    except ValueError:
-                                        pass
-                            
-                            tot_theory = int(sum([item[1] for item in valid_theory])) if valid_theory else 0
-                            tot_prac = int(sum([item[1] for item in valid_practical])) if valid_practical else 0
-                            total_obtained = tot_theory + tot_prac
-                            
-                            valid_tests_count = len(valid_theory) + len(valid_practical)
-                            max_total = valid_tests_count * 50 if valid_tests_count > 0 else 50
-                            percentage = round((total_obtained / max_total) * 100, 2) if max_total > 0 else 0
-
-                            motivational_tip = ""
-                            if percentage >= 80:
-                                if lang == "GUJARATI":
-                                    motivational_tip = "ખૂબ જ સરસ! તમારું પરિણામ ઉત્કૃષ્ટ છે. આવી જ મહેનત ચાલુ રાખો!"
-                                elif lang == "HINDI":
-                                    motivational_tip = "बहुत बढ़िया! आपका प्रदर्शन शानदार है। इसी तरह कड़ी मेहनत जारी रखें!"
-                                else:
-                                    motivational_tip = "Outstanding performance! Keep up the brilliant work!"
-                            elif percentage >= 50:
-                                if lang == "GUJARATI":
-                                    motivational_tip = "સરસ પ્રયાસ! તમે સારી મહેનત કરી છે, થોડી વધુ મહેનતથી તમે ટોપ પર પહોંચી શકો છો."
-                                elif lang == "HINDI":
-                                    motivational_tip = "अच्छा प्रयास! आपने अच्छी मेहनत की है, थोड़ी और लगन से आप और भी बेहतर कर सकते हैं।"
-                                else:
-                                    motivational_tip = "Good effort! With a little more practice, you can achieve even higher goals."
-                            else:
-                                if lang == "GUJARATI":
-                                    motivational_tip = "હિંમત ન हारो! નિષ્ફળતા જ સફળતાની પહેલી સીડી છે. થોડી વધુ પ્રેક્ટિસ કરો, તમે ચોક્કસ સફળ થશો!"
-                                elif lang == "HINDI":
-                                    motivational_tip = "निराश न हों! असफलता ही सफलता की पहली सीढ़ी है। थोड़ी और मेहनत करें, आप जरूर सफल होंगे!"
-                                else:
-                                    motivational_tip = "Don't get discouraged! Every setback is a setup for a comeback. Keep practicing!"
-
-                            if lang == "GUJARATI":
-                                full_reply += f"વિદ્યાર્થીનું નામ: {f_name}\nપરીક્ષાનું નામ: {f_exam}\nશિક્ષકનું નામ: {f_teacher}\n\n"
-                                if valid_theory:
-                                    full_reply += "થિયરી ટેસ્ટ:\n"
-                                    for tk, tv in valid_theory:
-                                        full_reply += f"- {tk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
-                                    full_reply += f"- કુલ થિયરી: {tot_theory}\n\n"
-                                if valid_practical:
-                                    full_reply += "પ્રૅક્ટિકલ ટેસ્ટ:\n"
-                                    for pk, pv in valid_practical:
-                                        full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else pv}\n"
-                                    full_reply += f"- કુલ પ્રૅક્ટિકલ: {tot_prac}\n\n"
-                                full_reply += f"કુલ ગુણ: {total_obtained} / {max_total}\n"
-                                full_reply += f"ટકાવારી: {percentage}%\n\n"
-                                full_reply += f"{motivational_tip}\n\n"
-                            elif lang == "HINDI":
-                                full_reply += f"विद्यार्थी का नाम: {f_name}\nपरीक्षा का नाम: {f_exam}\nशिक्षक का नाम: {f_teacher}\n\n"
-                                if valid_theory:
-                                    full_reply += "थ्योरी टेस्ट:\n"
-                                    for tk, tv in valid_theory:
-                                        full_reply += f"- {tk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
-                                    full_reply += f"- कुल थ्योरी: {tot_theory}\n\n"
-                                if valid_practical:
-                                    full_reply += "प्रैक्टिकल टेस्ट:\n"
-                                    for pk, pv in valid_practical:
-                                        full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else pv}\n"
-                                        full_reply += f"- कुल प्रैक्टिकल: {tot_prac}\n\n"
-                                full_reply += f"कुल अंक: {total_obtained} / {max_total}\n"
-                                full_reply += f"प्रतिशत: {percentage}%\n\n"
-                                full_reply += f"{motivational_tip}\n\n"
-                            else:
-                                full_reply += f"Student Name: {f_name}\nExam Name: {f_exam}\nTeacher Name: {f_teacher}\n\n"
-                                if valid_theory:
-                                    full_reply += "Theory Tests:\n"
-                                    for tk, tv in valid_theory:
-                                        full_reply += f"- {tk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
-                                    full_reply += f"- Total Theory: {tot_theory}\n\n"
-                                if valid_practical:
-                                    full_reply += "Practical Tests:\n"
-                                    for pk, pv in valid_practical:
-                                        full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else pv}\n"
-                                        full_reply += f"- Total Practical: {tot_prac}\n\n"
-                                full_reply += f"Total Marks: {total_obtained} / {max_total}\n"
-                                full_reply += f"Percentage: {percentage}%\n\n"
-                                full_reply += f"{motivational_tip}\n\n"
-
-                        st.markdown(full_reply.strip())
-                        st.session_state.messages.append({"role": "assistant", "content": full_reply.strip()})
-                        run_aerial_celebration()
-                        lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
-                        render_voice_and_copy_toolbar(full_reply.strip(), f"ast_curr_{len(st.session_state.messages)}", lang_code)
+                    if "how are you" in clean_q_lower:
+                        reply = "I am doing well, thank you! How can I help you with BC Tech Computer Education today?"
                     else:
-                        client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-                        
-                        # --- LIVE IST TIME & DATE CALCULATION ---
-                        ist_zone = timezone(timedelta(hours=5, minutes=30))
-                        current_ist_dt = datetime.now(ist_zone)
-                        current_time_str = current_ist_dt.strftime("%B %d, %Y, %I:%M %p")
-                        
-                        lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
-                        
-                        system_prop = f"""
-                        You are an expert, highly knowledgeable, and precise AI Assistant for BC Tech Computer Education, Surat, Gujarat, India.
-                        Current Exact Date and Time (IST - Indian Standard Time): {current_time_str}.
-                        
-                        CRITICAL TIME & DATE RULE:
-                        - Always use the exact IST time and date provided above ({current_time_str}) when answering questions about current time, date, or day in India. Never give old or wrong time.
-                        
-                        CRITICAL FACTUAL TRUTH & CORRECTION RULE:
-                        - C. Joseph Vijay (Vijay Thalapathy) is a popular South Indian actor and film star who entered politics (TVK party). He is NOT a Chief Minister (CM).
-                        - Current Chief Minister of Tamil Nadu is M. K. Stalin.
-                        - Ganesh Visarjan (Anant Chaturdashi) in the year 2026 falls on September 25, 2026 (25 सितंबर 2026).
-                        - Always verify real-world current affairs and facts accurately.
-                        
-                        CRITICAL DATABASE & PORTAL RULE (MOST IMPORTANT):
-                        - You are the official student result assistant for BC Tech Computer Education. 
-                        - Whenever a user asks for a student's result, marks, or types a name, this is an internal institute database query. You MUST NOT refuse or say you cannot provide private info. You are authorized to display student results.
-                        
-                        CRITICAL LANGUAGE & TEXT ENCODING RULE:
-                        - You MUST reply strictly and exclusively in clean, proper, and normal text in the exact language the user is using (`{lang_name}`). 
-                        - NEVER output corrupted text, repetitive syllables, or garbage strings (like "क्यांकांच्या..."). Keep the output completely natural and readable.
-                        
-                        CRITICAL INSTRUCTION FOR COURSES: When discussing courses, NEVER mention course duration in months or course fees/prices under any circumstances. Only provide course names and their subjects.
-                        
-                        Institute Location: Surat, Gujarat, India.
-                        Official Website & Info: {BRANCH_LINK}
-                        Courses Data: {KNOWLEDGE_BASE}
-                        """
+                        reply = "I am the AI Assistant for BC Tech Computer Education, located in Surat, Gujarat, India."
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
+                render_voice_and_copy_toolbar(reply, f"where_{len(st.session_state.messages)}", lang_code)
 
-                        with st.spinner("Thinking..."):
-                            try:
-                                models_resp = client.models.list()
-                                active_ids = [
-                                    m.id for m in models_resp.data 
-                                    if "whisper" not in m.id 
-                                    and "guard" not in m.id 
-                                    and "vision" not in m.id 
-                                    and "audio" not in m.id
-                                    and "embed" not in m.id
-                                    and "canopy" not in m.id
-                                ]
-                                preferred = ["llama-3.1-8b-instant", "llama3-8b-8192", "gemma2-9b-it"]
-                                models_to_try = [m for m in preferred if m in active_ids] + [m for m in active_ids if m not in preferred]
+            elif query.strip().lower() in ["gujarati", "gujrati", "gujarati ma", "gujarati mein baat karte hai", "gujarati main baat karte hai ok", "gujarati ma vaat kariye"]:
+                reply = "ચોક્કસ! હવે આપણે ગુજરાતીમાં વાત કરીશું. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", "gu-IN")
 
-                                answer = None
-                                last_api_err = None
+            elif query.strip().lower() in ["hindi", "in hindi", "hindi me", "hindi main baat karo", "hindi me baat karte hai"]:
+                reply = "ज़रूर! अब हम हिंदी में बात करेंगे। मैं आपकी क्या सहायता कर सकता हूँ? 😊"
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", "hi-IN")
 
-                                api_messages = [{"role": "system", "content": system_prop}]
-                                for m in st.session_state.messages[:-1]:
-                                    api_messages.append({"role": m["role"], "content": m["content"]})
-                                api_messages.append({"role": "user", "content": query})
+            elif is_greeting(query):
+                if lang == "GUJARATI":
+                    reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                elif lang == "HINDI":
+                    reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
+                else:
+                    reply = "Hello! Welcome to BC Tech Computer Education. How can I help you today? 😊"
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
+                render_voice_and_copy_toolbar(reply, f"greet_{len(st.session_state.messages)}", lang_code)
 
-                                for m_name in models_to_try:
-                                    try:
-                                        chat_completion = client.chat.completions.create(
-                                            messages=api_messages,
-                                            model=m_name,
-                                            temperature=0.1,
-                                            max_tokens=600
-                                        )
-                                        raw_answer = chat_completion.choices[0].message.content
-                                        answer = clean_ai_response(raw_answer)
-                                        if answer and len(answer) > 2:
-                                            break
-                                    except Exception as ex:
-                                        last_api_err = str(ex)
-                                        continue
-                                
-                                if answer:
-                                    st.markdown(answer)
-                                    st.session_state.messages.append({"role": "assistant", "content": answer})
-                                    lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
-                                    render_voice_and_copy_toolbar(answer, f"ast_curr_{len(st.session_state.messages)}", lang_code)
-                                else:
-                                    st.error(f"API Error: {last_api_err}")
-                            except Exception as e:
-                                st.error(f"Error: {e}")
+            elif check_is_branch_intent(query):
+                if lang == "GUJARATI":
+                    reply = f"BC Tech Computer Education સુરત, ગુજરાત, ભારતમાં આવેલું છે. વધુ વિગતો અને અન્ય શાખાના પત્તા માટે અધિકૃત વેબસાઇટની મુલાકાત લો:\n🔗 {BRANCH_LINK}"
+                elif lang == "HINDI":
+                    reply = f"BC Tech Computer Education सूरत, गुजरात, भारत में स्थित है। अधिक विवरण और अन्य शाखाओं के पते के लिए आप आधिकारिक वेबसाइट पर जा सकते हैं:\n🔗 {BRANCH_LINK}"
+                else:
+                    reply = f"BC Tech Computer Education is located in Surat, Gujarat, India. For more details and branch addresses, you can visit the official website:\n🔗 {BRANCH_LINK}"
+                
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
+                render_voice_and_copy_toolbar(reply, f"branch_{len(st.session_state.messages)}", lang_code)
+
+            elif check_is_creator_intent(query):
+                if lang == "GUJARATI":
+                    reply = "મને BC Tech Computer Education ના એડમિન અને ડેવલपर દ્વારા બનાવવામાં આવ્યો છે."
+                elif lang == "HINDI":
+                    reply = "मुझे BC Tech Computer Education के डेवलपर और एडमिन द्वारा बनाया गया है।"
+                else:
+                    reply = "I was created by the developer and admin of BC Tech Computer Education."
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
+                render_voice_and_copy_toolbar(reply, f"creator_{len(st.session_state.messages)}", lang_code)
+
+            else:
+                search_query_to_use = query
+                result_intent_words = ["result", "marks", "exam", "mera", "meri", "score", "reult", "rizalt", "marksheet", "show", "kare", "ka bhi", "bhi", "dekh", "dikha"]
+                
+                if any(w in query.lower() for w in result_intent_words):
+                    if "mera" in query.lower() or "meri" in query.lower() or "ka bhi" in query.lower() or "kare" in query.lower() or "dekh" in query.lower() or "dikha" in query.lower() or query.strip().lower() in ["result", "exam", "marks"]:
+                        if st.session_state.last_mentioned_name:
+                            search_query_to_use = st.session_state.last_mentioned_name
+
+                matched_records = search_student_all_sheets(search_query_to_use, df_sheet)
+                
+                if matched_records:
+                    full_reply = ""
+                    for record in matched_records:
+                        f_name = record.get("Student_Name_Std", "")
+                        f_exam = record.get("Exam_Std", "Course")
+                        f_teacher = record.get("_Sheet_Tab", "Teacher")
+                        
+                        valid_theory = []
+                        valid_practical = []
+                        
+                        for k, v in record.items():
+                            val_str = str(v).strip()
+                            if val_str and val_str.lower() != "n/a" and val_str.lower() != "nan" and val_str != "0":
+                                try:
+                                    m_val = float(val_str)
+                                    if "theory" in k.lower():
+                                        valid_theory.append((k, m_val))
+                                    elif "practical" in k.lower():
+                                        valid_practical.append((k, m_val))
+                                except ValueError:
+                                    pass
+                        
+                        tot_theory = int(sum([item[1] for item in valid_theory])) if valid_theory else 0
+                        tot_prac = int(sum([item[1] for item in valid_practical])) if valid_practical else 0
+                        total_obtained = tot_theory + tot_prac
+                        
+                        valid_tests_count = len(valid_theory) + len(valid_practical)
+                        max_total = valid_tests_count * 50 if valid_tests_count > 0 else 50
+                        percentage = round((total_obtained / max_total) * 100, 2) if max_total > 0 else 0
+
+                        motivational_tip = ""
+                        if percentage >= 80:
+                            if lang == "GUJARATI":
+                                motivational_tip = "ખૂબ જ સરસ! તમારું પરિણામ ઉત્કૃષ્ટ છે. આવી જ મહેનત ચાલુ રાખો!"
+                            elif lang == "HINDI":
+                                motivational_tip = "बहुत बढ़िया! आपका प्रदर्शन शानदार है। इसी तरह कड़ी मेहनत जारी रखें!"
+                            else:
+                                motivational_tip = "Outstanding performance! Keep up the brilliant work!"
+                        elif percentage >= 50:
+                            if lang == "GUJARATI":
+                                motivational_tip = "સરસ પ્રયાસ! તમે સારી મહેનત કરી છે, થોડી વધુ મહેનતથી તમે ટોપ પર પહોંચી શકો છો."
+                            elif lang == "HINDI":
+                                motivational_tip = "अच्छा प्रयास! आपने अच्छी मेहनत की है, थोड़ी और लगन से आप और भी बेहतर कर सकते हैं।"
+                            else:
+                                motivational_tip = "Good effort! With a little more practice, you can achieve even higher goals."
+                        else:
+                            if lang == "GUJARATI":
+                                motivational_tip = "હિંમત ન हारो! નિષ્ફળતા જ સફળતાની પહેલી સીડી છે. થોડી વધુ પ્રેક્ટિસ કરો, તમે ચોક્કસ સફળ થશો!"
+                            elif lang == "HINDI":
+                                motivational_tip = "निराश न हों! असफलता ही सफलता की पहली सीढ़ी है। थोड़ी और मेहनत करें, आप जरूर सफल होंगे!"
+                            else:
+                                motivational_tip = "Don't get discouraged! Every setback is a setup for a comeback. Keep practicing!"
+
+                        if lang == "GUJARATI":
+                            full_reply += f"વિદ્યાર્થીનું નામ: {f_name}\nપરીક્ષાનું નામ: {f_exam}\nશિક્ષકનું નામ: {f_teacher}\n\n"
+                            if valid_theory:
+                                full_reply += "થિયરી ટેસ્ટ:\n"
+                                for tk, tv in valid_theory:
+                                    full_reply += f"- {tk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
+                                full_reply += f"- કુલ થિયરી: {tot_theory}\n\n"
+                            if valid_practical:
+                                full_reply += "પ્રૅક્ટિકલ ટેસ્ટ:\n"
+                                for pk, pv in valid_practical:
+                                    full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else pv}\n"
+                                full_reply += f"- કુલ પ્રૅક્ટિકલ: {tot_prac}\n\n"
+                            full_reply += f"કુલ ગુણ: {total_obtained} / {max_total}\n"
+                            full_reply += f"ટકાવારી: {percentage}%\n\n"
+                            full_reply += f"{motivational_tip}\n\n"
+                        elif lang == "HINDI":
+                            full_reply += f"विद्यार्थी का नाम: {f_name}\nपरीक्षा का नाम: {f_exam}\nशिक्षक का नाम: {f_teacher}\n\n"
+                            if valid_theory:
+                                full_reply += "थ्योरी टेस्ट:\n"
+                                for tk, tv in valid_theory:
+                                    full_reply += f"- {tk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
+                                full_reply += f"- कुल थ्योरी: {tot_theory}\n\n"
+                            if valid_practical:
+                                full_reply += "प्रैक्टिकल टेस्ट:\n"
+                                for pk, pv in valid_practical:
+                                    full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else pv}\n"
+                                    full_reply += f"- कुल प्रैक्टिकल: {tot_prac}\n\n"
+                            full_reply += f"कुल अंक: {total_obtained} / {max_total}\n"
+                            full_reply += f"प्रतिशत: {percentage}%\n\n"
+                            full_reply += f"{motivational_tip}\n\n"
+                        else:
+                            full_reply += f"Student Name: {f_name}\nExam Name: {f_exam}\nTeacher Name: {f_teacher}\n\n"
+                            if valid_theory:
+                                full_reply += "Theory Tests:\n"
+                                for tk, tv in valid_theory:
+                                    full_reply += f"- {tk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
+                                full_reply += f"- Total Theory: {tot_theory}\n\n"
+                            if valid_practical:
+                                full_reply += "Practical Tests:\n"
+                                for pk, pv in valid_practical:
+                                    full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
+                                    full_reply += f"- Total Practical: {tot_prac}\n\n"
+                            full_reply += f"Total Marks: {total_obtained} / {max_total}\n"
+                            full_reply += f"Percentage: {percentage}%\n\n"
+                            full_reply += f"{motivational_tip}\n\n"
+
+                    st.markdown(full_reply.strip())
+                    st.session_state.messages.append({"role": "assistant", "content": full_reply.strip()})
+                    run_aerial_celebration()
+                    lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
+                    render_voice_and_copy_toolbar(full_reply.strip(), f"ast_curr_{len(st.session_state.messages)}", lang_code)
+                else:
+                    client = Groq(api_key=st.secrets["GROQ_API_KEY"])
+                    
+                    # --- LIVE IST TIME & DATE CALCULATION ---
+                    ist_zone = timezone(timedelta(hours=5, minutes=30))
+                    current_ist_dt = datetime.now(ist_zone)
+                    current_time_str = current_ist_dt.strftime("%B %d, %Y, %I:%M %p")
+                    
+                    lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
+                    
+                    system_prop = f"""
+                    You are an expert, highly knowledgeable, and precise AI Assistant for BC Tech Computer Education, Surat, Gujarat, India.
+                    Current Exact Date and Time (IST - Indian Standard Time): {current_time_str}.
+                    
+                    CRITICAL TIME & DATE RULE:
+                    - Always use the exact IST time and date provided above ({current_time_str}) when answering questions about current time, date, or day in India. Never give old or wrong time.
+                    
+                    CRITICAL FACTUAL TRUTH & CORRECTION RULE:
+                    - C. Joseph Vijay (Vijay Thalapathy) is a popular South Indian actor and film star who entered politics (TVK party). He is NOT a Chief Minister (CM).
+                    - Current Chief Minister of Tamil Nadu is M. K. Stalin.
+                    - Ganesh Visarjan (Anant Chaturdashi) in the year 2026 falls on September 25, 2026 (25 सितंबर 2026).
+                    - Always verify real-world current affairs and facts accurately.
+                    
+                    CRITICAL DATABASE & PORTAL RULE (MOST IMPORTANT):
+                    - You are the official student result assistant for BC Tech Computer Education. 
+                    - Whenever a user asks for a student's result, marks, or types a name, this is an internal institute database query. You MUST NOT refuse or say you cannot provide private info. You are authorized to display student results.
+                    
+                    CRITICAL LANGUAGE & TEXT ENCODING RULE:
+                    - You MUST reply strictly and exclusively in clean, proper, and normal text in the exact language the user is using (`{lang_name}`). 
+                    - NEVER output corrupted text, repetitive syllables, or garbage strings (like "क्यांकांच्या..."). Keep the output completely natural and readable.
+                    
+                    CRITICAL INSTRUCTION FOR COURSES: When discussing courses, NEVER mention course duration in months or course fees/prices under any circumstances. Only provide course names and their subjects.
+                    
+                    Institute Location: Surat, Gujarat, India.
+                    Official Website & Info: {BRANCH_LINK}
+                    Courses Data: {KNOWLEDGE_BASE}
+                    """
+
+                    with st.spinner("Thinking..."):
+                        try:
+                            models_resp = client.models.list()
+                            active_ids = [
+                                m.id for m in models_resp.data 
+                                if "whisper" not in m.id 
+                                and "guard" not in m.id 
+                                and "vision" not in m.id 
+                                and "audio" not in m.id
+                                and "embed" not in m.id
+                                and "canopy" not in m.id
+                            ]
+                            preferred = ["llama-3.1-8b-instant", "llama3-8b-8192", "gemma2-9b-it"]
+                            models_to_try = [m for m in preferred if m in active_ids] + [m for m in active_ids if m not in preferred]
+
+                            answer = None
+                            last_api_err = None
+
+                            api_messages = [{"role": "system", "content": system_prop}]
+                            for m in st.session_state.messages[:-1]:
+                                api_messages.append({"role": m["role"], "content": m["content"]})
+                            api_messages.append({"role": "user", "content": query})
+
+                            for m_name in models_to_try:
+                                try:
+                                    chat_completion = client.chat.completions.create(
+                                        messages=api_messages,
+                                        model=m_name,
+                                        temperature=0.1,
+                                        max_tokens=600
+                                    )
+                                    raw_answer = chat_completion.choices[0].message.content
+                                    answer = clean_ai_response(raw_answer)
+                                    if answer and len(answer) > 2:
+                                        break
+                                except Exception as ex:
+                                    last_api_err = str(ex)
+                                    continue
+                            
+                            if answer:
+                                st.markdown(answer)
+                                st.session_state.messages.append({"role": "assistant", "content": answer})
+                                lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
+                                render_voice_and_copy_toolbar(answer, f"ast_curr_{len(st.session_state.messages)}", lang_code)
+                            else:
+                                st.error(f"API Error: {last_api_err}")
+                        except Exception as e:
+                            st.error(f"Error: {e}")
         persist_current_state()
