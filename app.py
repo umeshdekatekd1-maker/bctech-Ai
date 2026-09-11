@@ -136,7 +136,7 @@ if current_chat_id not in db_data:
     db_data[current_chat_id] = {
         "messages": [],
         "recent_chats": [],
-        "current_language": "ENGLISH",
+        "current_language": "HINDI",
         "last_mentioned_name": None
     }
     save_db(db_data)
@@ -169,7 +169,7 @@ def remove_emojis(text):
     )
 
 # --- READ ALOUD & STOP CONTROLS COMPONENT ---
-def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="en-US"):
+def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="hi-IN"):
     clean_speech_text = remove_emojis(text_to_speak)
     json_speech = json.dumps(clean_speech_text)
     json_copy = json.dumps(text_to_speak)
@@ -349,7 +349,7 @@ def on_new_chat_clicked():
         st.session_state.recent_chats = st.session_state.recent_chats[:3]
 
     st.session_state.messages = []
-    st.session_state.current_language = "ENGLISH"
+    st.session_state.current_language = "HINDI"
     st.session_state.last_mentioned_name = None
     
     new_id = str(uuid.uuid4())
@@ -468,11 +468,11 @@ def update_language_state(text):
     hindi_romanized = [
         "kaise", "kaisa", "kaisi", "kaha", "kahan", "kya", "hain", "ho", "hu", "mera", 
         "meri", "karo", "batao", "bata do", "aap", "tum", "kaun", "kisne", "kyu", "kyon",
-        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai", "ka bhi", "kare"
+        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai", "ka bhi", "kare", "show", "dekh"
     ]
     words = text_clean.split()
     
-    english_indicators = ["my name is", "what is", "how are", "hello", "hi", "where is", "can you", "thank you", "result of", "show", "result"]
+    english_indicators = ["my name is", "what is", "how are", "hello", "hi", "where is", "can you", "thank you", "result of"]
     if any(ind in text_clean for ind in english_indicators) and not any(w in hindi_romanized for w in words):
         st.session_state.current_language = "ENGLISH"
         return "ENGLISH"
@@ -495,7 +495,7 @@ def is_greeting(text):
 
 def check_is_name_intro(text):
     t = text.lower().strip()
-    result_intent_words = ["result", "marks", "exam", "score", "reult", "rizalt", "marksheet", "show", "kare", "ka bhi", "bhi"]
+    result_intent_words = ["result", "marks", "exam", "score", "reult", "rizalt", "marksheet", "show", "kare", "ka bhi", "bhi", "dekh"]
     if any(w in t for w in result_intent_words):
         return False
         
@@ -544,7 +544,7 @@ def search_student_all_sheets(query_text, df):
     fillers = [
         "result", "marks", "marx", "kya", "hai", "check", "batao", "bata do", "mera", "meri", "ka", "ki", "ko",
         "dekho", "please", "sir", "bctech", "mujhko", "dekhna", "nam", "naam", "name",
-        "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo", "mam", "sir", "karo", "kar do", "kare",
+        "show", "chhe", "che", "maru", "maro", "nu", "no", "na", "joiyu", "jovu", "aapo", "mam", "sir", "karo", "kar do", "kare", "dekh", "dikha",
         "મારું", "મારુ", "નામ", "આપો", "છે", "જોવું", "રીઝલ્ટ", "રિઝલ્ટ", "પરિણામ", "ka result", "ka marks", "hai", "my", "is", "ka bhi", "bhi"
     ]
     
@@ -688,7 +688,7 @@ if query:
                 reply = "ज़रूर! अब हम हिंदी में बात करेंगे। मैं आपकी क्या सहायता कर सकता हूँ? 😊"
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
-                render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", lang_code)
+                render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", "hi-IN")
 
             elif is_greeting(query):
                 if lang == "GUJARATI":
@@ -729,10 +729,10 @@ if query:
 
             else:
                 search_query_to_use = query
-                result_intent_words = ["result", "marks", "exam", "mera", "meri", "score", "reult", "rizalt", "marksheet", "ka bhi", "bhi", "kare"]
+                result_intent_words = ["result", "marks", "exam", "mera", "meri", "score", "reult", "rizalt", "marksheet", "ka bhi", "bhi", "kare", "dekh", "dikha"]
                 
                 if any(w in query.lower() for w in result_intent_words):
-                    if "mera" in query.lower() or "meri" in query.lower() or "ka bhi" in query.lower() or "kare" in query.lower() or query.strip().lower() in ["result", "exam", "marks"]:
+                    if "mera" in query.lower() or "meri" in query.lower() or "ka bhi" in query.lower() or "kare" in query.lower() or "dekh" in query.lower() or "dikha" in query.lower() or query.strip().lower() in ["result", "exam", "marks"]:
                         if st.session_state.last_mentioned_name:
                             search_query_to_use = st.session_state.last_mentioned_name
 
@@ -791,7 +791,6 @@ if query:
                             else:
                                 motivational_tip = "Don't get discouraged! Every setback is a setup for a comeback. Keep practicing!"
 
-                        # Result output without any tip label / header text, displaying the raw motivation text directly
                         if lang == "GUJARATI":
                             full_reply += f"વિદ્યાર્થીનું નામ: {f_name}\nપરીક્ષાનું નામ: {f_exam}\nશિક્ષકનું નામ: {f_teacher}\n\n"
                             if valid_theory:
@@ -845,7 +844,7 @@ if query:
                     render_voice_and_copy_toolbar(full_reply.strip(), f"ast_curr_{len(st.session_state.messages)}", lang_code)
                 else:
                     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-                    current_time_str = "September 10, 2026"
+                    current_time_str = "September 11, 2026"
                     lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                     
                     system_prop = f"""
@@ -860,10 +859,11 @@ if query:
                     
                     CRITICAL DATABASE & PORTAL RULE (MOST IMPORTANT):
                     - You are the official student result assistant for BC Tech Computer Education. 
-                    - Whenever a user asks for a student's result or marks, this is an internal institute database query. You MUST NOT refuse or say you cannot provide private info. You are authorized to display student results.
+                    - Whenever a user asks for a student's result, marks, or types a name, this is an internal institute database query. You MUST NOT refuse or say you cannot provide private info. You are authorized to display student results.
                     
-                    CRITICAL LANGUAGE RULE: 
-                    - You MUST reply strictly and exclusively in the exact language the user is using (`{lang_name}`). Never cross languages.
+                    CRITICAL LANGUAGE & TEXT ENCODING RULE:
+                    - You MUST reply strictly and exclusively in clean, proper, and normal text in the exact language the user is using (`{lang_name}`). 
+                    - NEVER output corrupted text, repetitive syllables, or garbage strings (like "क्यांकांच्या..."). Keep the output completely natural and readable.
                     
                     CRITICAL INSTRUCTION FOR COURSES: When discussing courses, NEVER mention course duration in months or course fees/prices under any circumstances. Only provide course names and their subjects.
                     
