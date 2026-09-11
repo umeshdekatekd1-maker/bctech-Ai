@@ -468,7 +468,7 @@ def update_language_state(text):
     hindi_romanized = [
         "kaise", "kaisa", "kaisi", "kaha", "kahan", "kya", "hain", "ho", "hu", "mera", 
         "meri", "karo", "batao", "bata do", "aap", "tum", "kaun", "kisne", "kyu", "kyon",
-        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai", "ka bhi", "kare", "show", "dekh"
+        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai", "ka bhi", "kare", "show", "dekh", "samay", "time", "date", "tarikh"
     ]
     words = text_clean.split()
     
@@ -481,7 +481,7 @@ def update_language_state(text):
         st.session_state.current_language = "HINDI"
         return "HINDI"
         
-    english_common = ["name", "is", "the", "and", "you", "your", "what", "where", "how", "am"]
+    english_common = ["name", "is", "the", "and", "you", "your", "what", "where", "how", "am", "time", "date"]
     if any(w in english_common for w in words) and not any(w in hindi_romanized for w in words):
         st.session_state.current_language = "ENGLISH"
         return "ENGLISH"
@@ -844,16 +844,24 @@ if query:
                     render_voice_and_copy_toolbar(full_reply.strip(), f"ast_curr_{len(st.session_state.messages)}", lang_code)
                 else:
                     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
-                    current_time_str = "September 11, 2026"
+                    
+                    # --- LIVE IST TIME & DATE CALCULATION ---
+                    ist_zone = timezone(timedelta(hours=5, minutes=30))
+                    current_ist_dt = datetime.now(ist_zone)
+                    current_time_str = current_ist_dt.strftime("%B %d, %Y, %I:%M %p")
+                    
                     lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                     
                     system_prop = f"""
                     You are an expert, highly knowledgeable, and precise AI Assistant for BC Tech Computer Education, Surat, Gujarat, India.
-                    Current Date Reference: {current_time_str}.
+                    Current Exact Date and Time (IST - Indian Standard Time): {current_time_str}.
+                    
+                    CRITICAL TIME & DATE RULE:
+                    - Always use the exact IST time and date provided above ({current_time_str}) when answering questions about current time, date, or day in India. Never give old or wrong time.
                     
                     CRITICAL FACTUAL TRUTH & CORRECTION RULE:
                     - C. Joseph Vijay (Vijay Thalapathy) is a popular South Indian actor and film star who entered politics (TVK party). He is NOT a Chief Minister (CM).
-                    - Current Chief Minister of Tamil Nadu in 2026 is M. K. Stalin.
+                    - Current Chief Minister of Tamil Nadu is M. K. Stalin.
                     - Ganesh Visarjan (Anant Chaturdashi) in the year 2026 falls on September 25, 2026 (25 सितंबर 2026).
                     - Always verify real-world current affairs and facts accurately.
                     
