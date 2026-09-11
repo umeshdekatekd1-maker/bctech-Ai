@@ -748,18 +748,21 @@ if query:
                     else:
                         st.write(f"📂 Here is your requested paper: **{d_name}**")
                         
-                        # Secure PDF.js Web Viewer Embed (Bypasses Chrome restrictions completely)
+                        # Generate data URI for safe separate tab viewing
                         with open(p_info["path"], "rb") as pf:
                             b64_pdf = base64.b64encode(pf.read()).decode('utf-8')
                         
-                        pdf_viewer_html = f"""
-                        <div style="width:100%; height:520px; border:1px solid #dadce0; border-radius:12px; overflow:hidden; background:#f8f9fa;">
-                            <iframe src="https://mozilla.github.io/pdf.js/web/viewer.html?file=data:application/pdf;base64,{b64_pdf}" width="100%" height="100%" style="border:none;"></iframe>
+                        # Clickable button opening in a separate secure tab with disabled toolbar
+                        open_link_html = f"""
+                        <div style="margin-top: 10px;">
+                            <a href="data:application/pdf;base64,{b64_pdf}#toolbar=0&navpanes=0&scrollbar=0" target="_blank" style="background-color: #1a73e8; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block; font-family: sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
+                                📂 Click to Open {d_name} (Secure View)
+                            </a>
                         </div>
                         """
-                        components.html(pdf_viewer_html, height=540)
+                        st.markdown(open_link_html, unsafe_allow_html=True)
                         
-                        reply = f"Opened paper viewer for: {d_name}"
+                        reply = f"Generated secure open link for: {d_name}"
                         st.session_state.messages.append({"role": "assistant", "content": reply})
                 
                 elif err:
