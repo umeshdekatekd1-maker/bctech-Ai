@@ -748,29 +748,20 @@ if query:
                     else:
                         st.write(f"📂 Here is your requested paper: **{d_name}**")
                         
-                        # JavaScript Blob Viewer Launcher that opens directly in a new tab without downloading
+                        # Standard HTML Anchor Link opening directly in a new tab without download prompt
                         with open(p_info["path"], "rb") as pf:
                             b64_pdf = base64.b64encode(pf.read()).decode('utf-8')
                         
-                        open_btn_html = f"""
+                        link_html = f"""
                         <div style="margin-top: 10px;">
-                            <button onclick="
-                                const b64 = '{b64_pdf}';
-                                const bin = atob(b64);
-                                const len = bin.length;
-                                const bytes = new Uint8Array(len);
-                                for (let i = 0; i < len; i++) {{ bytes[i] = bin.charCodeAt(i); }}
-                                const blob = new Blob([bytes], {{ type: 'application/pdf' }});
-                                const url = URL.createObjectURL(blob);
-                                window.open(url, '_blank');
-                            " style="background-color: #1a73e8; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 500; cursor: pointer; font-family: sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
+                            <a href="data:application/pdf;base64,{b64_pdf}" target="_blank" style="background-color: #1a73e8; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block; font-family: sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
                                 📂 Click to Open {d_name} in New Tab
-                            </button>
+                            </a>
                         </div>
                         """
-                        components.html(open_btn_html, height=55)
+                        components.html(link_html, height=55)
                         
-                        reply = f"Generated secure viewer button for: {d_name}"
+                        reply = f"Opened viewer link for: {d_name}"
                         st.session_state.messages.append({"role": "assistant", "content": reply})
                 
                 elif err:
