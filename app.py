@@ -532,7 +532,7 @@ def update_language_state(text):
     hindi_romanized = [
         "kaise", "kaisa", "kaisi", "kaha", "kahan", "kya", "hain", "ho", "hu", "mera", 
         "meri", "karo", "batao", "bata do", "aap", "tum", "kaun", "kisne", "kyu", "kyon",
-        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai", "ka bhi", "kare", "show", "dekh", "samay", "time", "date", "tarikh", "lock", "unlock"
+        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai", "ka bhi", "kare", "show", "dekh", "samay", "time", "date", "tarikh", "lock", "unlock", "open"
     ]
     words = text_clean.split()
     
@@ -545,7 +545,7 @@ def update_language_state(text):
         st.session_state.current_language = "HINDI"
         return "HINDI"
         
-    english_common = ["name", "is", "the", "and", "you", "your", "what", "where", "how", "am", "time", "date", "lock", "unlock"]
+    english_common = ["name", "is", "the", "and", "you", "your", "what", "where", "how", "am", "time", "date", "lock", "unlock", "open"]
     if any(w in english_common for w in words) and not any(w in hindi_romanized for w in words):
         st.session_state.current_language = "ENGLISH"
         return "ENGLISH"
@@ -696,21 +696,15 @@ if query:
                 persist_current_state()
                 break
                 
-            elif "unlock" in clean_q_lower:
-                st.session_state.papers_data[pk]["locked"] = False
-                save_papers_db(st.session_state.papers_data)
-                handled_paper_command = True
-                
-                st.session_state.messages.append({"role": "user", "content": query})
-                with st.chat_message("user", avatar="👤"):
-                    st.write(query)
-                with st.chat_message("assistant", avatar="🤖"):
-                    reply = f"🔓 Paper '{p_info.get('display_name', pk)}' has been unlocked."
-                    st.write(reply)
-                    st.session_state.messages.append({"role": "assistant", "content": reply})
-                    render_voice_and_copy_toolbar(reply, f"unlock_ack_{len(st.session_state.messages)}", "hi-IN")
-                persist_current_state()
-                break
+            elif "unlock" in clean_q_lower or "open" in clean_q_lower:
+                # Check if it's explicitly an unlock/open command for this paper
+                if "unlock" in clean_q_lower or "open" in clean_q_lower:
+                    st.session_state.papers_data[pk]["locked"] = False
+                    save_papers_db(st.session_state.papers_data)
+                    # If the user typed "lock" along with open, don't unlock
+                    if "lock" in clean_q_lower and clean_q_lower.find("lock") < clean_q_lower.find("open"):
+                        st.session_state.papers_data[pk]["locked"] = True
+                        save_papers_db(st.session_state.papers_data)
 
     if not handled_paper_command:
         if clean_q_lower in ["or", "aur", "hi", "hello", "ok", "hey", "h", "k"]:
@@ -739,7 +733,7 @@ if query:
             paper_requested = None
             for pk, p_info in st.session_state.papers_data.items():
                 d_name_lower = p_info.get("display_name", pk).lower()
-                if d_name_lower in clean_q_lower or pk in clean_q_lower:
+                if d_name_lower in clean_q_lower:
                     paper_requested = pk
                     break
 
