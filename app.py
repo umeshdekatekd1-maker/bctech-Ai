@@ -8,6 +8,7 @@ import re
 import json
 import os
 import uuid
+import base64
 from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
@@ -747,19 +748,29 @@ if query:
                     else:
                         st.write(f"📂 Here is your requested paper: **{d_name}**")
                         
-                        # Native Streamlit secure download button for absolute reliability
+                        # JavaScript Blob Viewer Launcher that opens directly in a new tab without downloading
                         with open(p_info["path"], "rb") as pf:
-                            pdf_bytes = pf.read()
+                            b64_pdf = base64.b64encode(pf.read()).decode('utf-8')
                         
-                        st.download_button(
-                            label=f"📂 Click to Open {d_name}",
-                            data=pdf_bytes,
-                            file_name=p_info["filename"],
-                            mime="application/pdf",
-                            key=f"dl_btn_{paper_requested}_{len(st.session_state.messages)}"
-                        )
+                        open_btn_html = f"""
+                        <div style="margin-top: 10px;">
+                            <button onclick="
+                                const b64 = '{b64_pdf}';
+                                const bin = atob(b64);
+                                const len = bin.length;
+                                const bytes = new Uint8Array(len);
+                                for (let i = 0; i < len; i++) {{ bytes[i] = bin.charCodeAt(i); }}
+                                const blob = new Blob([bytes], {{ type: 'application/pdf' }});
+                                const url = URL.createObjectURL(blob);
+                                window.open(url, '_blank');
+                            " style="background-color: #1a73e8; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 500; cursor: pointer; font-family: sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
+                                📂 Click to Open {d_name} in New Tab
+                            </button>
+                        </div>
+                        """
+                        components.html(open_btn_html, height=55)
                         
-                        reply = f"Generated paper button for: {d_name}"
+                        reply = f"Generated secure viewer button for: {d_name}"
                         st.session_state.messages.append({"role": "assistant", "content": reply})
                 
                 elif err:
@@ -788,7 +799,7 @@ if query:
 
                 elif check_is_where_from(query):
                     if lang == "GUJARATI":
-                        reply = "હું BC Tech Computer Education નો અસિસ્ટન્ટ છું, અને આપણી સંસ્થા સુરત, ગુજરાત, ભારતમાં આવેલી છે."
+                        reply = "હું BC Tech Computer Education નો AI અસિસ્ટન્ટ છું, અને આપણી સંસ્થા સુરત, ગુજરાત, ભારતમાં આવેલી છે."
                     elif lang == "HINDI":
                         if "kaise ho" in clean_q_lower or "kaisa hai" in clean_q_lower:
                             reply = "मैं बहुत अच्छा हूँ! बताइए, मैं BC Tech Computer Education में आपकी कैसे मदद कर सकता हूँ? 😊"
