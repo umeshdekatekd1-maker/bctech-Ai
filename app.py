@@ -748,20 +748,22 @@ if query:
                     else:
                         st.write(f"📂 Here is your requested paper: **{d_name}**")
                         
-                        # Pure HTML Anchor Link opening directly in a new tab without download
+                        # Secure In-Chat PDF Viewer using reliable base64 embedding inside standard object tag
                         with open(p_info["path"], "rb") as pf:
                             b64_pdf = base64.b64encode(pf.read()).decode('utf-8')
                         
-                        open_tab_html = f"""
-                        <div style="margin-top: 10px;">
-                            <a href="data:application/pdf;base64,{b64_pdf}#toolbar=0&navpanes=0&scrollbar=0" target="_blank" style="background-color: #1a73e8; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block; font-family: sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
-                                📂 Click to Open {d_name} in New Tab
-                            </a>
+                        safe_viewer_html = f"""
+                        <div style="width:100%; height:500px; border:1px solid #dadce0; border-radius:12px; overflow:hidden; background:#ffffff;">
+                            <object data="data:application/pdf;base64,{b64_pdf}#toolbar=0&navpanes=0&scrollbar=0" type="application/pdf" width="100%" height="100%">
+                                <iframe src="data:application/pdf;base64,{b64_pdf}#toolbar=0&navpanes=0&scrollbar=0" width="100%" height="100%" style="border:none;">
+                                    <p style="text-align:center; padding:20px;">PDF Viewer not supported in this browser.</p>
+                                </iframe>
+                            </object>
                         </div>
                         """
-                        components.html(open_tab_html, height=55)
+                        components.html(safe_viewer_html, height=520)
                         
-                        reply = f"Opened secure tab link for: {d_name}"
+                        reply = f"Displayed secure paper viewer for: {d_name}"
                         st.session_state.messages.append({"role": "assistant", "content": reply})
                 
                 elif err:
@@ -857,7 +859,7 @@ if query:
 
                 else:
                     search_query_to_use = query
-                    result_intent_words = ["result", "marks", "exam", "mera", "meri", "score", "reult", "rizalt", "marksheet", "ka bhi", "bhi", "kare", "dekh", "dikha"]
+                    result_intent_words = ["result", "marks", "exam", "mera", "meri", "score", "reult", "rizalt", "marksheet", "show", "kare", "ka bhi", "bhi", "dekh", "dikha"]
                     
                     if any(w in query.lower() for w in result_intent_words):
                         if "mera" in query.lower() or "meri" in query.lower() or "ka bhi" in query.lower() or "kare" in query.lower() or "dekh" in query.lower() or "dikha" in query.lower() or query.strip().lower() in ["result", "exam", "marks"]:
