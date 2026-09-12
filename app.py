@@ -8,7 +8,6 @@ import re
 import json
 import os
 import uuid
-import base64
 from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
@@ -393,7 +392,7 @@ def clean_val_display(val):
     except Exception:
         return str(val).strip()
 
-# Sidebar - Admin Panel for Password Protected PDF & JPG/JPEG/PNG Uploads
+# Sidebar - Admin Panel for Password Protected PDF & JPG Uploads
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -752,22 +751,24 @@ if query:
                     else:
                         st.write(f"📂 Here is your requested paper: **{d_name}**")
                         
-                        # Generate HTML Link to open file in a new tab without downloading
-                        with open(p_info["path"], "rb") as pf:
-                            b64_data = base64.b64encode(pf.read()).decode('utf-8')
-                        
-                        mtype = p_info.get("mime", "application/pdf")
-                        
-                        open_tab_html = f"""
-                        <div style="margin-top: 10px;">
-                            <a href="data:{mtype};base64,{b64_data}" target="_blank" style="background-color: #1a73e8; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block; font-family: sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
-                                📂 Click to Open {d_name} in New Tab
-                            </a>
-                        </div>
-                        """
-                        components.html(open_tab_html, height=55)
-                        
-                        reply = f"Opened secure new tab link for: {d_name}"
+                        # If the uploaded file is an image (JPG/PNG), display it directly inside the chat!
+                        mtype = p_info.get("mime", "")
+                        if "image/" in mtype:
+                            st.image(p_info["path"], caption=d_name, use_container_width=True)
+                            reply = f"Displayed image paper: {d_name}"
+                        else:
+                            # For PDF files, use safe download button to prevent blank/blocked screen
+                            with open(p_info["path"], "rb") as pf:
+                                pdf_bytes = pf.read()
+                            st.download_button(
+                                label=f"📂 Open Paper: {d_name}",
+                                data=pdf_bytes,
+                                file_name=p_info["filename"],
+                                mime="application/pdf",
+                                key=f"view_btn_{paper_requested}_{len(st.session_state.messages)}"
+                            )
+                            reply = f"Generated paper view button for: {d_name}"
+                            
                         st.session_state.messages.append({"role": "assistant", "content": reply})
                 
                 elif err:
@@ -822,7 +823,7 @@ if query:
                     reply = "ज़रूर! अब हम हिंदी में बात करेंगे। मैं आपकी क्या सहायता कर सकता हूँ? 😊"
                     st.write(reply)
                     st.session_state.messages.append({"role": "assistant", "content": reply})
-                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", lang_code)
+                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", "hi-IN")
 
                 elif is_greeting(query):
                     if lang == "GUJARATI":
