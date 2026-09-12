@@ -8,7 +8,6 @@ import re
 import json
 import os
 import uuid
-import base64
 from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
@@ -393,7 +392,7 @@ def clean_val_display(val):
     except Exception:
         return str(val).strip()
 
-# Sidebar - Admin Panel for Password Protected PDF & JPG Uploads
+# Sidebar - Admin Panel for Password Protected PDF & JPG Uploads with Strict Lock Enforcement
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -744,6 +743,8 @@ if query:
                 if paper_requested:
                     p_info = st.session_state.papers_data[paper_requested]
                     d_name = p_info.get("display_name", paper_requested)
+                    
+                    # STRICT LOCK CHECK: If paper is locked, absolutely block access
                     if p_info["locked"]:
                         reply = f"⛔ Sorry! The paper '{d_name}' is currently locked by the teacher/admin and cannot be opened."
                         st.write(reply)
@@ -754,11 +755,9 @@ if query:
                         
                         mtype = p_info.get("mime", "")
                         if "image/" in mtype:
-                            # Display JPG/PNG images directly in large size inside the chat without downloading
                             st.image(p_info["path"], caption=d_name, use_container_width=True)
                             reply = f"Displayed large image paper: {d_name}"
                         else:
-                            # Safe download button for PDFs to avoid browser blocking
                             with open(p_info["path"], "rb") as pf:
                                 pdf_bytes = pf.read()
                             st.download_button(
