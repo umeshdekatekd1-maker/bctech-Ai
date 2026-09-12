@@ -392,7 +392,7 @@ def clean_val_display(val):
     except Exception:
         return str(val).strip()
 
-# Sidebar - Admin Panel with Lock/Unlock, Delete, and Time Info
+# Sidebar - Admin Panel with Contact Info (Phone & WhatsApp: 77789 26285)
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -473,8 +473,10 @@ with st.sidebar:
             st.error("Incorrect Password!")
 
     st.markdown("---")
-    st.markdown("**📌 Quick Links:**")
-    st.markdown("🌐 [Official Website](https://sites.google.com/view/bctechcomputer)")
+    st.markdown("### संपर्क:")
+    st.markdown("📞 फ़ोन: **77789 26285**")
+    st.markdown("📱 व्हाट्सएप: **77789 26285**")
+    st.markdown("🌐 वेबसाइट: [Official Website](https://sites.google.com/view/bctechcomputer/about-us)")
     st.markdown("📍 [Branch Location](https://sites.google.com/view/bctechcomputer/about-us)")
 
 st.title("🎓 BC Tech Ai Assistant")
@@ -675,8 +677,9 @@ About Bctech Computer Education:
 - Location/Address: Surat, Gujarat, India.
 - Institute Timing (Class Open & Close Time): Class opens at 7:00 AM and remains active/open until 8:30 PM.
 - Batch Timings: 
-  - Morning Batches: 7:00 AM to 10:00 AM (1 hour duration per batch).
+  - Morning Batches: 7:00 AM to 10:00 AM (Each batch is 1 hour long).
   - Regular/Other Batches: 10:00 AM to 8:30 PM (1.5 hours duration per batch).
+- Contact Number / WhatsApp Number: 77789 26285
 """
 
 # Render chat history with Read Aloud & Copy buttons
@@ -843,7 +846,7 @@ if query:
                     reply = "ज़रूर! अब हम हिंदी में बात करेंगे। मैं आपकी क्या सहायता कर सकता हूँ? 😊"
                     st.write(reply)
                     st.session_state.messages.append({"role": "assistant", "content": reply})
-                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", "hi-IN")
+                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", lang_code)
 
                 elif is_greeting(query):
                     if lang == "GUJARATI":
