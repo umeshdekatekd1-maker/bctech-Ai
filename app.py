@@ -572,7 +572,7 @@ def update_language_state(text):
 
 def is_greeting(text):
     text_clean = text.lower().strip().replace("!", "").replace(".", "")
-    greetings = ["hi", "hello", "hey", "hii", "hiii", "namaste", "kem cho", "kem chho", "halo", "हेलो", "નમસ્ते"]
+    greetings = ["hi", "hello", "hey", "hii", "hiii", "namaste", "kem cho", "kem chho", "halo", "हेलो", "નમસ્તે"]
     return text_clean in greetings
 
 def check_is_name_intro(text):
@@ -678,7 +678,7 @@ About Bctech Computer Education:
 - Institute Timing (Class Open & Close Time): Class opens at 7:00 AM and remains active/open until 8:30 PM.
 - Batch Timings: 
   - Morning Batches: 7:00 AM to 10:00 AM (Each batch is 1 hour long).
-  - Regular/Other Batches: 10:00 AM to 8:30 PM (1.5 hours duration per batch).
+  - Regular/Other Batches: 10:00 AM to 8:30 PM (Each batch is 1.5 hours / 1 hour 30 minutes long).
 - Contact Number / WhatsApp Number: 77789 26285
 """
 
@@ -808,7 +808,7 @@ if query:
                     st.session_state.last_mentioned_name = username.lower()
 
                     if lang == "GUJARATI":
-                        reply = f"નમસ્ते {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
+                        reply = f"નમસ્તે {username}! BC Tech માં આપનું સ્વાગત છે. જણાવો, હું આપને કેવી રીતે મદદ કરી શકું? 😊"
                     elif lang == "HINDI":
                         reply = f"नमस्ते {username}! BC Tech Computer Education में आपका स्वागत है। बताइए, मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                     else:
@@ -846,11 +846,11 @@ if query:
                     reply = "ज़रूर! अब हम हिंदी में बात करेंगे। मैं आपकी क्या सहायता कर सकता हूँ? 😊"
                     st.write(reply)
                     st.session_state.messages.append({"role": "assistant", "content": reply})
-                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", lang_code)
+                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", "hi-IN")
 
                 elif is_greeting(query):
                     if lang == "GUJARATI":
-                        reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                        reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                     elif lang == "HINDI":
                         reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                     else:
@@ -862,11 +862,11 @@ if query:
 
                 elif check_is_branch_intent(query):
                     if lang == "GUJARATI":
-                        reply = f"BC Tech Computer Education સુરત, ગુજરાત, ભારતમાં આવેલું છે. વધુ વિગતો અને અન્ય શાખાના પત્તા માટે અધિકૃત વેબસાઇટની મુલાકાત લો:\n🔗 {BRANCH_LINK}"
+                        reply = f"BC Tech Computer Education સુરત, ગુજરાત, ભારતમાં આવેલું છે. વધુ વિગતો અને અન્ય શાખાના પત્તા માટે અધિકૃત વેબસાઇટની મુલાકાત લો:\n🔗 {BRANCH_LINK}\n\nસંપર્ક:\n📞 ફોન: 77789 26285\n📱 વ્હોટ્સએપ: 77789 26285"
                     elif lang == "HINDI":
-                        reply = f"BC Tech Computer Education सूरत, गुजरात, भारत में स्थित है। अधिक विवरण और अन्य शाखाओं के पते के लिए आप आधिकारिक वेबसाइट पर जा सकते हैं:\n🔗 {BRANCH_LINK}"
+                        reply = f"BC Tech Computer Education सूरत, गुजरात, भारत में स्थित है। अधिक विवरण और अन्य शाखाओं के पते के लिए आप आधिकारिक वेबसाइट पर जा सकते हैं:\n🔗 {BRANCH_LINK}\n\nसंपर्क:\n📞 फ़ोन: 77789 26285\n📱 व्हाट्सएप: 77789 26285"
                     else:
-                        reply = f"BC Tech Computer Education is located in Surat, Gujarat, India. For more details and branch addresses, you can visit the official website:\n🔗 {BRANCH_LINK}"
+                        reply = f"BC Tech Computer Education is located in Surat, Gujarat, India. For more details and branch addresses, you can visit the official website:\n🔗 {BRANCH_LINK}\n\nContact:\n📞 Phone: 77789 26285\n📱 WhatsApp: 77789 26285"
                     
                     st.write(reply)
                     st.session_state.messages.append({"role": "assistant", "content": reply})
@@ -875,7 +875,7 @@ if query:
 
                 elif check_is_creator_intent(query):
                     if lang == "GUJARATI":
-                        reply = "મને BC Tech Computer Education ના એડમિન અને ડેવલपर દ્વારા બનાવવામાં આવ્યો છે."
+                        reply = "મને BC Tech Computer Education ના એડમિન અને ડેવલપર દ્વારા બનાવવામાં આવ્યો છે."
                     elif lang == "HINDI":
                         reply = "मुझे BC Tech Computer Education के डेवलपर और एडमिन द्वारा बनाया गया है।"
                     else:
@@ -943,7 +943,7 @@ if query:
                                     motivational_tip = "Good effort! With a little more practice, you can achieve even higher goals."
                             else:
                                 if lang == "GUJARATI":
-                                    motivational_tip = "હિંમત ન हारो! નિષ્ફળતા જ સફળતાની પહેલી સીડી છે. થોડી વધુ પ્રેક્ટિસ કરો, તમે ચોક્કસ સફળ થશો!"
+                                    motivational_tip = "હિંમત ન હારો! નિષ્ફળતા જ સફળતાની પહેલી સીડી છે. થોડી વધુ પ્રેક્ટિસ કરો, તમે ચોક્કસ સફળ થશો!"
                                 elif lang == "HINDI":
                                     motivational_tip = "निराश न हों! असफलता ही सफलता की पहली सीढ़ी है। थोड़ी और मेहनत करें, आप जरूर सफल होंगे!"
                                 else:
@@ -974,7 +974,7 @@ if query:
                                 if valid_practical:
                                     full_reply += "प्रैक्टिकल टेस्ट:\n"
                                     for pk, pv in valid_practical:
-                                        full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
+                                        full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else pv}\n"
                                         full_reply += f"- कुल प्रैक्टिकल: {tot_prac}\n\n"
                                 full_reply += f"कुल अंक: {total_obtained} / {max_total}\n"
                                 full_reply += f"प्रतिशत: {percentage}%\n\n"
@@ -989,7 +989,7 @@ if query:
                                 if valid_practical:
                                     full_reply += "Practical Tests:\n"
                                     for pk, pv in valid_practical:
-                                        full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
+                                        full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else pv}\n"
                                         full_reply += f"- Total Practical: {tot_prac}\n\n"
                                 full_reply += f"Total Marks: {total_obtained} / {max_total}\n"
                                 full_reply += f"Percentage: {percentage}%\n\n"
@@ -1014,14 +1014,30 @@ if query:
                         You are an expert, highly knowledgeable, and precise AI Assistant for BC Tech Computer Education, Surat, Gujarat, India.
                         Current Exact Date and Time (IST - Indian Standard Time): {current_time_str}.
                         
-                        CRITICAL TIME & DATE RULE:
-                        - Always use the exact IST time and date provided above ({current_time_str}) when answering questions about current time, date, or day in India. Never give old or wrong time.
+                        CRITICAL SOFTWARE TUTORIAL & PRACTICAL INSTRUCTION RESTRICTION (STRICTEST RULE):
+                        - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software (e.g. Photoshop, CorelDraw, Tally, Excel, Word, Coding, Python, C++, Web Development, Video Editing, etc.).
+                        - If a user asks HOW to do something in software (e.g., "passport photo kaise banaye", "tally me entry kaise kare", "python me code kaise likhe", "design kaise kare"):
+                          DO NOT provide any tutorial, steps, or software solutions.
+                          INSTEAD, you must politely inform them that practical training and guidance are provided directly at the institute, and tell them to contact our branch or visit our website:
+                          
+                          - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं।\n\nसंपर्क:\n📞 फ़ोन: 77789 26285\n📱 व्हाट्सएप: 77789 26285\n🌐 वेबसाइट: {BRANCH_LINK}"
+                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્ચનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nસંપર્ક:\n📞 ફોન: 77789 26285\n📱 વ્હોટ્સએપ: 77789 26285\n🌐 વેબસાઇટ: {BRANCH_LINK}"
+                          - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nContact:\n📞 Phone: 77789 26285\n📱 WhatsApp: 77789 26285\n🌐 Website: {BRANCH_LINK}"
                         
                         CRITICAL TIMINGS RULE (CLASS & BATCH SCHEDULE):
                         - Class Opening and Closing Hours: The institute/class opens at 7:00 AM and remains active/open until 8:30 PM.
                         - Morning Batches Timing: 7:00 AM to 10:00 AM (Each batch is 1 hour long).
                         - Regular/Other Batches Timing: 10:00 AM to 8:30 PM (Each batch is 1.5 hours / 1 hour 30 minutes long).
                         - Always answer timing or batch questions accurately in whichever language the user asks (Hindi, Gujarati, or English).
+                        
+                        CRITICAL CONTACT NUMBERS (ALWAYS DISPLAY REAL NUMBERS, NEVER XXXXX):
+                        - Phone: 77789 26285
+                        - WhatsApp: 77789 26285
+                        - Website: {BRANCH_LINK}
+                        - NEVER write '+91-XXXXXXXXXX'. Always write '77789 26285'.
+                        
+                        CRITICAL TIME & DATE RULE:
+                        - Always use the exact IST time and date provided above ({current_time_str}) when answering questions about current time, date, or day in India. Never give old or wrong time.
                         
                         CRITICAL FACTUAL TRUTH & CORRECTION RULE:
                         - C. Joseph Vijay (Vijay Thalapathy) is a popular South Indian actor and film star who entered politics (TVK party). He is NOT a Chief Minister (CM).
