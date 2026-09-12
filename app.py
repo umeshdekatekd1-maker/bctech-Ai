@@ -572,7 +572,7 @@ def update_language_state(text):
 
 def is_greeting(text):
     text_clean = text.lower().strip().replace("!", "").replace(".", "")
-    greetings = ["hi", "hello", "hey", "hii", "hiii", "namaste", "kem cho", "kem chho", "halo", "हेलो", "નમસ્તે"]
+    greetings = ["hi", "hello", "hey", "hii", "hiii", "namaste", "kem cho", "kem chho", "halo", "हेलो", "નમસ્ते"]
     return text_clean in greetings
 
 def check_is_name_intro(text):
@@ -875,7 +875,7 @@ if query:
 
                 elif check_is_creator_intent(query):
                     if lang == "GUJARATI":
-                        reply = "મને BC Tech Computer Education ના એડમિન અને ડેવલપર દ્વારા બનાવવામાં આવ્યો છે."
+                        reply = "મને BC Tech Computer Education ના એડમિન અને ડેવલपर દ્વારા બનાવવામાં આવ્યો છે."
                     elif lang == "HINDI":
                         reply = "मुझे BC Tech Computer Education के डेवलपर और एडमिन द्वारा बनाया गया है।"
                     else:
@@ -974,7 +974,7 @@ if query:
                                 if valid_practical:
                                     full_reply += "प्रैक्टिकल टेस्ट:\n"
                                     for pk, pv in valid_practical:
-                                        full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else pv}\n"
+                                        full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
                                         full_reply += f"- कुल प्रैक्टिकल: {tot_prac}\n\n"
                                 full_reply += f"कुल अंक: {total_obtained} / {max_total}\n"
                                 full_reply += f"प्रतिशत: {percentage}%\n\n"
@@ -989,7 +989,7 @@ if query:
                                 if valid_practical:
                                     full_reply += "Practical Tests:\n"
                                     for pk, pv in valid_practical:
-                                        full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else pv}\n"
+                                        full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
                                         full_reply += f"- Total Practical: {tot_prac}\n\n"
                                 full_reply += f"Total Marks: {total_obtained} / {max_total}\n"
                                 full_reply += f"Percentage: {percentage}%\n\n"
@@ -1007,12 +1007,18 @@ if query:
                         ist_zone = timezone(timedelta(hours=5, minutes=30))
                         current_ist_dt = datetime.now(ist_zone)
                         current_time_str = current_ist_dt.strftime("%B %d, %Y, %I:%M %p")
+                        current_year_str = current_ist_dt.strftime("%Y")
                         
                         lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                         
                         system_prop = f"""
                         You are an expert, highly knowledgeable, and precise AI Assistant for BC Tech Computer Education, Surat, Gujarat, India.
-                        Current Exact Date and Time (IST - Indian Standard Time): {current_time_str}.
+                        Current Exact Date and Time (IST - Indian Standard Time): {current_time_str}. Current Year: {current_year_str}.
+                        
+                        CRITICAL CALENDAR & FESTIVAL RULE (MOST IMPORTANT):
+                        - When a user asks about the date/day of any festival (e.g., Diwali, Holi, Eid, Christmas, Ganesh Chaturthi, etc.) WITHOUT specifying a year, you MUST ALWAYS provide the date/day for the CURRENT YEAR ({current_year_str}) first. 
+                        - Do NOT default to or assume any other year unless the user explicitly mentions that specific year in their question (e.g., "diwali 2027 me kab hai"). 
+                        - Ensure absolute accuracy for festival dates.
                         
                         CRITICAL SOFTWARE TUTORIAL & PRACTICAL INSTRUCTION RESTRICTION (STRICTEST RULE):
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software (e.g. Photoshop, CorelDraw, Tally, Excel, Word, Coding, Python, C++, Web Development, Video Editing, etc.).
