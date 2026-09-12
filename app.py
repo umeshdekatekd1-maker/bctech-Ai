@@ -8,6 +8,7 @@ import re
 import json
 import os
 import uuid
+import base64
 from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
@@ -392,7 +393,7 @@ def clean_val_display(val):
     except Exception:
         return str(val).strip()
 
-# Sidebar - Admin Panel for Password Protected Paper Uploads with Auto PDF Name & Lock/Unlock
+# Sidebar - Admin Panel for Password Protected PDF & JPG/JPEG/PNG Uploads
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -418,10 +419,10 @@ with st.sidebar:
         admin_pass = st.text_input("Enter Password", type="password", key="admin_pass_input")
         if admin_pass == "bctech1AA@":
             st.success("Access Granted!")
-            uploaded_pdf = st.file_uploader("Upload Question Paper (PDF)", type=["pdf"])
+            uploaded_file = st.file_uploader("Upload Question Paper (PDF / JPG / PNG)", type=["pdf", "jpg", "jpeg", "png"])
             
-            if uploaded_pdf is not None:
-                original_filename = uploaded_pdf.name
+            if uploaded_file is not None:
+                original_filename = uploaded_file.name
                 base_name = os.path.splitext(original_filename)[0]
                 st.info(f"Detected Paper Name: **{base_name}**")
                 
@@ -430,12 +431,16 @@ with st.sidebar:
                     os.makedirs("uploaded_papers", exist_ok=True)
                     file_path = os.path.join("uploaded_papers", original_filename)
                     with open(file_path, "wb") as f:
-                        f.write(uploaded_pdf.getbuffer())
+                        f.write(uploaded_file.getbuffer())
                     
+                    file_ext = os.path.splitext(original_filename)[1].lower()
+                    mimetype = "application/pdf" if file_ext == ".pdf" else (f"image/{file_ext[1:]}" if file_ext in [".jpg", ".jpeg", ".png"] else "application/octet-stream")
+
                     st.session_state.papers_data[p_key] = {
                         "display_name": base_name,
                         "filename": original_filename,
                         "path": file_path,
+                        "mime": mimetype,
                         "locked": False
                     }
                     save_papers_db(st.session_state.papers_data)
@@ -747,19 +752,22 @@ if query:
                     else:
                         st.write(f"📂 Here is your requested paper: **{d_name}**")
                         
-                        # Stable Native Streamlit Download/Open Button to view paper safely
+                        # Generate HTML Link to open file in a new tab without downloading
                         with open(p_info["path"], "rb") as pf:
-                            pdf_bytes = pf.read()
+                            b64_data = base64.b64encode(pf.read()).decode('utf-8')
                         
-                        st.download_button(
-                            label=f"📂 Open Paper: {d_name}",
-                            data=pdf_bytes,
-                            file_name=p_info["filename"],
-                            mime="application/pdf",
-                            key=f"stable_dl_btn_{paper_requested}_{len(st.session_state.messages)}"
-                        )
+                        mtype = p_info.get("mime", "application/pdf")
                         
-                        reply = f"Opened secure action button for: {d_name}"
+                        open_tab_html = f"""
+                        <div style="margin-top: 10px;">
+                            <a href="data:{mtype};base64,{b64_data}" target="_blank" style="background-color: #1a73e8; color: white; padding: 10px 20px; text-decoration: none; border-radius: 8px; font-weight: 500; display: inline-block; font-family: sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.15);">
+                                📂 Click to Open {d_name} in New Tab
+                            </a>
+                        </div>
+                        """
+                        components.html(open_tab_html, height=55)
+                        
+                        reply = f"Opened secure new tab link for: {d_name}"
                         st.session_state.messages.append({"role": "assistant", "content": reply})
                 
                 elif err:
@@ -814,7 +822,7 @@ if query:
                     reply = "ज़रूर! अब हम हिंदी में बात करेंगे। मैं आपकी क्या सहायता कर सकता हूँ? 😊"
                     st.write(reply)
                     st.session_state.messages.append({"role": "assistant", "content": reply})
-                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", "hi-IN")
+                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", lang_code)
 
                 elif is_greeting(query):
                     if lang == "GUJARATI":
@@ -942,7 +950,7 @@ if query:
                                 if valid_practical:
                                     full_reply += "प्रैक्टिकल टेस्ट:\n"
                                     for pk, pv in valid_practical:
-                                        full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else pv}\n"
+                                        full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
                                         full_reply += f"- कुल प्रैक्टिकल: {tot_prac}\n\n"
                                 full_reply += f"कुल अंक: {total_obtained} / {max_total}\n"
                                 full_reply += f"प्रतिशत: {percentage}%\n\n"
