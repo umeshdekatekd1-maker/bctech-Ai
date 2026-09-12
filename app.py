@@ -392,7 +392,7 @@ def clean_val_display(val):
     except Exception:
         return str(val).strip()
 
-# Sidebar - Admin Panel for Uploads & Permission/Lock Management
+# Sidebar - Admin Panel with Lock/Unlock and Delete (Remove) Options
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -440,7 +440,7 @@ with st.sidebar:
                         "filename": original_filename,
                         "path": file_path,
                         "mime": mimetype,
-                        "locked": True  # Default to locked for security
+                        "locked": True  # Default to locked
                     }
                     save_papers_db(st.session_state.papers_data)
                     st.success(f"Paper '{base_name}' successfully uploaded!")
@@ -450,11 +450,26 @@ with st.sidebar:
                 for pk, p_info in list(st.session_state.papers_data.items()):
                     d_name = p_info.get("display_name", pk)
                     status_str = "🔒 Locked" if p_info["locked"] else "🟢 Unlocked"
-                    col1, col2 = st.columns([2, 1])
-                    col1.text(f"{d_name} ({status_str})")
-                    if col2.button("Toggle Lock", key=f"tog_{pk}"):
+                    
+                    st.text(f"{d_name} ({status_str})")
+                    col_t, col_d = st.columns(2)
+                    
+                    if col_t.button("Toggle Lock", key=f"tog_{pk}"):
                         st.session_state.papers_data[pk]["locked"] = not p_info["locked"]
                         save_papers_db(st.session_state.papers_data)
+                        st.rerun()
+                        
+                    if col_d.button("🗑️ Delete", key=f"del_{pk}"):
+                        # Remove actual file from server storage to free up space
+                        try:
+                            if os.path.exists(p_info["path"]):
+                                os.remove(p_info["path"])
+                        except Exception:
+                            pass
+                        # Remove from database dict
+                        del st.session_state.papers_data[pk]
+                        save_papers_db(st.session_state.papers_data)
+                        st.success(f"Deleted '{d_name}' successfully!")
                         st.rerun()
         elif admin_pass != "":
             st.error("Incorrect Password!")
@@ -678,7 +693,7 @@ if query:
     clean_q_lower = query.strip().lower()
     lang = update_language_state(query)
     
-    # 1. Check for direct permission/lock toggle commands via chat text
+    # Check if user is asking to open a specific uploaded paper
     paper_requested = None
     for pk, p_info in st.session_state.papers_data.items():
         d_name_lower = p_info.get("display_name", pk).lower()
@@ -722,7 +737,6 @@ if query:
                 st.write(query)
 
             with st.chat_message("assistant", avatar="🤖"):
-                # EXACT CUSTOM LOCKED MESSAGE REQUESTED BY USER
                 if p_info["locked"]:
                     reply = f"Sorry! The paper '{d_name.upper()}' is currently the teacher's permission cannot be opened."
                     st.write(reply)
