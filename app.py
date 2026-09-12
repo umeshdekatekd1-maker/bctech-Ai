@@ -678,7 +678,7 @@ if query:
     clean_q_lower = query.strip().lower()
     lang = update_language_state(query)
     
-    # Check if user is asking to open a specific uploaded paper FIRST before anything else
+    # ROBUST PAPER DETECTION: Check if ANY uploaded paper's keyword is inside the query text
     paper_requested = None
     for pk, p_info in st.session_state.papers_data.items():
         d_name_lower = p_info.get("display_name", pk).lower()
@@ -705,10 +705,9 @@ if query:
             if "lock" in clean_q_lower and clean_q_lower.find("lock") < clean_q_lower.find("open"):
                 pass
             else:
-                st.session_state.papers_data[paper_requested]["locked"] = False
-                save_papers_db(st.session_state.papers_data)
+                # Only unlock if admin command or if checking status, but for student prompt 'open' we check lock status below
+                pass
 
-        # Re-fetch info after potential toggle
         p_info = st.session_state.papers_data[paper_requested]
         d_name = p_info.get("display_name", paper_requested)
 
@@ -717,6 +716,7 @@ if query:
             st.write(query)
 
         with st.chat_message("assistant", avatar="🤖"):
+            # STRICT LOCK ENFORCEMENT: If paper is locked, show exact error message and block completely
             if p_info["locked"]:
                 reply = f"⛔ Sorry! The paper '{d_name}' is currently locked by the teacher/admin and cannot be opened."
                 st.write(reply)
@@ -949,7 +949,7 @@ if query:
                                 if valid_practical:
                                     full_reply += "प्रैक्टिकल टेस्ट:\n"
                                     for pk, pv in valid_practical:
-                                        full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
+                                        full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else pv}\n"
                                         full_reply += f"- कुल प्रैक्टिकल: {tot_prac}\n\n"
                                 full_reply += f"कुल अंक: {total_obtained} / {max_total}\n"
                                 full_reply += f"प्रतिशत: {percentage}%\n\n"
