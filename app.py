@@ -678,35 +678,72 @@ if query:
     clean_q_lower = query.strip().lower()
     lang = update_language_state(query)
     
-    # Check for direct chat-based Lock/Unlock commands matching exact paper names
-    handled_paper_command = False
-    for pk, p_info in list(st.session_state.papers_data.items()):
+    # Check if user is asking to open a specific uploaded paper FIRST before anything else
+    paper_requested = None
+    for pk, p_info in st.session_state.papers_data.items():
         d_name_lower = p_info.get("display_name", pk).lower()
         if d_name_lower in clean_q_lower:
-            if "lock" in clean_q_lower and "unlock" not in clean_q_lower:
-                st.session_state.papers_data[pk]["locked"] = True
-                save_papers_db(st.session_state.papers_data)
-                handled_paper_command = True
-                
-                st.session_state.messages.append({"role": "user", "content": query})
-                with st.chat_message("user", avatar="👤"):
-                    st.write(query)
-                with st.chat_message("assistant", avatar="🤖"):
-                    reply = f"🔒 Paper '{p_info.get('display_name', pk)}' has been successfully locked."
-                    st.write(reply)
-                    st.session_state.messages.append({"role": "assistant", "content": reply})
-                    render_voice_and_copy_toolbar(reply, f"lock_ack_{len(st.session_state.messages)}", "hi-IN")
-                persist_current_state()
-                break
-                
-            elif "unlock" in clean_q_lower or "open" in clean_q_lower:
-                if "lock" in clean_q_lower and clean_q_lower.find("lock") < clean_q_lower.find("open"):
-                    pass
-                else:
-                    st.session_state.papers_data[pk]["locked"] = False
-                    save_papers_db(st.session_state.papers_data)
+            paper_requested = pk
+            break
 
-    if not handled_paper_command:
+    if paper_requested:
+        # Check for direct lock/unlock toggle commands via chat text
+        if "lock" in clean_q_lower and "unlock" not in clean_q_lower:
+            st.session_state.papers_data[paper_requested]["locked"] = True
+            save_papers_db(st.session_state.papers_data)
+            st.session_state.messages.append({"role": "user", "content": query})
+            with st.chat_message("user", avatar="👤"):
+                st.write(query)
+            with st.chat_message("assistant", avatar="🤖"):
+                p_disp = st.session_state.papers_data[paper_requested].get("display_name", paper_requested)
+                reply = f"🔒 Paper '{p_disp}' has been successfully locked."
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                render_voice_and_copy_toolbar(reply, f"lock_ack_{len(st.session_state.messages)}", "hi-IN")
+            persist_current_state()
+        elif "unlock" in clean_q_lower or "open" in clean_q_lower:
+            if "lock" in clean_q_lower and clean_q_lower.find("lock") < clean_q_lower.find("open"):
+                pass
+            else:
+                st.session_state.papers_data[paper_requested]["locked"] = False
+                save_papers_db(st.session_state.papers_data)
+
+        # Re-fetch info after potential toggle
+        p_info = st.session_state.papers_data[paper_requested]
+        d_name = p_info.get("display_name", paper_requested)
+
+        st.session_state.messages.append({"role": "user", "content": query})
+        with st.chat_message("user", avatar="👤"):
+            st.write(query)
+
+        with st.chat_message("assistant", avatar="🤖"):
+            if p_info["locked"]:
+                reply = f"⛔ Sorry! The paper '{d_name}' is currently locked by the teacher/admin and cannot be opened."
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                render_voice_and_copy_toolbar(reply, f"locked_p_{len(st.session_state.messages)}", "hi-IN")
+            else:
+                st.write(f"📂 Here is your requested paper: **{d_name}**")
+                mtype = p_info.get("mime", "")
+                if "image/" in mtype:
+                    st.image(p_info["path"], caption=d_name, use_container_width=True)
+                    reply = f"Displayed large image paper: {d_name}"
+                else:
+                    with open(p_info["path"], "rb") as pf:
+                        pdf_bytes = pf.read()
+                    st.download_button(
+                        label=f"📂 Open Paper: {d_name}",
+                        data=pdf_bytes,
+                        file_name=p_info["filename"],
+                        mime="application/pdf",
+                        key=f"view_btn_{paper_requested}_{len(st.session_state.messages)}"
+                    )
+                    reply = f"Generated paper view button for: {d_name}"
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+        persist_current_state()
+
+    else:
+        # Normal chat/result queries
         if clean_q_lower in ["or", "aur", "hi", "hello", "ok", "hey", "h", "k"]:
             st.session_state.messages.append({"role": "user", "content": query})
             with st.chat_message("user", avatar="👤"):
@@ -729,49 +766,10 @@ if query:
             with st.chat_message("user", avatar="👤"):
                 st.write(query)
 
-            # Check if user is asking to open a specific uploaded paper by its exact name
-            paper_requested = None
-            for pk, p_info in st.session_state.papers_data.items():
-                d_name_lower = p_info.get("display_name", pk).lower()
-                if d_name_lower in clean_q_lower:
-                    paper_requested = pk
-                    break
-
             df_sheet, err = load_all_sheets_data()
             
             with st.chat_message("assistant", avatar="🤖"):
-                if paper_requested:
-                    p_info = st.session_state.papers_data[paper_requested]
-                    d_name = p_info.get("display_name", paper_requested)
-                    
-                    # STRICT LOCK CHECK: If paper is locked, absolutely block access
-                    if p_info["locked"]:
-                        reply = f"⛔ Sorry! The paper '{d_name}' is currently locked by the teacher/admin and cannot be opened."
-                        st.write(reply)
-                        st.session_state.messages.append({"role": "assistant", "content": reply})
-                        render_voice_and_copy_toolbar(reply, f"locked_p_{len(st.session_state.messages)}", "hi-IN")
-                    else:
-                        st.write(f"📂 Here is your requested paper: **{d_name}**")
-                        
-                        mtype = p_info.get("mime", "")
-                        if "image/" in mtype:
-                            st.image(p_info["path"], caption=d_name, use_container_width=True)
-                            reply = f"Displayed large image paper: {d_name}"
-                        else:
-                            with open(p_info["path"], "rb") as pf:
-                                pdf_bytes = pf.read()
-                            st.download_button(
-                                label=f"📂 Open Paper: {d_name}",
-                                data=pdf_bytes,
-                                file_name=p_info["filename"],
-                                mime="application/pdf",
-                                key=f"view_btn_{paper_requested}_{len(st.session_state.messages)}"
-                            )
-                            reply = f"Generated paper view button for: {d_name}"
-                            
-                        st.session_state.messages.append({"role": "assistant", "content": reply})
-                
-                elif err:
+                if err:
                     st.error(f"Sheet Error: Google Sheet access nahi ho pa rahi ({err}).")
                 
                 elif check_is_name_intro(query):
