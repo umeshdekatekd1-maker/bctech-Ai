@@ -392,7 +392,7 @@ def clean_val_display(val):
     except Exception:
         return str(val).strip()
 
-# Sidebar - Admin Panel for Password Protected PDF & JPG Uploads with Strict Lock Enforcement
+# Sidebar - Admin Panel for Uploads & Permission/Lock Management
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -440,7 +440,7 @@ with st.sidebar:
                         "filename": original_filename,
                         "path": file_path,
                         "mime": mimetype,
-                        "locked": False
+                        "locked": True  # Default to locked for security
                     }
                     save_papers_db(st.session_state.papers_data)
                     st.success(f"Paper '{base_name}' successfully uploaded!")
@@ -449,7 +449,7 @@ with st.sidebar:
                 st.markdown("**Existing Papers Status:**")
                 for pk, p_info in list(st.session_state.papers_data.items()):
                     d_name = p_info.get("display_name", pk)
-                    status_str = "🔒 Lock" if p_info["locked"] else "🟢 Unlock"
+                    status_str = "🔒 Locked" if p_info["locked"] else "🟢 Unlocked"
                     col1, col2 = st.columns([2, 1])
                     col1.text(f"{d_name} ({status_str})")
                     if col2.button("Toggle Lock", key=f"tog_{pk}"):
@@ -678,7 +678,7 @@ if query:
     clean_q_lower = query.strip().lower()
     lang = update_language_state(query)
     
-    # ROBUST PAPER DETECTION: Check if ANY uploaded paper's keyword is inside the query text
+    # 1. Check for direct permission/lock toggle commands via chat text
     paper_requested = None
     for pk, p_info in st.session_state.papers_data.items():
         d_name_lower = p_info.get("display_name", pk).lower()
@@ -687,7 +687,6 @@ if query:
             break
 
     if paper_requested:
-        # Check for direct lock/unlock toggle commands via chat text
         if "lock" in clean_q_lower and "unlock" not in clean_q_lower:
             st.session_state.papers_data[paper_requested]["locked"] = True
             save_papers_db(st.session_state.papers_data)
@@ -701,46 +700,53 @@ if query:
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 render_voice_and_copy_toolbar(reply, f"lock_ack_{len(st.session_state.messages)}", "hi-IN")
             persist_current_state()
-        elif "unlock" in clean_q_lower or "open" in clean_q_lower:
-            if "lock" in clean_q_lower and clean_q_lower.find("lock") < clean_q_lower.find("open"):
-                pass
-            else:
-                # Only unlock if admin command or if checking status, but for student prompt 'open' we check lock status below
-                pass
-
-        p_info = st.session_state.papers_data[paper_requested]
-        d_name = p_info.get("display_name", paper_requested)
-
-        st.session_state.messages.append({"role": "user", "content": query})
-        with st.chat_message("user", avatar="👤"):
-            st.write(query)
-
-        with st.chat_message("assistant", avatar="🤖"):
-            # STRICT LOCK ENFORCEMENT: If paper is locked, show exact error message and block completely
-            if p_info["locked"]:
-                reply = f"⛔ Sorry! The paper '{d_name}' is currently locked by the teacher/admin and cannot be opened."
+        elif "unlock" in clean_q_lower:
+            st.session_state.papers_data[paper_requested]["locked"] = False
+            save_papers_db(st.session_state.papers_data)
+            st.session_state.messages.append({"role": "user", "content": query})
+            with st.chat_message("user", avatar="👤"):
+                st.write(query)
+            with st.chat_message("assistant", avatar="🤖"):
+                p_disp = st.session_state.papers_data[paper_requested].get("display_name", paper_requested)
+                reply = f"🟢 Paper '{p_disp}' has been successfully unlocked."
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
-                render_voice_and_copy_toolbar(reply, f"locked_p_{len(st.session_state.messages)}", "hi-IN")
-            else:
-                st.write(f"📂 Here is your requested paper: **{d_name}**")
-                mtype = p_info.get("mime", "")
-                if "image/" in mtype:
-                    st.image(p_info["path"], caption=d_name, use_container_width=True)
-                    reply = f"Displayed large image paper: {d_name}"
+                render_voice_and_copy_toolbar(reply, f"unlock_ack_{len(st.session_state.messages)}", "hi-IN")
+            persist_current_state()
+        else:
+            p_info = st.session_state.papers_data[paper_requested]
+            d_name = p_info.get("display_name", paper_requested)
+
+            st.session_state.messages.append({"role": "user", "content": query})
+            with st.chat_message("user", avatar="👤"):
+                st.write(query)
+
+            with st.chat_message("assistant", avatar="🤖"):
+                # EXACT CUSTOM LOCKED MESSAGE REQUESTED BY USER
+                if p_info["locked"]:
+                    reply = f"Sorry! The paper '{d_name.upper()}' is currently the teacher's permission cannot be opened."
+                    st.write(reply)
+                    st.session_state.messages.append({"role": "assistant", "content": reply})
+                    render_voice_and_copy_toolbar(reply, f"locked_p_{len(st.session_state.messages)}", "hi-IN")
                 else:
-                    with open(p_info["path"], "rb") as pf:
-                        pdf_bytes = pf.read()
-                    st.download_button(
-                        label=f"📂 Open Paper: {d_name}",
-                        data=pdf_bytes,
-                        file_name=p_info["filename"],
-                        mime="application/pdf",
-                        key=f"view_btn_{paper_requested}_{len(st.session_state.messages)}"
-                    )
-                    reply = f"Generated paper view button for: {d_name}"
-                st.session_state.messages.append({"role": "assistant", "content": reply})
-        persist_current_state()
+                    st.write(f"📂 Here is your requested paper: **{d_name}**")
+                    mtype = p_info.get("mime", "")
+                    if "image/" in mtype:
+                        st.image(p_info["path"], caption=d_name, use_container_width=True)
+                        reply = f"Displayed large image paper: {d_name}"
+                    else:
+                        with open(p_info["path"], "rb") as pf:
+                            pdf_bytes = pf.read()
+                        st.download_button(
+                            label=f"📂 Open Paper: {d_name}",
+                            data=pdf_bytes,
+                            file_name=p_info["filename"],
+                            mime="application/pdf",
+                            key=f"view_btn_{paper_requested}_{len(st.session_state.messages)}"
+                        )
+                        reply = f"Generated paper view button for: {d_name}"
+                    st.session_state.messages.append({"role": "assistant", "content": reply})
+            persist_current_state()
 
     else:
         # Normal chat/result queries
@@ -949,7 +955,7 @@ if query:
                                 if valid_practical:
                                     full_reply += "प्रैक्टिकल टेस्ट:\n"
                                     for pk, pv in valid_practical:
-                                        full_reply += f"- {pk.capitalize()}: {int(pv) if pv.is_integer() else pv}\n"
+                                        full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
                                         full_reply += f"- कुल प्रैक्टिकल: {tot_prac}\n\n"
                                 full_reply += f"कुल अंक: {total_obtained} / {max_total}\n"
                                 full_reply += f"प्रतिशत: {percentage}%\n\n"
