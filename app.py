@@ -392,7 +392,7 @@ def clean_val_display(val):
     except Exception:
         return str(val).strip()
 
-# Sidebar - Admin Panel with Lock/Unlock and Delete (Remove) Options
+# Sidebar - Admin Panel with Lock/Unlock, Delete, and Time Info
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -440,7 +440,7 @@ with st.sidebar:
                         "filename": original_filename,
                         "path": file_path,
                         "mime": mimetype,
-                        "locked": True  # Default to locked
+                        "locked": True
                     }
                     save_papers_db(st.session_state.papers_data)
                     st.success(f"Paper '{base_name}' successfully uploaded!")
@@ -460,13 +460,11 @@ with st.sidebar:
                         st.rerun()
                         
                     if col_d.button("🗑️ Delete", key=f"del_{pk}"):
-                        # Remove actual file from server storage to free up space
                         try:
                             if os.path.exists(p_info["path"]):
                                 os.remove(p_info["path"])
                         except Exception:
                             pass
-                        # Remove from database dict
                         del st.session_state.papers_data[pk]
                         save_papers_db(st.session_state.papers_data)
                         st.success(f"Deleted '{d_name}' successfully!")
@@ -550,11 +548,11 @@ def update_language_state(text):
     hindi_romanized = [
         "kaise", "kaisa", "kaisi", "kaha", "kahan", "kya", "hain", "ho", "hu", "mera", 
         "meri", "karo", "batao", "bata do", "aap", "tum", "kaun", "kisne", "kyu", "kyon",
-        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai", "ka bhi", "kare", "show", "dekh", "samay", "time", "date", "tarikh", "lock", "unlock", "open"
+        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai", "ka bhi", "kare", "show", "dekh", "samay", "time", "date", "tarikh", "lock", "unlock", "open", "class", "batch", "chalu", "band", "timing"
     ]
     words = text_clean.split()
     
-    english_indicators = ["my name is", "what is", "how are", "hello", "hi", "where is", "can you", "thank you", "result of"]
+    english_indicators = ["my name is", "what is", "how are", "hello", "hi", "where is", "can you", "thank you", "result of", "timing", "batch", "class"]
     if any(ind in text_clean for ind in english_indicators) and not any(w in hindi_romanized for w in words):
         st.session_state.current_language = "ENGLISH"
         return "ENGLISH"
@@ -563,7 +561,7 @@ def update_language_state(text):
         st.session_state.current_language = "HINDI"
         return "HINDI"
         
-    english_common = ["name", "is", "the", "and", "you", "your", "what", "where", "how", "am", "time", "date", "lock", "unlock", "open"]
+    english_common = ["name", "is", "the", "and", "you", "your", "what", "where", "how", "am", "time", "date", "lock", "unlock", "open", "timing", "batch", "class"]
     if any(w in english_common for w in words) and not any(w in hindi_romanized for w in words):
         st.session_state.current_language = "ENGLISH"
         return "ENGLISH"
@@ -675,6 +673,10 @@ About Bctech Computer Education:
   4. वेब डेवलपमेंट (Web Development) - Topics: HTML, CSS, JavaScript, WordPress
   5. प्रोग्रामिंग (Programming: Python / C++) - Topics: बेसिक से एडवांस, प्रोजेक्ट वर्क
 - Location/Address: Surat, Gujarat, India.
+- Institute Timing (Class Open & Close Time): Class opens at 7:00 AM and remains active/open until 8:30 PM.
+- Batch Timings: 
+  - Morning Batches: 7:00 AM to 10:00 AM (1 hour duration per batch).
+  - Regular/Other Batches: 10:00 AM to 8:30 PM (1.5 hours duration per batch).
 """
 
 # Render chat history with Read Aloud & Copy buttons
@@ -1011,6 +1013,12 @@ if query:
                         
                         CRITICAL TIME & DATE RULE:
                         - Always use the exact IST time and date provided above ({current_time_str}) when answering questions about current time, date, or day in India. Never give old or wrong time.
+                        
+                        CRITICAL TIMINGS RULE (CLASS & BATCH SCHEDULE):
+                        - Class Opening and Closing Hours: The institute/class opens at 7:00 AM and remains active/open until 8:30 PM.
+                        - Morning Batches Timing: 7:00 AM to 10:00 AM (Each batch is 1 hour long).
+                        - Regular/Other Batches Timing: 10:00 AM to 8:30 PM (Each batch is 1.5 hours / 1 hour 30 minutes long).
+                        - Always answer timing or batch questions accurately in whichever language the user asks (Hindi, Gujarati, or English).
                         
                         CRITICAL FACTUAL TRUTH & CORRECTION RULE:
                         - C. Joseph Vijay (Vijay Thalapathy) is a popular South Indian actor and film star who entered politics (TVK party). He is NOT a Chief Minister (CM).
