@@ -8,6 +8,7 @@ import re
 import json
 import os
 import uuid
+import base64
 from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
@@ -751,13 +752,13 @@ if query:
                     else:
                         st.write(f"📂 Here is your requested paper: **{d_name}**")
                         
-                        # If the uploaded file is an image (JPG/PNG), display it directly inside the chat!
                         mtype = p_info.get("mime", "")
                         if "image/" in mtype:
+                            # Display JPG/PNG images directly in large size inside the chat without downloading
                             st.image(p_info["path"], caption=d_name, use_container_width=True)
-                            reply = f"Displayed image paper: {d_name}"
+                            reply = f"Displayed large image paper: {d_name}"
                         else:
-                            # For PDF files, use safe download button to prevent blank/blocked screen
+                            # Safe download button for PDFs to avoid browser blocking
                             with open(p_info["path"], "rb") as pf:
                                 pdf_bytes = pf.read()
                             st.download_button(
