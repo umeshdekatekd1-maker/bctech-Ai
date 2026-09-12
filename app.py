@@ -820,7 +820,7 @@ if query:
 
                 elif check_is_where_from(query):
                     if lang == "GUJARATI":
-                        reply = "હું BC Tech Computer Education નો AI અસિસ્ટન્ટ છું, અને આપણી સંસ્થા સુરત, ગુજરાત, ભારતમાં આવેલી છે."
+                        reply = "હું BC Tech Computer Education નો અસિસ્ટન્ટ છું, અને આપણી સંસ્થા સુરત, ગુજરાત, ભારતમાં આવેલી છે."
                     elif lang == "HINDI":
                         if "kaise ho" in clean_q_lower or "kaisa hai" in clean_q_lower:
                             reply = "मैं बहुत अच्छा हूँ! बताइए, मैं BC Tech Computer Education में आपकी कैसे मदद कर सकता हूँ? 😊"
@@ -846,7 +846,7 @@ if query:
                     reply = "ज़रूर! अब हम हिंदी में बात करेंगे। मैं आपकी क्या सहायता कर सकता हूँ? 😊"
                     st.write(reply)
                     st.session_state.messages.append({"role": "assistant", "content": reply})
-                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", "hi-IN")
+                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", lang_code)
 
                 elif is_greeting(query):
                     if lang == "GUJARATI":
@@ -1007,7 +1007,7 @@ if query:
                         ist_zone = timezone(timedelta(hours=5, minutes=30))
                         current_ist_dt = datetime.now(ist_zone)
                         current_time_str = current_ist_dt.strftime("%B %d, %Y, %I:%M %p")
-                        current_year_str = current_ist_dt.strftime("%Y")
+                        current_year_str = current_ist_dt.strftime("2026") # Locked strictly to current true current year 2026
                         
                         lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                         
@@ -1015,10 +1015,10 @@ if query:
                         You are an expert, highly knowledgeable, and precise AI Assistant for BC Tech Computer Education, Surat, Gujarat, India.
                         Current Exact Date and Time (IST - Indian Standard Time): {current_time_str}. Current Year: {current_year_str}.
                         
-                        CRITICAL CALENDAR & FESTIVAL RULE (MOST IMPORTANT):
-                        - When a user asks about the date/day of any festival (e.g., Diwali, Holi, Eid, Christmas, Ganesh Chaturthi, etc.) WITHOUT specifying a year, you MUST ALWAYS provide the date/day for the CURRENT YEAR ({current_year_str}) first. 
-                        - Do NOT default to or assume any other year unless the user explicitly mentions that specific year in their question (e.g., "diwali 2027 me kab hai"). 
-                        - Ensure absolute accuracy for festival dates.
+                        CRITICAL CALENDAR & FESTIVAL ACCURACY RULE (MOST IMPORTANT):
+                        - The current year is strictly 2026 ({current_year_str}). 
+                        - When a user asks about any festival date (like Diwali, Holi, Rakshabandhan, Eid, etc.), you MUST provide the correct date for the current year 2026 unless they explicitly ask for a different year (e.g., asking for 2027).
+                        - For example, Diwali in 2026 falls on November 8, 2026. Holi in 2026 falls on March 3, 2026. Do NOT output wrong dates like October 2026 for Diwali. Always verify your calendar facts accurately.
                         
                         CRITICAL SOFTWARE TUTORIAL & PRACTICAL INSTRUCTION RESTRICTION (STRICTEST RULE):
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software (e.g. Photoshop, CorelDraw, Tally, Excel, Word, Coding, Python, C++, Web Development, Video Editing, etc.).
@@ -1028,7 +1028,7 @@ if query:
                           
                           - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं।\n\nसंपर्क:\n📞 फ़ोन: 77789 26285\n📱 व्हाट्सएप: 77789 26285\n🌐 वेबसाइट: {BRANCH_LINK}"
                           - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્ચનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nસંપર્ક:\n📞 ફોન: 77789 26285\n📱 વ્હોટ્સએપ: 77789 26285\n🌐 વેબસાઇટ: {BRANCH_LINK}"
-                          - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nContact:\n📞 Phone: 77789 26285\n📱 WhatsApp: 77789 26285\n🌐 Website: {BRANCH_LINK}"
+                          - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nContact:\n📞 Phone: 77789 26285\n📱 WhatsApp: 77789 26285\n🌐 Website: {BRANCH_Link}"
                         
                         CRITICAL TIMINGS RULE (CLASS & BATCH SCHEDULE):
                         - Class Opening and Closing Hours: The institute/class opens at 7:00 AM and remains active/open until 8:30 PM.
