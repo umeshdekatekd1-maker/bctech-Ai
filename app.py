@@ -673,7 +673,7 @@ About Bctech Computer Education:
   2. ग्राफिक डिज़ाइन (Graphic Designing: CorelDraw, Photoshop, Illustrator) - Topics: लोगो डिज़ाइन, बैनर, फोटो एडिटिंग
   3. एकाउंटिंग & टैली प्राइम (Accounting & Tally Prime) - Topics: बुनियादी लेखा, टैली में लेन-देन
   4. वेब डेवलपमेंट (Web Development) - Topics: HTML, CSS, JavaScript, WordPress
-  5. प्रोग्रामिंग (Programming: Python / C++) - टॉपिक्स: बेसिक से एडवांस, प्रोजेक्ट वर्क
+  5. प्रोग्रामिंग (Programming: Python / C++) - Topics: बेसिक से एडवांस, प्रोजेक्ट वर्क
 - Location/Address: Surat, Gujarat, India.
 - Institute Timing (Class Open & Close Time): Class opens at 7:00 AM and remains active/open until 8:30 PM.
 - Batch Timings: 
@@ -1014,11 +1014,12 @@ if query:
                         system_prop = f"""
                         You are an expert, highly knowledgeable, and precise AI Assistant for BC Tech Computer Education, Surat, Gujarat, India.
                         Current Exact Date and Time (IST - Indian Standard Time): {current_time_str}. Current Year: {current_year_str}.
+                        Today's Special Knowledge (September 14, 2026): Today is a very auspicious day and features major events including Ganesh Chaturthi (start of Ganeshotsav), Hartalika Teej vrat, and Hindi Diwas in India.
                         
                         CRITICAL CALENDAR & FESTIVAL ACCURACY RULE (MOST IMPORTANT):
-                        - The current year is strictly 2026 ({current_year_str}). 
-                        - When a user asks about any festival date for any year (e.g., 2026, 2027, etc.), you MUST calculate and provide the absolute correct, verified calendar date for that exact requested year.
-                        - For example, if a user asks for "2027 main holi kab hai", calculate and state that Holi in 2027 falls on March 22, 2027 (Monday). Do not give 2026 dates when 2027 is explicitly requested.
+                        - The current year is strictly 2026 ({current_year_str}). Today is September 14, 2026.
+                        - When a user asks about festivals today or in the current year 2026, you MUST mention Ganesh Chaturthi, Hartalika Teej, and Hindi Diwas accurately.
+                        - When a user asks about any festival date for any year (e.g., 2026, 2027, etc.), you MUST provide the correct, verified calendar date for that exact requested year like ChatGPT and Gemini.
                         
                         CRITICAL SOFTWARE TUTORIAL & PRACTICAL INSTRUCTION RESTRICTION (STRICTEST RULE):
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software (e.g. Photoshop, CorelDraw, Tally, Excel, Word, Coding, Python, C++, Web Development, Video Editing, etc.).
@@ -1026,7 +1027,7 @@ if query:
                           DO NOT provide any tutorial, steps, or software solutions.
                           INSTEAD, you must politely inform them that practical training and guidance are provided directly at the institute, and tell them to contact our branch or visit our website:
                           
-                          - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं।\n\nसंपर्क:\n📞 फ़ोन: 77789 26285\n📱 व्हाट्सएप: 77789 26285\n🌐 वेबसाइट: {BRANCH_LINK}"
+                          - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं。\n\nसंपर्क:\n📞 फ़ोन: 77789 26285\n📱 व्हाट्सएप: 77789 26285\n🌐 वेबसाइट: {BRANCH_LINK}"
                           - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્ચનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nસંપર્ક:\n📞 ફોન: 77789 26285\n📱 વ્હોટ્સએપ: 77789 26285\n🌐 વેબસાઇટ: {BRANCH_LINK}"
                           - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nContact:\n📞 Phone: 77789 26285\n📱 WhatsApp: 77789 26285\n🌐 Website: {BRANCH_LINK}"
                         
@@ -1105,6 +1106,8 @@ if query:
                                         last_api_err = str(ex)
                                         continue
                                 
+                                answer = answer.replace("{BRANCH_Link}", BRANCH_LINK) # Safe fallback replacement to prevent NameError
+
                                 if answer:
                                     st.markdown(answer)
                                     st.session_state.messages.append({"role": "assistant", "content": answer})
