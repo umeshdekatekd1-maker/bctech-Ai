@@ -110,6 +110,7 @@ st.markdown("""
 # --- PERSISTENT STORAGE DB MANAGER ---
 DB_FILE = "bctech_chat_storage.json"
 PAPERS_META_FILE = "bctech_papers_store.json"
+GAME_ROOMS_FILE = "bctech_game_rooms.json"
 
 def load_db():
     if os.path.exists(DB_FILE):
@@ -143,6 +144,22 @@ def save_papers_db(papers_db):
     except Exception:
         pass
 
+def load_room_store():
+    if os.path.exists(GAME_ROOMS_FILE):
+        try:
+            with open(GAME_ROOMS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+def save_room_store(rooms):
+    try:
+        with open(GAME_ROOMS_FILE, "w", encoding="utf-8") as f:
+            json.dump(rooms, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
 if "papers_data" not in st.session_state:
     st.session_state.papers_data = load_papers_db()
 
@@ -150,21 +167,11 @@ if "papers_data" not in st.session_state:
 if "game_state" not in st.session_state:
     st.session_state.game_state = "IDLE"
 
-if "game_data" not in st.session_state:
-    st.session_state.game_data = {
-        "room_code": "",
-        "p1_name": "",
-        "p2_name": "",
-        "current_player": "",
-        "category": "",
-        "current_level": 1,
-        "questions": [],
-        "current_q_index": 0,
-        "p1_score": 0,
-        "p2_score": 0,
-        "turn": 1,
-        "history_log": []
-    }
+if "active_room_code" not in st.session_state:
+    st.session_state.active_room_code = None
+
+if "player_role" not in st.session_state:
+    st.session_state.player_role = None
 
 QUESTION_BANK = {
     "Basic Computer & Internet": [
@@ -281,7 +288,7 @@ QUESTION_BANK = {
         {"q": "HTML में अनऑर्डर्ड लिस्ट के लिए कौन सा टैग होता है?", "options": ["<ul>", "<ol>", "<li>", "<list>"], "answer": "<ul>"},
         {"q": "किसी एलिमेंट की आईडी को CSS में दर्शाने के लिए किस चिन्ह का प्रयोग करते हैं?", "options": ["#", ".", "*", "$"], "answer": "#"},
         {"q": "CSS क्लास को दर्शाने के लिए किस चिन्ह का प्रयोग होता है?", "options": [".", "#", "@", "&"], "answer": "."},
-        {"q": "वेब ब्राउज़र का मुख्य कार्य क्या है?", "options": ["वेबपेज रेंडर और दिखाना", "कोडिंग लिखना", "वायरस बनाना", "डेटा स्टोर करना"], "answer": "वेबपेज रेंडर और दिखाना"}
+        {"q": "वेब ब्राउज़र का मुख्य कार्य क्या है?", "options": ["वेबपेज रेंडर और दिखाना", "कोडिंग लिखना", "वायरस बनाना", "डेटा स्टोर करना"], "answer": "वेब ब्राउज़र का मुख्य कार्य क्या है?"}
     ]
 }
 
@@ -511,6 +518,7 @@ def on_new_chat_clicked():
     st.session_state.current_language = "HINDI"
     st.session_state.last_mentioned_name = None
     st.session_state.game_state = "IDLE"
+    st.session_state.active_room_code = None
     
     new_id = str(uuid.uuid4())
     st.query_params["chat_id"] = new_id
@@ -1235,11 +1243,29 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 2-PLAYER QUIZ GAME ARENA INTEGRATION
+# 2-PLAYER QUIZ GAME ARENA INTEGRATION (SYNCED VIA JSON)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
     
+    rooms = load_room_store()
+    curr_room_code = st.session_state.active_room_code
+
+    if curr_room_code and curr_room_code in rooms:
+        room_info = rooms[curr_room_code]
+        p1_name = room_info.get("p1_name", "")
+        p2_name = room_info.get("p2_name", "")
+        category = room_info.get("category", "")
+        current_level = room_info.get("current_level", 1)
+        current_q_index = room_info.get("current_q_index", 0)
+        p1_score = room_info.get("p1_score", 0)
+        p2_score = room_info.get("p2_score", 0)
+        turn = room_info.get("turn", 1)
+        shared_game_state = room_info.get("game_state", "WAITING")
+        history_log = room_info.get("history_log", [])
+    else:
+        p1_name, p2_name, category, current_level, current_q_index, p1_score, p2_score, turn, shared_game_state, history_log = "", "", "", 1, 0, 0, 0, 1, "CREATING", []
+
     if st.session_state.game_state == "CREATING":
         st.subheader("👥 2-Player Room Connection Setup")
         col1, col2 = st.columns(2)
@@ -1250,8 +1276,23 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             if st.button("Generate Room Code"):
                 if p1_name_input.strip() != "":
                     code = f"BC-{random.randint(100, 999)}"
-                    st.session_state.game_data["room_code"] = code
-                    st.session_state.game_data["p1_name"] = p1_name_input
+                    st.session_state.active_room_code = code
+                    st.session_state.player_role = "P1"
+                    
+                    rooms[code] = {
+                        "p1_name": p1_name_input,
+                        "p2_name": "",
+                        "category": "",
+                        "current_level": 1,
+                        "current_q_index": 0,
+                        "p1_score": 0,
+                        "p2_score": 0,
+                        "turn": 1,
+                        "game_state": "WAITING",
+                        "questions": [],
+                        "history_log": []
+                    }
+                    save_room_store(rooms)
                     st.session_state.game_state = "WAITING"
                     st.success(f"रूम कोड जनरेट हो गया: {code}")
                     st.rerun()
@@ -1264,12 +1305,18 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             room_code_input = st.text_input("रूम कोड दर्ज करें (जैसे BC-123):", key="code_input")
             if st.button("Connect to Room"):
                 if p2_name_input.strip() != "" and room_code_input.strip() != "":
-                    st.session_state.game_data["room_code"] = room_code_input
-                    st.session_state.game_data["p2_name"] = p2_name_input
-                    st.session_state.game_data["current_player"] = p2_name_input
-                    st.session_state.game_state = "CATEGORY"
-                    st.success("सफलतापूर्वक कनेक्ट हो गए!")
-                    st.rerun()
+                    if room_code_input in rooms:
+                        rooms[room_code_input]["p2_name"] = p2_name_input
+                        rooms[room_code_input]["game_state"] = "CATEGORY"
+                        save_room_store(rooms)
+                        
+                        st.session_state.active_room_code = room_code_input
+                        st.session_state.player_role = "P2"
+                        st.session_state.game_state = "CATEGORY"
+                        st.success("सफलतापूर्वक कनेक्ट हो गए!")
+                        st.rerun()
+                    else:
+                        st.error("यह रूम कोड मौजूद नहीं है! सही कोड डालें।")
                 else:
                     st.warning("कृपया नाम और सही रूम कोड दोनों भरें!")
 
@@ -1278,15 +1325,17 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.rerun()
 
     elif st.session_state.game_state == "WAITING":
-        st.subheader(f"⏳ रूम कोड: `{st.session_state.game_data['room_code']}`")
-        st.info(f"खिलाड़ी **{st.session_state.game_data['p1_name']}** रूम में तैयार हैं। दूसरे खिलाड़ी को यह कोड दें ताकि वह जुड़ सके।")
+        rooms = load_room_store()
+        curr_code = st.session_state.active_room_code
+        if curr_code in rooms and rooms[curr_code]["game_state"] != "WAITING":
+            st.session_state.game_state = rooms[curr_code]["game_state"]
+            st.rerun()
+
+        st.subheader(f"⏳ रूम कोड: `{curr_code}`")
+        st.info(f"खिलाड़ी **{rooms.get(curr_code, {}).get('p1_name', 'P1')}** रूम में तैयार हैं। दूसरे खिलाड़ी (Player 2) को यह कोड दें ताकि वह जुड़ सके।")
         
-        p2_sim = st.text_input("टेस्ट के लिए Player 2 का नाम दर्ज करें:")
-        if st.button("Simulate Player 2 Join"):
-            if p2_sim.strip() != "":
-                st.session_state.game_data["p2_name"] = p2_sim
-                st.session_state.game_state = "CATEGORY"
-                st.rerun()
+        if st.button("🔄 चेक करें क्या दूसरा खिलाड़ी जुड़ गया है?"):
+            st.rerun()
 
         if st.button("❌ गेम रद्द करें"):
             st.session_state.game_state = "IDLE"
@@ -1294,54 +1343,65 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
     elif st.session_state.game_state == "CATEGORY":
         st.subheader("🎯 विषय (Category) चुनें")
-        st.write(f"खिलाड़ी: **{st.session_state.game_data['p1_name']}** vs **{st.session_state.game_data['p2_name']}**")
+        st.write(f"खिलाड़ी: **{p1_name}** vs **{p2_name}**")
         
         cat_choice = st.selectbox("कृपया क्विज के लिए विषय चुनें:", list(QUESTION_BANK.keys()))
         
         if st.button("🚀 मुकाबला शुरू करें! (Start Game)"):
-            st.session_state.game_data["category"] = cat_choice
-            st.session_state.game_data["current_level"] = 1
-            st.session_state.game_data["p1_score"] = 0
-            st.session_state.game_data["p2_score"] = 0
-            st.session_state.game_data["turn"] = 1
-            st.session_state.game_data["history_log"] = []
+            rooms = load_room_store()
+            curr_code = st.session_state.active_room_code
             
-            # --- ROOM CODE BASED IDENTICAL QUESTION SELECTION FOR BOTH PLAYERS ---
-            room_seed = sum(ord(c) for c in st.session_state.game_data["room_code"])
+            room_seed = sum(ord(c) for c in curr_code)
             rng = random.Random(room_seed)
             
             all_qs = QUESTION_BANK[cat_choice].copy()
             rng.shuffle(all_qs)
             
-            # Level 1 strictly has 5 questions
-            st.session_state.game_data["questions"] = all_qs[:5]
-            st.session_state.game_data["current_q_index"] = 0
+            rooms[curr_code]["category"] = cat_choice
+            rooms[curr_code]["current_level"] = 1
+            rooms[curr_code]["current_q_index"] = 0
+            rooms[curr_code]["p1_score"] = 0
+            rooms[curr_code]["p2_score"] = 0
+            rooms[curr_code]["turn"] = 1
+            rooms[curr_code]["questions"] = all_qs[:5]  # Level 1 strictly 5 questions
+            rooms[curr_code]["history_log"] = []
+            rooms[curr_code]["game_state"] = "PLAYING"
+            save_room_store(rooms)
             
             st.session_state.game_state = "PLAYING"
             st.rerun()
 
     elif st.session_state.game_state == "PLAYING":
-        q_idx = st.session_state.game_data["current_q_index"]
-        total_q = len(st.session_state.game_data["questions"])
-        curr_lvl = st.session_state.game_data["current_level"]
-        
-        if q_idx < total_q:
-            current_q_data = st.session_state.game_data["questions"][q_idx]
-            current_turn = st.session_state.game_data["turn"]
-            active_player = st.session_state.game_data["p1_name"] if current_turn == 1 else st.session_state.game_data["p2_name"]
+        rooms = load_room_store()
+        curr_code = st.session_state.active_room_code
+        if curr_code not in rooms:
+            st.warning("रूम समाप्त हो गया है।")
+            st.session_state.game_state = "IDLE"
+            st.rerun()
+
+        r_data = rooms[curr_code]
+        q_list = r_data.get("questions", [])
+        q_idx = r_data.get("current_q_index", 0)
+        curr_lvl = r_data.get("current_level", 1)
+        turn = r_data.get("turn", 1)
+        p1_name = r_data.get("p1_name", "P1")
+        p2_name = r_data.get("p2_name", "P2")
+        active_player = p1_name if turn == 1 else p2_name
+
+        if q_idx < len(q_list):
+            current_q_data = q_list[q_idx]
             
             col_a, col_b = st.columns([3, 1])
             with col_a:
-                st.subheader(f"🔥 लेवल {curr_lvl} | सवाल {q_idx + 1} / {total_q}")
+                st.subheader(f"🔥 लेवल {curr_lvl} | सवाल {q_idx + 1} / {len(q_list)}")
             with col_b:
                 st.markdown(f"**बारी:** 👤 {active_player}")
 
             st.markdown(f"### ❓ {current_q_data['q']}")
 
-            # Fixed stable options order
             options = current_q_data["options"]
             
-            with st.form(key=f"q_form_lvl{curr_lvl}_q{q_idx}_t{current_turn}"):
+            with st.form(key=f"q_form_lvl{curr_lvl}_q{q_idx}_t{turn}"):
                 ans_choice = st.radio("विकल्प चुनें:", options, index=None)
                 submitted = st.form_submit_button("उत्तर जमा करें & अगला (Submit)")
                 
@@ -1352,14 +1412,14 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                     else:
                         if ans_choice == current_q_data["answer"]:
                             status_str = "सही (Right) (+1 अंक)"
-                            if current_turn == 1:
-                                st.session_state.game_data["p1_score"] += 1
+                            if turn == 1:
+                                r_data["p1_score"] += 1
                             else:
-                                st.session_state.game_data["p2_score"] += 1
+                                r_data["p2_score"] += 1
                         else:
                             status_str = "गलत (Wrong) (0 अंक)"
                     
-                    st.session_state.game_data["history_log"].append({
+                    r_data["history_log"].append({
                         "level": curr_lvl,
                         "player": active_player,
                         "question": current_q_data['q'],
@@ -1368,92 +1428,120 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         "status": status_str
                     })
                     
-                    # Immediately switch turn or advance question and rerun
-                    if current_turn == 1:
-                        st.session_state.game_data["turn"] = 2
+                    if turn == 1:
+                        r_data["turn"] = 2
                     else:
-                        st.session_state.game_data["turn"] = 1
-                        st.session_state.game_data["current_q_index"] += 1
+                        r_data["turn"] = 1
+                        r_data["current_q_index"] += 1
                     
+                    if r_data["current_q_index"] >= len(q_list):
+                        if curr_lvl < 3:
+                            r_data["game_state"] = "LEVEL_TRANSITION"
+                        else:
+                            r_data["game_state"] = "RESULT"
+
+                    save_room_store(rooms)
                     st.rerun()
 
+            if st.button("🔄 स्क्रीन सिंक करें (Refresh View)"):
+                st.rerun()
         else:
-            if curr_lvl == 1:
-                st.session_state.game_data["current_level"] = 2
-                st.session_state.game_state = "LEVEL_TRANSITION"
-                st.rerun()
-            elif curr_lvl == 2:
-                st.session_state.game_data["current_level"] = 3
-                st.session_state.game_state = "LEVEL_TRANSITION"
-                st.rerun()
+            if curr_lvl < 3:
+                r_data["game_state"] = "LEVEL_TRANSITION"
             else:
-                st.session_state.game_state = "RESULT"
-                st.rerun()
+                r_data["game_state"] = "RESULT"
+            save_room_store(rooms)
+            st.rerun()
+
+        st.session_state.game_state = r_data["game_state"]
 
     elif st.session_state.game_state == "LEVEL_TRANSITION":
-        finished_lvl = st.session_state.game_data["current_level"] - 1
-        next_lvl = st.session_state.game_data["current_level"]
+        rooms = load_room_store()
+        curr_code = st.session_state.active_room_code
+        r_data = rooms.get(curr_code, {})
+        finished_lvl = r_data.get("current_level", 1)
+        next_lvl = finished_lvl + 1
         
         st.success(f"🎉 शानदार! **लेवल {finished_lvl}** सफलतापूर्वक पूरा हो गया है!")
-        st.info(f"आइए देखें आपके पिछले **लेवल {finished_lvl}** में कौन से सवाल सही थे और उनके सही उत्तर क्या थे:")
         
-        lvl_logs = [log for log in st.session_state.game_data["history_log"] if log["level"] == finished_lvl]
-        for idx, log in enumerate(lvl_logs, 1):
-            st.markdown(f"""
-            **{idx}. {log['question']}**  
-            - खिलाड़ी: *{log['player']}*  
-            - चुना गया उत्तर: `{log['chosen']}` | स्थिति: **{log['status']}**  
-            - 🟢 **सही उत्तर (Correct Answer): `{log['correct']}`**  
-            ---
-            """)
+        # --- CALCULATE LEVEL-WISE WINNER & SCORES (WITHOUT SHOWING MISTAKES YET) ---
+        lvl_logs = [log for log in r_data.get("history_log", []) if log["level"] == finished_lvl]
+        p1 = r_data.get("p1_name", "P1")
+        p2 = r_data.get("p2_name", "P2")
+        
+        p1_lvl_score = sum(1 for log in lvl_logs if log['player'] == p1 and "सही" in log['status'])
+        p2_lvl_score = sum(1 for log in lvl_logs if log['player'] == p2 and "सही" in log['status'])
+        
+        st.markdown(f"### 📊 लेवल {finished_lvl} परिणाम (Level {finished_lvl} Winner):")
+        col_s1, col_s2 = st.columns(2)
+        with col_s1:
+            st.metric(label=f"👤 {p1}", value=f"{p1_lvl_score} सही जवाब")
+        with col_s2:
+            st.metric(label=f"👤 {p2}", value=f"{p2_lvl_score} सही जवाब")
+            
+        if p1_lvl_score > p2_lvl_score:
+            st.success(f"🏆 **लेवल {finished_lvl} के विजेता:** {p1} 🎊")
+        elif p2_lvl_score > p1_lvl_score:
+            st.success(f"🏆 **लेवल {finished_lvl} के विजेता:** {p2} 🎊")
+        else:
+            st.info(f"🤝 **लेवल {finished_lvl} टाई (Tie) रहा!**")
+
+        st.markdown("---")
         
         if st.button(f"लेवल {next_lvl} पर आगे बढ़ें 🚀"):
-            cat = st.session_state.game_data["category"]
-            
-            # Use same Room Seed for identical questions in Level 2 & 3 (10 questions each)
-            room_seed = sum(ord(c) for c in st.session_state.game_data["room_code"]) + next_lvl
+            room_seed = sum(ord(c) for c in curr_code) + next_lvl
             rng = random.Random(room_seed)
-            
+            cat = r_data.get("category", "Basic Computer & Internet")
             all_qs = QUESTION_BANK[cat].copy()
             rng.shuffle(all_qs)
             
-            st.session_state.game_data["questions"] = all_qs[:10]  # Level 2 & 3: 10 Questions
-            st.session_state.game_data["current_q_index"] = 0
+            r_data["current_level"] = next_lvl
+            r_data["questions"] = all_qs[:10]  # Level 2 & 3: 10 Questions each
+            r_data["current_q_index"] = 0
+            r_data["game_state"] = "PLAYING"
+            save_room_store(rooms)
+            
             st.session_state.game_state = "PLAYING"
             st.rerun()
 
     elif st.session_state.game_state == "RESULT":
+        rooms = load_room_store()
+        curr_code = st.session_state.active_room_code
+        r_data = rooms.get(curr_code, {})
+        
         st.balloons()
         st.header("🏆 फाइनल स्कोरकार्ड & सभी लेवल्स की समीक्षा (Final Results & Review)")
         
-        p1 = st.session_state.game_data["p1_name"]
-        p2 = st.session_state.game_data["p2_name"]
-        s1 = st.session_state.game_data["p1_score"]
-        s2 = st.session_state.game_data["p2_score"]
+        p1 = r_data.get("p1_name", "P1")
+        p2 = r_data.get("p2_name", "P2")
+        s1 = r_data.get("p1_score", 0)
+        s2 = r_data.get("p2_score", 0)
         
         col1, col2 = st.columns(2)
         with col1:
-            st.metric(label=f"👤 {p1}", value=f"{s1} अंक")
+            st.metric(label=f"👤 {p1}", value=f"{s1} कुल अंक")
         with col2:
-            st.metric(label=f"👤 {p2}", value=f"{s2} अंक")
+            st.metric(label=f"👤 {p2}", value=f"{s2} कुल अंक")
             
         st.markdown("---")
         if s1 > s2:
-            st.success(f"🎊 विजेता: **{p1}** ने शानदार प्रदर्शन करते हुए मुकाबला जीत लिया है! 🏆")
+            st.success(f"🎊 महा-विजेता (Overall Winner): **{p1}** ने शानदार प्रदर्शन करते हुए मुकाबला जीत लिया है! 🏆")
         elif s2 > s1:
-            st.success(f"🎊 विजेता: **{p2}** ने शानदार प्रदर्शन करते हुए मुकाबला जीत लिया है! 🏆")
+            st.success(f"🎊 महा-विजेता (Overall Winner): **{p2}** ने शानदार प्रदर्शन करते हुए मुकाबला जीत लिया है! 🏆")
         else:
-            st.info("🤝 मुकाबला **टाई (Tie)** रहा! दोनों खिलाड़ियों ने बहुत शानदार मुकाबला खेला।")
+            st.info("🤝 कुल मुकाबला **टाई (Tie)** रहा! दोनों खिलाड़ियों ने अद्भुत खेल दिखाया।")
             
-        with st.expander("📜 सभी सवालों के सही उत्तर देखें (Full Game Review)"):
-            for idx, log in enumerate(st.session_state.game_data["history_log"], 1):
+        # --- SHOW FULL REVIEW OF ALL WRONG/RIGHT ANSWERS ONLY AT THE VERY END ---
+        with st.expander("📜 सभी लेवल्स के विस्तृत जवाब देखें (Full Game Review - Who got what right/wrong)", expanded=True):
+            for idx, log in enumerate(r_data.get("history_log", []), 1):
                 st.markdown(f"""
                 **[लेवल {log['level']}] {idx}. {log['question']}**  
-                - खिलाड़ी: *{log['player']}* | चुना गया: `{log['chosen']}` ({log['status']})  
+                - खिलाड़ी: *{log['player']}* | चुना गया उत्तर: `{log['chosen']}` ({log['status']})  
                 - 🟢 **सही उत्तर: `{log['correct']}`**  
                 ---
                 """)
 
         if st.button("🔄 दोबारा खेलें (Play Again)"):
             st.session_state.game_state = "IDLE"
+            st.session_state.active_room_code = None
             st.rerun()
