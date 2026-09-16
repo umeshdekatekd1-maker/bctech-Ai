@@ -1243,7 +1243,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 2-PLAYER QUIZ GAME ARENA INTEGRATION (SYNCED VIA JSON)
+# 2-PLAYER QUIZ GAME ARENA INTEGRATION (SYNCED & CASE-INSENSITIVE)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1302,15 +1302,22 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         with col2:
             st.markdown("### 🔗 Room से जुड़ें (Player 2)")
             p2_name_input = st.text_input("Player 2 का नाम दर्ज करें:", key="p2_input")
-            room_code_input = st.text_input("रूम कोड दर्ज करें (जैसे BC-123):", key="code_input")
+            room_code_input = st.text_input("रूम कोड दर्ज करें (जैसे bc-123 या BC-123):", key="code_input")
             if st.button("Connect to Room"):
                 if p2_name_input.strip() != "" and room_code_input.strip() != "":
-                    if room_code_input in rooms:
-                        rooms[room_code_input]["p2_name"] = p2_name_input
-                        rooms[room_code_input]["game_state"] = "CATEGORY"
+                    clean_input_code = room_code_input.strip().upper()
+                    matched_key = None
+                    for k in rooms.keys():
+                        if k.upper() == clean_input_code:
+                            matched_key = k
+                            break
+
+                    if matched_key:
+                        rooms[matched_key]["p2_name"] = p2_name_input
+                        rooms[matched_key]["game_state"] = "CATEGORY"
                         save_room_store(rooms)
                         
-                        st.session_state.active_room_code = room_code_input
+                        st.session_state.active_room_code = matched_key
                         st.session_state.player_role = "P2"
                         st.session_state.game_state = "CATEGORY"
                         st.success("सफलतापूर्वक कनेक्ट हो गए!")
@@ -1338,19 +1345,30 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         st.markdown("---")
         st.markdown("### 🔗 यदि आप Player 2 हैं, तो यहाँ से रूम जॉइन करें:")
         p2_wait_name = st.text_input("Player 2 अपना नाम दर्ज करें:", key="p2_wait_input")
+        wait_code_input = st.text_input("यही रूम कोड दोबारा दर्ज करें:", key="wait_code_input")
         if st.button("Join This Room Now"):
-            if p2_wait_name.strip() != "":
-                if curr_code in rooms:
-                    rooms[curr_code]["p2_name"] = p2_wait_name
-                    rooms[curr_code]["game_state"] = "CATEGORY"
+            if p2_wait_name.strip() != "" and wait_code_input.strip() != "":
+                clean_input_code = wait_code_input.strip().upper()
+                matched_key = None
+                for k in rooms.keys():
+                    if k.upper() == clean_input_code:
+                        matched_key = k
+                        break
+
+                if matched_key:
+                    rooms[matched_key]["p2_name"] = p2_wait_name
+                    rooms[matched_key]["game_state"] = "CATEGORY"
                     save_room_store(rooms)
                     
+                    st.session_state.active_room_code = matched_key
                     st.session_state.player_role = "P2"
                     st.session_state.game_state = "CATEGORY"
                     st.success("सफलतापूर्वक कनेक्ट हो गए!")
                     st.rerun()
+                else:
+                    st.error("गलत रूम कोड!")
             else:
-                st.warning("कृपया अपना नाम दर्ज करें!")
+                st.warning("कृपया नाम और रूम कोड दोनों भरें!")
 
         if st.button("🔄 चेक करें क्या दूसरा खिलाड़ी जुड़ गया है?"):
             st.rerun()
@@ -1419,47 +1437,45 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             options = current_q_data["options"]
             
-            with st.form(key=f"q_form_lvl{curr_lvl}_q{q_idx}_t{turn}"):
-                ans_choice = st.radio("विकल्प चुनें:", options, index=None)
-                submitted = st.form_submit_button("उत्तर जमा करें & अगला (Submit)")
+            ans_choice = st.radio("विकल्प चुनें:", options, index=None, key=f"radio_lvl{curr_lvl}_q{q_idx}_t{turn}")
+            
+            if st.button("उत्तर जमा करें & अगला (Submit)", key=f"btn_lvl{curr_lvl}_q{q_idx}_t{turn}"):
+                status_str = ""
+                if ans_choice is None:
+                    status_str = "उत्तर नहीं दिया (0 अंक)"
+                else:
+                    if ans_choice == current_q_data["answer"]:
+                        status_str = "सही (Right) (+1 अंक)"
+                        if turn == 1:
+                            r_data["p1_score"] += 1
+                        else:
+                            r_data["p2_score"] += 1
+                    else:
+                        status_str = "गलत (Wrong) (0 अंक)"
                 
-                if submitted:
-                    status_str = ""
-                    if ans_choice is None:
-                        status_str = "उत्तर नहीं दिया (0 अंक)"
+                r_data["history_log"].append({
+                    "level": curr_lvl,
+                    "player": active_player,
+                    "question": current_q_data['q'],
+                    "chosen": ans_choice if ans_choice else "None",
+                    "correct": current_q_data["answer"],
+                    "status": status_str
+                })
+                
+                if turn == 1:
+                    r_data["turn"] = 2
+                else:
+                    r_data["turn"] = 1
+                    r_data["current_q_index"] += 1
+                
+                if r_data["current_q_index"] >= len(q_list):
+                    if curr_lvl < 3:
+                        r_data["game_state"] = "LEVEL_TRANSITION"
                     else:
-                        if ans_choice == current_q_data["answer"]:
-                            status_str = "सही (Right) (+1 अंक)"
-                            if turn == 1:
-                                r_data["p1_score"] += 1
-                            else:
-                                r_data["p2_score"] += 1
-                        else:
-                            status_str = "गलत (Wrong) (0 अंक)"
-                    
-                    r_data["history_log"].append({
-                        "level": curr_lvl,
-                        "player": active_player,
-                        "question": current_q_data['q'],
-                        "chosen": ans_choice if ans_choice else "None",
-                        "correct": current_q_data["answer"],
-                        "status": status_str
-                    })
-                    
-                    if turn == 1:
-                        r_data["turn"] = 2
-                    else:
-                        r_data["turn"] = 1
-                        r_data["current_q_index"] += 1
-                    
-                    if r_data["current_q_index"] >= len(q_list):
-                        if curr_lvl < 3:
-                            r_data["game_state"] = "LEVEL_TRANSITION"
-                        else:
-                            r_data["game_state"] = "RESULT"
+                        r_data["game_state"] = "RESULT"
 
-                    save_room_store(rooms)
-                    st.rerun()
+                save_room_store(rooms)
+                st.rerun()
 
             if st.button("🔄 स्क्रीन सिंक करें (Refresh View)"):
                 st.rerun()
