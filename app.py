@@ -1306,9 +1306,15 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.session_state.game_data["turn"] = 1
             st.session_state.game_data["history_log"] = []
             
+            # --- ROOM CODE BASED IDENTICAL QUESTION SELECTION FOR BOTH PLAYERS ---
+            room_seed = sum(ord(c) for c in st.session_state.game_data["room_code"])
+            rng = random.Random(room_seed)
+            
             all_qs = QUESTION_BANK[cat_choice].copy()
-            random.shuffle(all_qs)
-            st.session_state.game_data["questions"] = all_qs[:5]  # Level 1: 5 Questions
+            rng.shuffle(all_qs)
+            
+            # Level 1 strictly has 5 questions
+            st.session_state.game_data["questions"] = all_qs[:5]
             st.session_state.game_data["current_q_index"] = 0
             
             st.session_state.game_state = "PLAYING"
@@ -1403,9 +1409,15 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         
         if st.button(f"लेवल {next_lvl} पर आगे बढ़ें 🚀"):
             cat = st.session_state.game_data["category"]
+            
+            # Use same Room Seed for identical questions in Level 2 & 3 (10 questions each)
+            room_seed = sum(ord(c) for c in st.session_state.game_data["room_code"]) + next_lvl
+            rng = random.Random(room_seed)
+            
             all_qs = QUESTION_BANK[cat].copy()
-            random.shuffle(all_qs)
-            st.session_state.game_data["questions"] = all_qs[:10]
+            rng.shuffle(all_qs)
+            
+            st.session_state.game_data["questions"] = all_qs[:10]  # Level 2 & 3: 10 Questions
             st.session_state.game_data["current_q_index"] = 0
             st.session_state.game_state = "PLAYING"
             st.rerun()
