@@ -163,7 +163,8 @@ if "game_data" not in st.session_state:
         "p1_score": 0,
         "p2_score": 0,
         "turn": 1,
-        "question_start_time": 0
+        "question_start_time": 0,
+        "history_log": []
     }
 
 QUESTION_BANK = {
@@ -1235,7 +1236,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 2-PLAYER QUIZ GAME ARENA INTEGRATION (WITH AUTO-ADVANCE TIMER)
+# 2-PLAYER QUIZ GAME ARENA INTEGRATION
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1304,10 +1305,11 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.session_state.game_data["p1_score"] = 0
             st.session_state.game_data["p2_score"] = 0
             st.session_state.game_data["turn"] = 1
+            st.session_state.game_data["history_log"] = []
             
             all_qs = QUESTION_BANK[cat_choice].copy()
             random.shuffle(all_qs)
-            st.session_state.game_data["questions"] = all_qs[:5]
+            st.session_state.game_data["questions"] = all_qs[:5]  # Level 1: 5 Questions
             st.session_state.game_data["current_q_index"] = 0
             st.session_state.game_data["question_start_time"] = time.time()
             
@@ -1324,7 +1326,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             current_turn = st.session_state.game_data["turn"]
             active_player = st.session_state.game_data["p1_name"] if current_turn == 1 else st.session_state.game_data["p2_name"]
             
-            # Initialize question start time if not present
             if "question_start_time" not in st.session_state.game_data or st.session_state.game_data["question_start_time"] == 0:
                 st.session_state.game_data["question_start_time"] = time.time()
 
@@ -1339,63 +1340,79 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             st.markdown(f"### ❓ {current_q_data['q']}")
 
-            # Check if 30 seconds have elapsed automatically
             if remaining == 0:
-                st.warning(f"⏰ समय समाप्त! (Time's Up) किसी भी उत्तर का चयन न होने के कारण **0 अंक** मिले और अगला सवाल स्वतः आ रहा है।")
-                st.session_state.game_data["question_start_time"] = 0
+                st.warning(f"⏰ समय समाप्त! (Time's Up) उत्तर न देने के कारण 0 अंक मिले।")
+                # Log timeout
+                st.session_state.game_data["history_log"].append({
+                    "level": curr_lvl,
+                    "player": active_player,
+                    "question": current_q_data['q'],
+                    "chosen": "कोई उत्तर नहीं दिया (Timeout)",
+                    "correct": current_q_data["answer"],
+                    "status": "Timeout (0 अंक)"
+                })
                 
-                # Switch turn or next question
+                st.session_state.game_data["question_start_time"] = 0
                 if current_turn == 1:
                     st.session_state.game_data["turn"] = 2
                 else:
                     st.session_state.game_data["turn"] = 1
                     st.session_state.game_data["current_q_index"] += 1
                 
-                time.sleep(1.2)
+                time.sleep(1.0)
                 st.rerun()
 
-            # Live Countdown display & progress bar
             st.markdown(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
             st.progress(remaining / 30.0)
 
-            # Shuffle options
+            # Randomly shuffle options every time so they appear up/down
             options = current_q_data["options"].copy()
             random.shuffle(options)
             
             with st.form(key=f"q_form_lvl{curr_lvl}_q{q_idx}_t{current_turn}"):
                 ans_choice = st.radio("विकल्प चुनें:", options, index=None)
-                submitted = st.form_submit_button("उत्तर जमा करें (Submit)")
+                submitted = st.form_submit_button("उत्तर जमा करें & अगला (Submit)")
                 
                 if submitted:
                     st.session_state.game_data["question_start_time"] = 0
+                    status_str = ""
                     if ans_choice is None:
-                        st.warning("⚠️ आपने कोई उत्तर नहीं चुना! 0 अंक मिले।")
+                        status_str = "उत्तर नहीं दिया (0 अंक)"
                     else:
                         if ans_choice == current_q_data["answer"]:
-                            st.success(f"🎉 सही उत्तर! (Right Answer: {current_q_data['answer']})")
+                            status_str = "सही (Right) (+1 अंक)"
                             if current_turn == 1:
                                 st.session_state.game_data["p1_score"] += 1
                             else:
                                 st.session_state.game_data["p2_score"] += 1
                         else:
-                            st.error(f"❌ गलत उत्तर! सही उत्तर यह था: **{current_q_data['answer']}**")
+                            status_str = "गलत (Wrong) (0 अंक)"
                     
-                    # Switch turn
+                    # Record in history log for level-end review
+                    st.session_state.game_data["history_log"].append({
+                        "level": curr_lvl,
+                        "player": active_player,
+                        "question": current_q_data['q'],
+                        "chosen": ans_choice if ans_choice else "None",
+                        "correct": current_q_data["answer"],
+                        "status": status_str
+                    })
+                    
+                    # Switch turn or next question
                     if current_turn == 1:
                         st.session_state.game_data["turn"] = 2
                     else:
                         st.session_state.game_data["turn"] = 1
                         st.session_state.game_data["current_q_index"] += 1
                     
-                    time.sleep(1.2)
+                    time.sleep(0.5)
                     st.rerun()
             
-            # Auto-rerun loop to keep countdown ticking live every 1 second
             time.sleep(1)
             st.rerun()
 
         else:
-            # Auto level progression logic
+            # Level finished -> Go to Level Transition Review
             if curr_lvl == 1:
                 st.session_state.game_data["current_level"] = 2
                 st.session_state.game_state = "LEVEL_TRANSITION"
@@ -1412,14 +1429,25 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         finished_lvl = st.session_state.game_data["current_level"] - 1
         next_lvl = st.session_state.game_data["current_level"]
         
-        st.success(f"🎉 बहुत बढ़िया! **लेवल {finished_lvl}** सफलतापूर्वक पार कर लिया है!")
-        st.info(f"अब ऑटोमैटिकली **लेवल {next_lvl}** शुरू होने जा रहा है जिसमें 10 नए सवाल आएंगे!")
+        st.success(f"🎉 शानदार! **लेवल {finished_lvl}** सफलतापूर्वक पूरा हो गया है!")
+        st.info(f"आइए देखें आपके पिछले **लेवल {finished_lvl}** में कौन से सवाल सही थे और उनके सही उत्तर क्या थे:")
         
-        if st.button("अगले लेवल पर चलें 🚀"):
+        # Display review of finished level
+        lvl_logs = [log for log in st.session_state.game_data["history_log"] if log["level"] == finished_lvl]
+        for idx, log in enumerate(lvl_logs, 1):
+            st.markdown(f"""
+            **{idx}. {log['question']}**  
+            - खिलाड़ी: *{log['player']}*  
+            - चुना गया उत्तर: `{log['chosen']}` | स्थिति: **{log['status']}**  
+            - 🟢 **सही उत्तर (Correct Answer): `{log['correct']}`**  
+            ---
+            """)
+        
+        if st.button(f"लेवल {next_lvl} पर आगे बढ़ें 🚀"):
             cat = st.session_state.game_data["category"]
             all_qs = QUESTION_BANK[cat].copy()
             random.shuffle(all_qs)
-            st.session_state.game_data["questions"] = all_qs[:10]
+            st.session_state.game_data["questions"] = all_qs[:10]  # Level 2 & 3: 10 Questions each
             st.session_state.game_data["current_q_index"] = 0
             st.session_state.game_data["question_start_time"] = time.time()
             st.session_state.game_state = "PLAYING"
@@ -1427,7 +1455,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
     elif st.session_state.game_state == "RESULT":
         st.balloons()
-        st.header("🏆 फाइनल स्कोरकार्ड & विजेता (Final Results)")
+        st.header("🏆 फाइनल स्कोरकार्ड & सभी लेवल्स की समीक्षा (Final Results & Review)")
         
         p1 = st.session_state.game_data["p1_name"]
         p2 = st.session_state.game_data["p2_name"]
@@ -1446,8 +1474,17 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         elif s2 > s1:
             st.success(f"🎊 विजेता: **{p2}** ने शानदार प्रदर्शन करते हुए मुकाबला जीत लिया है! 🏆")
         else:
-            st.info("🤝 मुकाबला **टाई (Tie)** रहा! दोनों खिलाड़ियों ने बेहतरीन मुकाबला खेला।")
+            st.info("🤝 मुकाबला **टाई (Tie)** रहा! दोनों खिलाड़ियों ने बहुत शानदार मुकाबला खेला।")
             
+        with st.expander("📜 सभी सवालों के सही उत्तर देखें (Full Game Review)"):
+            for idx, log in enumerate(st.session_state.game_data["history_log"], 1):
+                st.markdown(f"""
+                **[लेवल {log['level']}] {idx}. {log['question']}**  
+                - खिलाड़ी: *{log['player']}* | चुना गया: `{log['chosen']}` ({log['status']})  
+                - 🟢 **सही उत्तर: `{log['correct']}`**  
+                ---
+                """)
+
         if st.button("🔄 दोबारा खेलें (Play Again)"):
             st.session_state.game_state = "IDLE"
             st.rerun()
