@@ -163,7 +163,6 @@ if "game_data" not in st.session_state:
         "p1_score": 0,
         "p2_score": 0,
         "turn": 1,
-        "question_start_time": 0,
         "history_log": []
     }
 
@@ -1311,7 +1310,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             random.shuffle(all_qs)
             st.session_state.game_data["questions"] = all_qs[:5]  # Level 1: 5 Questions
             st.session_state.game_data["current_q_index"] = 0
-            st.session_state.game_data["question_start_time"] = time.time()
             
             st.session_state.game_state = "PLAYING"
             st.rerun()
@@ -1326,12 +1324,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             current_turn = st.session_state.game_data["turn"]
             active_player = st.session_state.game_data["p1_name"] if current_turn == 1 else st.session_state.game_data["p2_name"]
             
-            if "question_start_time" not in st.session_state.game_data or st.session_state.game_data["question_start_time"] == 0:
-                st.session_state.game_data["question_start_time"] = time.time()
-
-            elapsed = time.time() - st.session_state.game_data["question_start_time"]
-            remaining = max(0, int(30 - elapsed))
-
             col_a, col_b = st.columns([3, 1])
             with col_a:
                 st.subheader(f"🔥 लेवल {curr_lvl} | सवाल {q_idx + 1} / {total_q}")
@@ -1340,41 +1332,14 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             st.markdown(f"### ❓ {current_q_data['q']}")
 
-            if remaining == 0:
-                st.warning(f"⏰ समय समाप्त! (Time's Up) उत्तर न देने के कारण 0 अंक मिले।")
-                # Log timeout
-                st.session_state.game_data["history_log"].append({
-                    "level": curr_lvl,
-                    "player": active_player,
-                    "question": current_q_data['q'],
-                    "chosen": "कोई उत्तर नहीं दिया (Timeout)",
-                    "correct": current_q_data["answer"],
-                    "status": "Timeout (0 अंक)"
-                })
-                
-                st.session_state.game_data["question_start_time"] = 0
-                if current_turn == 1:
-                    st.session_state.game_data["turn"] = 2
-                else:
-                    st.session_state.game_data["turn"] = 1
-                    st.session_state.game_data["current_q_index"] += 1
-                
-                time.sleep(1.0)
-                st.rerun()
-
-            st.markdown(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
-            st.progress(remaining / 30.0)
-
-            # Randomly shuffle options every time so they appear up/down
-            options = current_q_data["options"].copy()
-            random.shuffle(options)
+            # Fixed stable options order
+            options = current_q_data["options"]
             
             with st.form(key=f"q_form_lvl{curr_lvl}_q{q_idx}_t{current_turn}"):
                 ans_choice = st.radio("विकल्प चुनें:", options, index=None)
                 submitted = st.form_submit_button("उत्तर जमा करें & अगला (Submit)")
                 
                 if submitted:
-                    st.session_state.game_data["question_start_time"] = 0
                     status_str = ""
                     if ans_choice is None:
                         status_str = "उत्तर नहीं दिया (0 अंक)"
@@ -1388,7 +1353,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         else:
                             status_str = "गलत (Wrong) (0 अंक)"
                     
-                    # Record in history log for level-end review
                     st.session_state.game_data["history_log"].append({
                         "level": curr_lvl,
                         "player": active_player,
@@ -1398,21 +1362,16 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         "status": status_str
                     })
                     
-                    # Switch turn or next question
+                    # Immediately switch turn or advance question and rerun
                     if current_turn == 1:
                         st.session_state.game_data["turn"] = 2
                     else:
                         st.session_state.game_data["turn"] = 1
                         st.session_state.game_data["current_q_index"] += 1
                     
-                    time.sleep(0.5)
                     st.rerun()
-            
-            time.sleep(1)
-            st.rerun()
 
         else:
-            # Level finished -> Go to Level Transition Review
             if curr_lvl == 1:
                 st.session_state.game_data["current_level"] = 2
                 st.session_state.game_state = "LEVEL_TRANSITION"
@@ -1432,7 +1391,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         st.success(f"🎉 शानदार! **लेवल {finished_lvl}** सफलतापूर्वक पूरा हो गया है!")
         st.info(f"आइए देखें आपके पिछले **लेवल {finished_lvl}** में कौन से सवाल सही थे और उनके सही उत्तर क्या थे:")
         
-        # Display review of finished level
         lvl_logs = [log for log in st.session_state.game_data["history_log"] if log["level"] == finished_lvl]
         for idx, log in enumerate(lvl_logs, 1):
             st.markdown(f"""
@@ -1447,9 +1405,8 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             cat = st.session_state.game_data["category"]
             all_qs = QUESTION_BANK[cat].copy()
             random.shuffle(all_qs)
-            st.session_state.game_data["questions"] = all_qs[:10]  # Level 2 & 3: 10 Questions each
+            st.session_state.game_data["questions"] = all_qs[:10]
             st.session_state.game_data["current_q_index"] = 0
-            st.session_state.game_data["question_start_time"] = time.time()
             st.session_state.game_state = "PLAYING"
             st.rerun()
 
