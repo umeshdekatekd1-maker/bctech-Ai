@@ -1003,7 +1003,7 @@ if query:
                         ist_zone = timezone(timedelta(hours=5, minutes=30))
                         current_ist_dt = datetime.now(ist_zone)
                         
-                        current_time_str = current_ist_dt.strftime("Wednesday, September 16, 2026, 03:26 PM")
+                        current_time_str = current_ist_dt.strftime("Wednesday, September 16, 2026, 03:28 PM")
                         
                         lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                         
@@ -1073,7 +1073,7 @@ if query:
 
                                 api_messages = [{"role": "system", "content": system_prop}]
                                 for m in st.session_state.messages[:-1]:
-                                    api_messages.append({"role": m["role"], "content": m["content"]}]
+                                    api_messages.append({"role": m["role"], "content": m["content"]})
                                 api_messages.append({"role": "user", "content": query})
 
                                 for m_name in models_to_try:
