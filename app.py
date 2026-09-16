@@ -146,9 +146,9 @@ def save_papers_db(papers_db):
 if "papers_data" not in st.session_state:
     st.session_state.papers_data = load_papers_db()
 
-# Initialize Quiz Game Session State (Auto-Level Progression)
+# Initialize Quiz Game Session State
 if "game_state" not in st.session_state:
-    st.session_state.game_state = "IDLE"  # IDLE, CREATING, WAITING, CATEGORY, PLAYING, LEVEL_TRANSITION, RESULT
+    st.session_state.game_state = "IDLE"
 
 if "game_data" not in st.session_state:
     st.session_state.game_data = {
@@ -162,10 +162,10 @@ if "game_data" not in st.session_state:
         "current_q_index": 0,
         "p1_score": 0,
         "p2_score": 0,
-        "turn": 1
+        "turn": 1,
+        "question_start_time": 0
     }
 
-# Comprehensive Verified Question Bank for 2-Player Quiz (Needs at least 25-30 questions per category for Level 1, 2, 3 progression)
 QUESTION_BANK = {
     "Basic Computer & Internet": [
         {"q": "कंप्यूटर में किसी फाइल को कॉपी करने की शॉर्टकट की क्या है?", "options": ["Ctrl + C", "Ctrl + V", "Ctrl + X", "Ctrl + S"], "answer": "Ctrl + C"},
@@ -187,8 +187,8 @@ QUESTION_BANK = {
         {"q": "IP Address कितने बिट का होता है (IPv4)?", "options": ["32 bit", "64 bit", "128 bit", "16 bit"], "answer": "32 bit"},
         {"q": "कंप्यूटर बूटिंग का क्या अर्थ है?", "options": ["स्टार्ट करना", "बंद करना", "रिस्टार्ट करना", "फॉर्मेट करना"], "answer": "स्टार्ट करना"},
         {"q": "MS Excel में रो और कॉलम के मिलने से क्या बनता है?", "options": ["सेल (Cell)", "टेबल", "फार्मूला", "शीट"], "answer": "सेल (Cell)"},
-        {"q": "शॉर्टकट की Ctrl + V का उपयोग किसके लिए होता है?", "options": ["पेस्ट करने के लिए", "कॉपी करने के लिए", "कट करने के लिए", "सेव करने के लिए"], "answer": "पेस्ट करने के लिए",
-        "q": "कंप्यूटर का आविष्कार किसने किया था?", "options": ["चार्ल्स बैबेज", "बिल गेट्स", "एलन ट्यूरिंग", "ब्लेस पास्कल"], "answer": "चार्ल्स बैबेज"},
+        {"q": "शॉर्टकट की Ctrl + V का उपयोग किसके लिए होता है?", "options": ["पेस्ट करने के लिए", "कॉपी करने के लिए", "कट करने के लिए", "सेव करने के लिए"], "answer": "पेस्ट करने के लिए"},
+        {"q": "कंप्यूटर का आविष्कार किसने किया था?", "options": ["चार्ल्स बैबेज", "बिल गेट्स", "एलन ट्यूरिंग", "ब्लेस पास्कल"], "answer": "चार्ल्स बैबेज"},
         {"q": "वेबसाइट का मुख्य पेज क्या कहलाता है?", "options": ["होम पेज", "मास्टर पेज", "फर्स्ट पेज", "वेब पेज"], "answer": "होम पेज"}
     ],
     "Graphic Designing: CorelDraw": [
@@ -203,13 +203,13 @@ QUESTION_BANK = {
         {"q": "CorelDraw में कलर पैलेट को ऑन या ऑफ करने के लिए कहाँ जाते हैं?", "options": ["View > Color Palette", "File > Open", "Edit > Copy", "Effects > Lens"], "answer": "View > Color Palette"},
         {"q": "पॉलीगन टूल से न्यूनतम कितनी भुजाओं का शेप बना सकते हैं?", "options": ["2", "3", "4", "5"], "answer": "3"},
         {"q": "CorelDraw में सेव करने की शॉर्टकट की क्या है?", "options": ["Ctrl + S", "Ctrl + N", "Ctrl + O", "Ctrl + P"], "answer": "Ctrl + S"},
-        {"q": "इम्पोर्ट (Import) करने की शॉर्टकट की क्या है?", "options": ["Ctrl + I", "Ctrl + E", "Ctrl + C", "Ctrl + V"], "answer": "Ctrl + I"},
-        {"q": "एक्सपोर्ट (Export) करने की शॉर्टकट की क्या है?", "options": ["Ctrl + E", "Ctrl + I", "Ctrl + S", "Ctrl + X"], "answer": "Ctrl + E"},
-        {"q": "रेक्टेंगल (Rectangle) ड्रा करने के लिए कौन सा शॉर्टकट की है?", "options": ["F6", "F7", "F8", "M"], "answer": "F6"},
-        {"q": "एलिप्टिकल / सर्कल टूल की शॉर्टकट की क्या है?", "options": ["F7", "F6", "C", "E"], "answer": "F7"},
-        {"q": "कर्व (Curve) में बदलने की शॉर्टकट की क्या है?", "options": ["Ctrl + Q", "Ctrl + W", "Ctrl + E", "Ctrl + R"], "answer": "Ctrl + Q"},
+        {"q": "इम्पोर्ट करने की शॉर्टकट की क्या है?", "options": ["Ctrl + I", "Ctrl + E", "Ctrl + C", "Ctrl + V"], "answer": "Ctrl + I"},
+        {"q": "एक्सपोर्ट करने की शॉर्टकट की क्या है?", "options": ["Ctrl + E", "Ctrl + I", "Ctrl + S", "Ctrl + X"], "answer": "Ctrl + E"},
+        {"q": "रेक्टेंगल ड्रा करने के लिए कौन सा शॉर्टकट की है?", "options": ["F6", "F7", "F8", "M"], "answer": "F6"},
+        {"q": "सर्कल टूल की शॉर्टकट की क्या है?", "options": ["F7", "F6", "C", "E"], "answer": "F7"},
+        {"q": "कर्व में बदलने की शॉर्टकट की क्या है?", "options": ["Ctrl + Q", "Ctrl + W", "Ctrl + E", "Ctrl + R"], "answer": "Ctrl + Q"},
         {"q": "ऑब्जेक्ट को अनग्रुप करने की शॉर्टकट की क्या है?", "options": ["Ctrl + U", "Ctrl + G", "Ctrl + K", "Ctrl + B"], "answer": "Ctrl + U"},
-        {"q": "कंबाइन (Combine) करने की शॉर्टकट की क्या है?", "options": ["Ctrl + L", "Ctrl + K", "Ctrl + G", "Ctrl + U"], "answer": "Ctrl + L"},
+        {"q": "कंबाइन करने की शॉर्टकट की क्या है?", "options": ["Ctrl + L", "Ctrl + K", "Ctrl + G", "Ctrl + U"], "answer": "Ctrl + L"},
         {"q": "फुल स्क्रीन प्रीव्यू देखने के लिए कौन सी की दबाई जाती है?", "options": ["F9", "F3", "F4", "F2"], "answer": "F9"},
         {"q": "पेज सेटअप या ऑप्शन विंडो खोलने की शॉर्टकट की क्या है?", "options": ["Ctrl + J", "Ctrl + P", "Ctrl + T", "Ctrl + M"], "answer": "Ctrl + J"},
         {"q": "पिन्ट करने की शॉर्टकट की क्या है?", "options": ["Ctrl + P", "Ctrl + S", "Ctrl + N", "Ctrl + O"], "answer": "Ctrl + P"}
@@ -228,14 +228,14 @@ QUESTION_BANK = {
         {"q": "नई लेयर बनाने की शॉर्टकट की क्या है?", "options": ["Ctrl + Shift + N", "Ctrl + N", "Ctrl + L", "Ctrl + Alt + N"], "answer": "Ctrl + Shift + N"},
         {"q": "लेयर को मर्ज करने की शॉर्टकट की क्या है?", "options": ["Ctrl + E", "Ctrl + M", "Ctrl + G", "Ctrl + Shift + E"], "answer": "Ctrl + E"},
         {"q": "फॉरग्राउंड और बैकग्राउंड कलर रीसेट करने की शॉर्टकट की क्या है?", "options": ["D", "X", "C", "S"], "answer": "D"},
-        {"q": "कलर इनवर्ट (Invert) करने की शॉर्टकट की क्या है?", "options": ["Ctrl + I", "Ctrl + Shift + I", "Ctrl + U", "Ctrl + B"], "answer": "Ctrl + I"},
-        {"q": "लेवल (Levels) विंडो खोलने की शॉर्टकट की क्या है?", "options": ["Ctrl + L", "Ctrl + M", "Ctrl + B", "Ctrl + T"], "answer": "Ctrl + L"},
-        {"q": "कर्व्स (Curves) विंडो खोलने की शॉर्टकट की क्या है?", "options": ["Ctrl + M", "Ctrl + L", "Ctrl + C", "Ctrl + V"], "answer": "Ctrl + M"},
-        {"q": "मूव टूल (Move Tool) की शॉर्टकट की क्या है?", "options": ["V", "M", "C", "H"], "answer": "V"},
-        {"q": "लेस्सो टूल (Lasso Tool) की शॉर्टकट की क्या है?", "options": ["L", "M", "W", "V"], "answer": "L"},
-        {"q": "इरेज़र टूल (Eraser Tool) की शॉर्टकट की क्या है?", "options": ["E", "B", "R", "S"], "answer": "E"},
-        {"q": "टेक्स्ट टूल (Text Tool) की शॉर्टकट की क्या है?", "options": ["T", "M", "V", "P"], "answer": "T"},
-        {"q": "हैंड टूल (Hand Tool) की शॉर्टकट की क्या है?", "options": ["H", "Z", "V", "C"], "answer": "H"}
+        {"q": "कलर इनवर्ट करने की शॉर्टकट की क्या है?", "options": ["Ctrl + I", "Ctrl + Shift + I", "Ctrl + U", "Ctrl + B"], "answer": "Ctrl + I"},
+        {"q": "लेवल विंडो खोलने की शॉर्टकट की क्या है?", "options": ["Ctrl + L", "Ctrl + M", "Ctrl + B", "Ctrl + T"], "answer": "Ctrl + L"},
+        {"q": "कर्व्स विंडो खोलने की शॉर्टकट की क्या है?", "options": ["Ctrl + M", "Ctrl + L", "Ctrl + C", "Ctrl + V"], "answer": "Ctrl + M"},
+        {"q": "मूव टूल की शॉर्टकट की क्या है?", "options": ["V", "M", "C", "H"], "answer": "V"},
+        {"q": "लेस्सो टूल की शॉर्टकट की क्या है?", "options": ["L", "M", "W", "V"], "answer": "L"},
+        {"q": "इरेज़र टूल की शॉर्टकट की क्या है?", "options": ["E", "B", "R", "S"], "answer": "E"},
+        {"q": "टेक्स्ट टूल की शॉर्टकट की क्या है?", "options": ["T", "M", "V", "P"], "answer": "T"},
+        {"q": "हैंड टूल की शॉर्टकट की क्या है?", "options": ["H", "Z", "V", "C"], "answer": "H"}
     ],
     "Accounting & Tally Prime": [
         {"q": "Tally Prime में कंट्रा वाउचर की शॉर्टकट की क्या है?", "options": ["F4", "F5", "F6", "F7"], "answer": "F4"},
@@ -249,15 +249,15 @@ QUESTION_BANK = {
         {"q": "Tally में Trial Balance देखने के लिए शॉर्टकट क्या है?", "options": ["Gateway of Tally > Balance Sheet", "Gateway of Tally > Display More Reports > Trial Balance", "F11", "F12"], "answer": "Gateway of Tally > Display More Reports > Trial Balance"},
         {"q": "क्रेडिट नोट की शॉर्टकट की क्या होती है?", "options": ["Alt + F6", "Ctrl + F6", "Alt + F8", "Ctrl + F8"], "answer": "Alt + F6"},
         {"q": "डेबिट नोट की शॉर्टकट की क्या होती है?", "options": ["Alt + F5", "Ctrl + F5", "Alt + F7", "Ctrl + F7"], "answer": "Alt + F5"},
-        {"q": "Tally में कंपनी अल्टर (Alter) या बदलने के लिए कहाँ जाते हैं?", "options": ["Gateway of Tally > Alter", "Gateway of Tally > Company > Alter", "F3", "Alt + C"], "answer": "Gateway of Tally > Company > Alter"},
-        {"q": "स्टॉक समरी (Stock Summary) देखने के लिए मुख्य मेनू में क्या चुनते हैं?", "options": ["Stock Summary", "Balance Sheet", "Profit & Loss", "Display"], "answer": "Stock Summary"},
-        {"q": "Tally में फीचर्स (Company Features) खोलने की शॉर्टकट की क्या है?", "options": ["F11", "F12", "Alt + F1", "Ctrl + F11"], "answer": "F11"},
-        {"q": "Tally में कॉन्फ़िगरेशन (Configuration) की शॉर्टकट की क्या है?", "options": ["F12", "F11", "Ctrl + F12", "Alt + F12"], "answer": "F12"},
-        {"q": "प्रॉफिट एंड लॉस अकाउंट (Profit & Loss A/c) देखने के लिए शॉर्टकट क्या है?", "options": ["Gateway of Tally > Profit & Loss A/c", "Balance Sheet", "Trial Balance", "Display"], "answer": "Gateway of Tally > Profit & Loss A/c"},
-        {"q": "नया लेजर बनाते समय ग्रुप سلैक्ट करने के लिए लिस्ट कहाँ से आती है?", "options": ["List of Groups", "Ledger Accounts", "Primary Groups", "Inventory Info"], "answer": "List of Groups"},
-        {"q": "Tally में बैंक रिकॉन्सिलेशन (Bank Reconciliation - BRS) की शॉर्टकट की क्या है?", "options": ["F5 से बैंक रिपोर्ट में जाकर", "Alt + R", "Ctrl + R", "F12"], "answer": "F5 से बैंक रिपोर्ट में जाकर"},
+        {"q": "Tally में कंपनी अल्टर करने के लिए कहाँ जाते हैं?", "options": ["Gateway of Tally > Alter", "Gateway of Tally > Company > Alter", "F3", "Alt + C"], "answer": "Gateway of Tally > Company > Alter"},
+        {"q": "स्टॉक समरी देखने के लिए मुख्य मेनू में क्या चुनते हैं?", "options": ["Stock Summary", "Balance Sheet", "Profit & Loss", "Display"], "answer": "Stock Summary"},
+        {"q": "Tally में फीचर्स खोलने की शॉर्टकट की क्या है?", "options": ["F11", "F12", "Alt + F1", "Ctrl + F11"], "answer": "F11"},
+        {"q": "Tally में कॉन्फ़िगरेशन की शॉर्टकट की क्या है?", "options": ["F12", "F11", "Ctrl + F12", "Alt + F12"], "answer": "F12"},
+        {"q": "प्रॉफिट एंड लॉस अकाउंट देखने के लिए शॉर्टकट क्या है?", "options": ["Gateway of Tally > Profit & Loss A/c", "Balance Sheet", "Trial Balance", "Display"], "answer": "Gateway of Tally > Profit & Loss A/c"},
+        {"q": "नया लेजर बनाते समय ग्रुप सिलेक्ट करने के लिए लिस्ट कहाँ से आती है?", "options": ["List of Groups", "Ledger Accounts", "Primary Groups", "Inventory Info"], "answer": "List of Groups"},
+        {"q": "Tally में बैंक रिकॉन्सिलेशन की शॉर्टकट की क्या है?", "options": ["F5 से बैंक रिपोर्ट में जाकर", "Alt + R", "Ctrl + R", "F12"], "answer": "F5 से बैंक रिपोर्ट में जाकर"},
         {"q": "क्विकली लेजर या वाउचर डिलीट करने की शॉर्टकट की क्या है?", "options": ["Alt + D", "Ctrl + D", "Shift + Delete", "Del"], "answer": "Alt + D"},
-        {"q": "Tally Prime से बाहर आने (Quit) के लिए कौन सी की दबाते हैं?", "options": ["Esc", "Alt + F4", "Ctrl + Q", "Enter"], "answer": "Esc"},
+        {"q": "Tally Prime से बाहर आने के लिए कौन सी की दबाते हैं?", "options": ["Esc", "Alt + F4", "Ctrl + Q", "Enter"], "answer": "Esc"},
         {"q": "कैश और प्रॉफिट/लॉस अकाउंट Tally द्वारा डिफ़ॉल्ट रूप से कितने बने होते हैं?", "options": ["2", "1", "3", "4"], "answer": "2"}
     ],
     "Web Development & Programming": [
@@ -274,13 +274,13 @@ QUESTION_BANK = {
         {"q": "HTML का पूर्ण रूप क्या है?", "options": ["Hyper Text Markup Language", "High Text Machine Language", "Hyperlinks and Text Markup", "Home Tool Markup Language"], "answer": "Hyper Text Markup Language"},
         {"q": "JavaScript किस प्रकार की भाषा है?", "options": ["स्क्रिप्टिंग भाषा (Scripting Language)", "मशीन भाषा", "असेम्बली भाषा", "डेटाबेस भाषा"], "answer": "स्क्रिप्टिंग भाषा (Scripting Language)"},
         {"q": "CSS का उपयोग किस लिए होता है?", "options": ["वेबपेज को डिज़ाइन और स्टाइल करने के लिए", "डेटा स्टोर करने के लिए", "लॉजिक लिखने के लिए", "सर्वर चलाने के लिए"], "answer": "वेबपेज को डिज़ाइन और स्टाइल करने के लिए"},
-        {"q": "Python में कमेंट (Comment) लिखने के लिए किस चिन्ह का उपयोग होता है?", "options": ["#", "//", "/*", "<!--"], "answer": "#"},
+        {"q": "Python में कमेंट लिखने के लिए किस चिन्ह का उपयोग होता है?", "options": ["#", "//", "/*", "<!--"], "answer": "#"},
         {"q": "इनमें से कौन सा टैग HTML में टेबल बनाने के लिए उपयोग होता है?", "options": ["<table>", "<tab>", "<tr>", "<td>"], "answer": "<table>"},
         {"q": "वेब पेज पर बैकग्राउंड कलर बदलने के लिए CSS में किस प्रॉपर्टी का उपयोग होता है?", "options": ["background-color", "color", "bg-color", "image-color"], "answer": "background-color"},
         {"q": "Python भाषा का विकास किसने किया था?", "options": ["Guido van Rossum", "Dennis Ritchie", "James Gosling", "Bjarne Stroustrup"], "answer": "Guido van Rossum"},
-        {"q": "HTML में अनऑर्डर्ड लिस्ट (Unordered List) के लिए कौन सा टैग होता है?", "options": ["<ul>", "<ol>", "<li>", "<list>"], "answer": "<ul>"},
-        {"q": "किसी एलिमेंट की आईडी (ID) को CSS में दर्शाने के लिए किस चिन्ह का प्रयोग करते हैं?", "options": ["#", ".", "*", "$"], "answer": "#"},
-        {"q": "CSS क्लास (Class) को दर्शाने के लिए किस चिन्ह का प्रयोग होता है?", "options": [".", "#", "@", "&"], "answer": "."},
+        {"q": "HTML में अनऑर्डर्ड लिस्ट के लिए कौन सा टैग होता है?", "options": ["<ul>", "<ol>", "<li>", "<list>"], "answer": "<ul>"},
+        {"q": "किसी एलिमेंट की आईडी को CSS में दर्शाने के लिए किस चिन्ह का प्रयोग करते हैं?", "options": ["#", ".", "*", "$"], "answer": "#"},
+        {"q": "CSS क्लास को दर्शाने के लिए किस चिन्ह का प्रयोग होता है?", "options": [".", "#", "@", "&"], "answer": "."},
         {"q": "वेब ब्राउज़र का मुख्य कार्य क्या है?", "options": ["वेबपेज रेंडर और दिखाना", "कोडिंग लिखना", "वायरस बनाना", "डेटा स्टोर करना"], "answer": "वेबपेज रेंडर और दिखाना"}
     ]
 }
@@ -828,14 +828,12 @@ for idx, msg in enumerate(st.session_state.messages):
             lang_code = "hi-IN" if st.session_state.current_language == "HINDI" else ("gu-IN" if st.session_state.current_language == "GUJARATI" else "en-US")
             render_voice_and_copy_toolbar(msg["content"], f"hist_{idx}", lang_code)
 
-# Chat input with "Ask..." placeholder
 query = st.chat_input("Ask...")
 
 if query:
     clean_q_lower = query.strip().lower()
     lang = update_language_state(query)
     
-    # Check if user wants to play game via chat command
     if "play game" in clean_q_lower or "quiz" in clean_q_lower or "game" in clean_q_lower:
         st.session_state.messages.append({"role": "user", "content": query})
         with st.chat_message("user", avatar="👤"):
@@ -848,7 +846,6 @@ if query:
         persist_current_state()
         st.rerun()
 
-    # Check if user is asking to open a specific uploaded paper
     paper_requested = None
     for pk, p_info in st.session_state.papers_data.items():
         d_name_lower = p_info.get("display_name", pk).lower()
@@ -918,7 +915,6 @@ if query:
             persist_current_state()
 
     else:
-        # Normal chat/result queries
         if clean_q_lower in ["or", "aur", "hi", "hello", "ok", "hey", "h", "k"]:
             st.session_state.messages.append({"role": "user", "content": query})
             with st.chat_message("user", avatar="👤"):
@@ -1239,7 +1235,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 2-PLAYER QUIZ GAME ARENA INTEGRATION (AUTO-LEVEL PROGRESSION)
+# 2-PLAYER QUIZ GAME ARENA INTEGRATION (WITH AUTO-ADVANCE TIMER)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1309,11 +1305,11 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.session_state.game_data["p2_score"] = 0
             st.session_state.game_data["turn"] = 1
             
-            # Load Level 1 Questions (5 Questions)
             all_qs = QUESTION_BANK[cat_choice].copy()
             random.shuffle(all_qs)
             st.session_state.game_data["questions"] = all_qs[:5]
             st.session_state.game_data["current_q_index"] = 0
+            st.session_state.game_data["question_start_time"] = time.time()
             
             st.session_state.game_state = "PLAYING"
             st.rerun()
@@ -1328,6 +1324,13 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             current_turn = st.session_state.game_data["turn"]
             active_player = st.session_state.game_data["p1_name"] if current_turn == 1 else st.session_state.game_data["p2_name"]
             
+            # Initialize question start time if not present
+            if "question_start_time" not in st.session_state.game_data or st.session_state.game_data["question_start_time"] == 0:
+                st.session_state.game_data["question_start_time"] = time.time()
+
+            elapsed = time.time() - st.session_state.game_data["question_start_time"]
+            remaining = max(0, int(30 - elapsed))
+
             col_a, col_b = st.columns([3, 1])
             with col_a:
                 st.subheader(f"🔥 लेवल {curr_lvl} | सवाल {q_idx + 1} / {total_q}")
@@ -1335,20 +1338,38 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                 st.markdown(f"**बारी:** 👤 {active_player}")
 
             st.markdown(f"### ❓ {current_q_data['q']}")
-            
-            # Shuffle options randomly
+
+            # Check if 30 seconds have elapsed automatically
+            if remaining == 0:
+                st.warning(f"⏰ समय समाप्त! (Time's Up) किसी भी उत्तर का चयन न होने के कारण **0 अंक** मिले और अगला सवाल स्वतः आ रहा है।")
+                st.session_state.game_data["question_start_time"] = 0
+                
+                # Switch turn or next question
+                if current_turn == 1:
+                    st.session_state.game_data["turn"] = 2
+                else:
+                    st.session_state.game_data["turn"] = 1
+                    st.session_state.game_data["current_q_index"] += 1
+                
+                time.sleep(1.2)
+                st.rerun()
+
+            # Live Countdown display & progress bar
+            st.markdown(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
+            st.progress(remaining / 30.0)
+
+            # Shuffle options
             options = current_q_data["options"].copy()
             random.shuffle(options)
-            
-            st.warning("⏱️ प्रत्येक सवाल के लिए **30 सेकंड** का समय है! (जवाब न देने या टाइमआउट पर 0 अंक मिलेंगे)")
             
             with st.form(key=f"q_form_lvl{curr_lvl}_q{q_idx}_t{current_turn}"):
                 ans_choice = st.radio("विकल्प चुनें:", options, index=None)
                 submitted = st.form_submit_button("उत्तर जमा करें (Submit)")
                 
                 if submitted:
+                    st.session_state.game_data["question_start_time"] = 0
                     if ans_choice is None:
-                        st.warning("⚠️ आपने कोई उत्तर नहीं चुना! टाइमआउट के कारण 0 अंक मिले।")
+                        st.warning("⚠️ आपने कोई उत्तर नहीं चुना! 0 अंक मिले।")
                     else:
                         if ans_choice == current_q_data["answer"]:
                             st.success(f"🎉 सही उत्तर! (Right Answer: {current_q_data['answer']})")
@@ -1366,10 +1387,15 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         st.session_state.game_data["turn"] = 1
                         st.session_state.game_data["current_q_index"] += 1
                     
-                    time.sleep(1.5)
+                    time.sleep(1.2)
                     st.rerun()
+            
+            # Auto-rerun loop to keep countdown ticking live every 1 second
+            time.sleep(1)
+            st.rerun()
+
         else:
-            # Level completed, move to next level automatically or show result if Level 3 is done
+            # Auto level progression logic
             if curr_lvl == 1:
                 st.session_state.game_data["current_level"] = 2
                 st.session_state.game_state = "LEVEL_TRANSITION"
@@ -1386,16 +1412,16 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         finished_lvl = st.session_state.game_data["current_level"] - 1
         next_lvl = st.session_state.game_data["current_level"]
         
-        st.success(f"🎉 बधाई हो! **लेवल {finished_lvl}** सफलताપૂર્વक पूरा हो गया है!")
-        st.info(f"अब ऑटोमैटिकली **लेवल {next_lvl}** शुरू होने जा रहा है! (10 नए सवाल)")
+        st.success(f"🎉 बहुत बढ़िया! **लेवल {finished_lvl}** सफलतापूर्वक पार कर लिया है!")
+        st.info(f"अब ऑटोमैटिकली **लेवल {next_lvl}** शुरू होने जा रहा है जिसमें 10 नए सवाल आएंगे!")
         
         if st.button("अगले लेवल पर चलें 🚀"):
             cat = st.session_state.game_data["category"]
             all_qs = QUESTION_BANK[cat].copy()
             random.shuffle(all_qs)
-            # Level 2 and Level 3 have 10 questions each
             st.session_state.game_data["questions"] = all_qs[:10]
             st.session_state.game_data["current_q_index"] = 0
+            st.session_state.game_data["question_start_time"] = time.time()
             st.session_state.game_state = "PLAYING"
             st.rerun()
 
@@ -1420,7 +1446,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         elif s2 > s1:
             st.success(f"🎊 विजेता: **{p2}** ने शानदार प्रदर्शन करते हुए मुकाबला जीत लिया है! 🏆")
         else:
-            st.info("🤝 मुकाबला **टाई (Tie)** रहा! दोनों खिलाड़ियों ने बेहतरीन खेला।")
+            st.info("🤝 मुकाबला **टाई (Tie)** रहा! दोनों खिलाड़ियों ने बेहतरीन मुकाबला खेला।")
             
         if st.button("🔄 दोबारा खेलें (Play Again)"):
             st.session_state.game_state = "IDLE"
