@@ -392,7 +392,7 @@ def clean_val_display(val):
     except Exception:
         return str(val).strip()
 
-# Sidebar - Admin Panel with Clean Contact Info (Icons removed)
+# Sidebar - Admin Panel with Website & Branch Location Icons
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -473,11 +473,8 @@ with st.sidebar:
             st.error("Incorrect Password!")
 
     st.markdown("---")
-    st.markdown("### संपर्क:")
-    st.markdown("फ़ोन: **77789 26285**")
-    st.markdown("व्हाट्सएप: **77789 26285**")
-    st.markdown("वेबसाइट: [Official Website](https://sites.google.com/view/bctechcomputer/about-us)")
-    st.markdown("[Branch Location](https://sites.google.com/view/bctechcomputer/about-us)")
+    st.markdown("🌐 [Official Website](https://sites.google.com/view/bctechcomputer)")
+    st.markdown("📍 [Branch Location](https://sites.google.com/view/bctechcomputer/about-us)")
 
 st.title("🎓 BC Tech Ai Assistant")
 
@@ -840,13 +837,13 @@ if query:
                     reply = "ચોક્કસ! હવે આપણે ગુજરાતીમાં વાત કરીશું. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                     st.write(reply)
                     st.session_state.messages.append({"role": "assistant", "content": reply})
-                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", lang_code)
+                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", "gu-IN")
 
                 elif query.strip().lower() in ["hindi", "in hindi", "hindi me", "hindi main baat karo", "hindi me baat karte hai"]:
                     reply = "ज़रूर! अब हम हिंदी में बात करेंगे। मैं आपकी क्या सहायता कर सकता हूँ? 😊"
                     st.write(reply)
                     st.session_state.messages.append({"role": "assistant", "content": reply})
-                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", lang_code)
+                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", "hi-IN")
 
                 elif is_greeting(query):
                     if lang == "GUJARATI":
@@ -862,11 +859,11 @@ if query:
 
                 elif check_is_branch_intent(query):
                     if lang == "GUJARATI":
-                        reply = f"BC Tech Computer Education સુરત, ગુજરાત, ભારતમાં આવેલું છે. વધુ વિગતો અને અન્ય શાખાના પત્તા માટે અધિકૃત વેબસાઇટની મુલાકાત લો:\n🔗 {BRANCH_LINK}\n\nસંપર્ક:\nఫోન: 77789 26285\nવ્હોટ્સએપ: 77789 26285"
+                        reply = f"BC Tech Computer Education સુરત, ગુજરાત, ભારતમાં આવેલું છે. વધુ વિગતો અને અન્ય શાખાના પત્તા માટે અધિકૃત વેબસાઇટની મુલાકાત લો:\n🔗 {BRANCH_LINK}"
                     elif lang == "HINDI":
-                        reply = f"BC Tech Computer Education सूरत, गुजरात, भारत में स्थित है। अधिक विवरण और अन्य शाखाओं के पते के लिए आप आधिकारिक वेबसाइट पर जा सकते हैं:\n🔗 {BRANCH_LINK}\n\nसंपर्क:\nफ़ोन: 77789 26285\nव्हाट्सएप: 77789 26285"
+                        reply = f"BC Tech Computer Education सूरत, गुजरात, भारत में स्थित है। अधिक विवरण और अन्य शाखाओं के पते के लिए आप आधिकारिक वेबसाइट पर जा सकते हैं:\n🔗 {BRANCH_LINK}"
                     else:
-                        reply = f"BC Tech Computer Education is located in Surat, Gujarat, India. For more details and branch addresses, you can visit the official website:\n🔗 {BRANCH_LINK}\n\nContact:\nPhone: 77789 26285\nWhatsApp: 77789 26285"
+                        reply = f"BC Tech Computer Education is located in Surat, Gujarat, India. For more details and branch addresses, you can visit the official website:\n🔗 {BRANCH_LINK}"
                     
                     st.write(reply)
                     st.session_state.messages.append({"role": "assistant", "content": reply})
@@ -1007,7 +1004,7 @@ if query:
                         ist_zone = timezone(timedelta(hours=5, minutes=30))
                         current_ist_dt = datetime.now(ist_zone)
                         
-                        current_time_str = current_ist_dt.strftime("Wednesday, September 16, 2026, 03:22 PM")
+                        current_time_str = current_ist_dt.strftime("Wednesday, September 16, 2026, 03:25 PM")
                         
                         lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                         
@@ -1026,21 +1023,15 @@ if query:
                           DO NOT provide any tutorial, steps, or software solutions.
                           INSTEAD, you must politely inform them that practical training and guidance are provided directly at the institute, and tell them to contact our branch or visit our website:
                           
-                          - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं。\n\nसंपर्क:\n📞 फ़ोन: 77789 26285\n📱 व्हाट्सएप: 77789 26285\n🌐 वेबसाइट: {BRANCH_LINK}"
-                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્ચનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nસંપર્ક:\n📞 ફોન: 77789 26285\n📱 વ્હોટ્સએપ: 77789 26285\n🌐 વેબસાઇટ: {BRANCH_LINK}"
-                          - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nContact:\n📞 Phone: 77789 26285\n📱 WhatsApp: 77789 26285\n🌐 Website: {BRANCH_LINK}"
+                          - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं。\n\nवेबसाइट: {BRANCH_LINK}"
+                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્ચનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
+                          - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nWebsite: {BRANCH_LINK}"
                         
                         CRITICAL TIMINGS RULE (CLASS & BATCH SCHEDULE):
                         - Class Opening and Closing Hours: The institute/class opens at 7:00 AM and remains active/open until 8:30 PM.
                         - Morning Batches Timing: 7:00 AM to 10:00 AM (Each batch is 1 hour long).
                         - Regular/Other Batches Timing: 10:00 AM to 8:30 PM (Each batch is 1.5 hours / 1 hour 30 minutes long).
                         - Always answer timing or batch questions accurately in whichever language the user asks (Hindi, Gujarati, or English).
-                        
-                        CRITICAL CONTACT NUMBERS (ALWAYS DISPLAY REAL NUMBERS, NEVER XXXXX):
-                        - Phone: 77789 26285
-                        - WhatsApp: 77789 26285
-                        - Website: {BRANCH_LINK}
-                        - NEVER write '+91-XXXXXXXXXX'. Always write '77789 26285'.
                         
                         CRITICAL FACTUAL TRUTH & CORRECTION RULE:
                         - C. Joseph Vijay (Vijay Thalapathy) is a popular South Indian actor and film star who entered politics (TVK party). He is NOT a Chief Minister (CM).
@@ -1099,7 +1090,7 @@ if query:
                                         if answer and len(answer) > 2:
                                             break
                                     except Exception as ex:
-                                        last_api_err = str(ex)
+                                        last_api_err =str(ex)
                                         continue
                                 
                                 answer = answer.replace("{BRANCH_Link}", BRANCH_LINK)
@@ -1111,6 +1102,6 @@ if query:
                                     render_voice_and_copy_toolbar(answer, f"ast_curr_{len(st.session_state.messages)}", lang_code)
                                 else:
                                     st.error(f"API Error: {last_api_err}")
-                            except Exception as e:
+                            exceptException as e:
                                 st.error(f"Error: {e}")
         persist_current_state()
