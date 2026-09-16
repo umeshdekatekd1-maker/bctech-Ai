@@ -676,7 +676,6 @@ About Bctech Computer Education:
 - Batch Timings: 
   - Morning Batches: 7:00 AM to 10:00 AM (Each batch is 1 hour long).
   - Regular/Other Batches: 10:00 AM to 8:30 PM (Each batch is 1.5 hours / 1 hour 30 minutes long).
-- Contact Number / WhatsApp Number: 77789 26285
 """
 
 # Render chat history with Read Aloud & Copy buttons
@@ -837,13 +836,13 @@ if query:
                     reply = "ચોક્કસ! હવે આપણે ગુજરાતીમાં વાત કરીશું. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                     st.write(reply)
                     st.session_state.messages.append({"role": "assistant", "content": reply})
-                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", "gu-IN")
+                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", lang_code)
 
                 elif query.strip().lower() in ["hindi", "in hindi", "hindi me", "hindi main baat karo", "hindi me baat karte hai"]:
                     reply = "ज़रूर! अब हम हिंदी में बात करेंगे। मैं आपकी क्या सहायता कर सकता हूँ? 😊"
                     st.write(reply)
                     st.session_state.messages.append({"role": "assistant", "content": reply})
-                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", "hi-IN")
+                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", lang_code)
 
                 elif is_greeting(query):
                     if lang == "GUJARATI":
@@ -1004,7 +1003,7 @@ if query:
                         ist_zone = timezone(timedelta(hours=5, minutes=30))
                         current_ist_dt = datetime.now(ist_zone)
                         
-                        current_time_str = current_ist_dt.strftime("Wednesday, September 16, 2026, 03:25 PM")
+                        current_time_str = current_ist_dt.strftime("Wednesday, September 16, 2026, 03:26 PM")
                         
                         lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                         
@@ -1074,7 +1073,7 @@ if query:
 
                                 api_messages = [{"role": "system", "content": system_prop}]
                                 for m in st.session_state.messages[:-1]:
-                                    api_messages.append({"role": m["role"], "content": m["content"]})
+                                    api_messages.append({"role": m["role"], "content": m["content"]}]
                                 api_messages.append({"role": "user", "content": query})
 
                                 for m_name in models_to_try:
@@ -1090,7 +1089,7 @@ if query:
                                         if answer and len(answer) > 2:
                                             break
                                     except Exception as ex:
-                                        last_api_err =str(ex)
+                                        last_api_err = str(ex)
                                         continue
                                 
                                 answer = answer.replace("{BRANCH_Link}", BRANCH_LINK)
@@ -1102,6 +1101,6 @@ if query:
                                     render_voice_and_copy_toolbar(answer, f"ast_curr_{len(st.session_state.messages)}", lang_code)
                                 else:
                                     st.error(f"API Error: {last_api_err}")
-                            exceptException as e:
+                            except Exception as e:
                                 st.error(f"Error: {e}")
         persist_current_state()
