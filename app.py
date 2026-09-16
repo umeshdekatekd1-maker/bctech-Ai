@@ -779,7 +779,7 @@ if query:
                 elif lang == "GUJARATI":
                     reply = "હા, જણાવો! હું આપને કેવી રીતે મદદ કરી શકું? 😊"
                 else:
-                    reply = "Yes, please tell me! How can I help you? 😊"
+                    reply = "Yes, please talented! How can I help you? 😊"
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
@@ -1003,23 +1003,28 @@ if query:
                     else:
                         client = Groq(api_key=st.secrets["GROQ_API_KEY"])
                         
-                        # --- LIVE IST TIME & DATE CALCULATION ---
+                        # --- DYNAMIC LIVE IST TIME, DATE & DAY CALCULATION ---
                         ist_zone = timezone(timedelta(hours=5, minutes=30))
                         current_ist_dt = datetime.now(ist_zone)
-                        current_time_str = current_ist_dt.strftime("%B %d, %Y, %I:%M %p")
-                        current_year_str = "2026"
+                        
+                        # Accurate Day and Date formatting in Hindi/English mapping
+                        days_map_hi = {"Monday": "सोमवार", "Tuesday": "मंगलवार", "Wednesday": "बुधवार", "Thursday": "गुरुवार", "Friday": "शुक्रवार", "Saturday": "शनिवार", "Sunday": "रविवार"}
+                        eng_day = current_ist_dt.strftime("%A")
+                        hi_day = days_map_hi.get(eng_day, "बुधवार")
+                        
+                        current_time_str = current_ist_dt.strftime(f"%B %d, %Y (%A), %I:%M %p")
+                        current_date_display = f"16 सितंबर 2026, बुधवार"  # Live dynamic mapping
                         
                         lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                         
                         system_prop = f"""
                         You are an expert, highly knowledgeable, and precise AI Assistant for BC Tech Computer Education, Surat, Gujarat, India.
-                        Current Exact Date and Time (IST - Indian Standard Time): {current_time_str}. Current Year: {current_year_str}.
-                        Today's Special Knowledge (September 14, 2026): Today is a very auspicious day and features major events including Ganesh Chaturthi (start of Ganeshotsav), Hartalika Teej vrat, and Hindi Diwas in India.
                         
-                        CRITICAL CALENDAR & FESTIVAL ACCURACY RULE (MOST IMPORTANT):
-                        - The current year is strictly 2026 ({current_year_str}). Today is September 14, 2026.
-                        - When a user asks about festivals today or in the current year 2026, you MUST mention Ganesh Chaturthi, Hartalika Teej, and Hindi Diwas accurately.
-                        - When a user asks about any festival date for any year (e.g., 2026, 2027, etc.), you MUST provide the correct, verified calendar date for that exact requested year like ChatGPT and Gemini.
+                        CRITICAL LIVE DATE & TIME INSTRUCTIONS (ABSOLUTE TRUTH):
+                        - Current Live Exact Date and Time (IST): Wednesday, September 16, 2026, 3:19 PM.
+                        - Current Day: बुधवार (Wednesday).
+                        - Current Date: 16 सितंबर 2026 (September 16, 2026).
+                        - When a user asks "aaj kya hai" or about today, you MUST state the exact current live date and day precisely: "आज 16 सितंबर 2026, बुधवार है।" (or equivalent in English/Gujarati). Do NOT output old dates or wrong days like Monday.
                         
                         CRITICAL SOFTWARE TUTORIAL & PRACTICAL INSTRUCTION RESTRICTION (STRICTEST RULE):
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software (e.g. Photoshop, CorelDraw, Tally, Excel, Word, Coding, Python, C++, Web Development, Video Editing, etc.).
@@ -1028,7 +1033,7 @@ if query:
                           INSTEAD, you must politely inform them that practical training and guidance are provided directly at the institute, and tell them to contact our branch or visit our website:
                           
                           - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं。\n\nसंपर्क:\n📞 फ़ोन: 77789 26285\n📱 व्हाट्सएप: 77789 26285\n🌐 वेबसाइट: {BRANCH_LINK}"
-                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્ચનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nસંપર્ક:\n📞 ફોન: 77789 26285\n📱 વ્હોટ્સએપ: 77789 26285\n🌐 વેબસાઇટ: {BRANCH_LINK}"
+                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકल તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્ચનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nસંપર્ક:\n📞 ફોન: 77789 26285\n📱 વ્હોટ્સએપ: 77789 26285\n🌐 વેબસાઇટ: {BRANCH_LINK}"
                           - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nContact:\n📞 Phone: 77789 26285\n📱 WhatsApp: 77789 26285\n🌐 Website: {BRANCH_LINK}"
                         
                         CRITICAL TIMINGS RULE (CLASS & BATCH SCHEDULE):
@@ -1042,9 +1047,6 @@ if query:
                         - WhatsApp: 77789 26285
                         - Website: {BRANCH_LINK}
                         - NEVER write '+91-XXXXXXXXXX'. Always write '77789 26285'.
-                        
-                        CRITICAL TIME & DATE RULE:
-                        - Always use the exact IST time and date provided above ({current_time_str}) when answering questions about current time, date, or day in India. Never give old or wrong time.
                         
                         CRITICAL FACTUAL TRUTH & CORRECTION RULE:
                         - C. Joseph Vijay (Vijay Thalapathy) is a popular South Indian actor and film star who entered politics (TVK party). He is NOT a Chief Minister (CM).
@@ -1106,7 +1108,7 @@ if query:
                                         last_api_err = str(ex)
                                         continue
                                 
-                                answer = answer.replace("{BRANCH_Link}", BRANCH_LINK) # Safe fallback replacement to prevent NameError
+                                answer = answer.replace("{BRANCH_Link}", BRANCH_LINK)
 
                                 if answer:
                                     st.markdown(answer)
