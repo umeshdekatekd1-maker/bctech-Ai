@@ -392,7 +392,7 @@ def clean_val_display(val):
     except Exception:
         return str(val).strip()
 
-# Sidebar - Admin Panel with Contact Info (Phone & WhatsApp: 77789 26285)
+# Sidebar - Admin Panel with Clean Contact Info (Icons removed)
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -474,10 +474,10 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### संपर्क:")
-    st.markdown("📞 फ़ोन: **77789 26285**")
-    st.markdown("📱 व्हाट्सएप: **77789 26285**")
-    st.markdown("🌐 वेबसाइट: [Official Website](https://sites.google.com/view/bctechcomputer/about-us)")
-    st.markdown("📍 [Branch Location](https://sites.google.com/view/bctechcomputer/about-us)")
+    st.markdown("फ़ोन: **77789 26285**")
+    st.markdown("व्हाट्सएप: **77789 26285**")
+    st.markdown("वेबसाइट: [Official Website](https://sites.google.com/view/bctechcomputer/about-us)")
+    st.markdown("[Branch Location](https://sites.google.com/view/bctechcomputer/about-us)")
 
 st.title("🎓 BC Tech Ai Assistant")
 
@@ -779,7 +779,7 @@ if query:
                 elif lang == "GUJARATI":
                     reply = "હા, જણાવો! હું આપને કેવી રીતે મદદ કરી શકું? 😊"
                 else:
-                    reply = "Yes, please talented! How can I help you? 😊"
+                    reply = "Yes, please tell me! How can I help you? 😊"
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
@@ -840,13 +840,13 @@ if query:
                     reply = "ચોક્કસ! હવે આપણે ગુજરાતીમાં વાત કરીશું. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                     st.write(reply)
                     st.session_state.messages.append({"role": "assistant", "content": reply})
-                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", "gu-IN")
+                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", lang_code)
 
                 elif query.strip().lower() in ["hindi", "in hindi", "hindi me", "hindi main baat karo", "hindi me baat karte hai"]:
                     reply = "ज़रूर! अब हम हिंदी में बात करेंगे। मैं आपकी क्या सहायता कर सकता हूँ? 😊"
                     st.write(reply)
                     st.session_state.messages.append({"role": "assistant", "content": reply})
-                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", "hi-IN")
+                    render_voice_and_copy_toolbar(reply, f"ack_{len(st.session_state.messages)}", lang_code)
 
                 elif is_greeting(query):
                     if lang == "GUJARATI":
@@ -862,11 +862,11 @@ if query:
 
                 elif check_is_branch_intent(query):
                     if lang == "GUJARATI":
-                        reply = f"BC Tech Computer Education સુરત, ગુજરાત, ભારતમાં આવેલું છે. વધુ વિગતો અને અન્ય શાખાના પત્તા માટે અધિકૃત વેબસાઇટની મુલાકાત લો:\n🔗 {BRANCH_LINK}\n\nસંપર્ક:\n📞 ફોન: 77789 26285\n📱 વ્હોટ્સએપ: 77789 26285"
+                        reply = f"BC Tech Computer Education સુરત, ગુજરાત, ભારતમાં આવેલું છે. વધુ વિગતો અને અન્ય શાખાના પત્તા માટે અધિકૃત વેબસાઇટની મુલાકાત લો:\n🔗 {BRANCH_LINK}\n\nસંપર્ક:\nఫోન: 77789 26285\nવ્હોટ્સએપ: 77789 26285"
                     elif lang == "HINDI":
-                        reply = f"BC Tech Computer Education सूरत, गुजरात, भारत में स्थित है। अधिक विवरण और अन्य शाखाओं के पते के लिए आप आधिकारिक वेबसाइट पर जा सकते हैं:\n🔗 {BRANCH_LINK}\n\nसंपर्क:\n📞 फ़ोन: 77789 26285\n📱 व्हाट्सएप: 77789 26285"
+                        reply = f"BC Tech Computer Education सूरत, गुजरात, भारत में स्थित है। अधिक विवरण और अन्य शाखाओं के पते के लिए आप आधिकारिक वेबसाइट पर जा सकते हैं:\n🔗 {BRANCH_LINK}\n\nसंपर्क:\nफ़ोन: 77789 26285\nव्हाट्सएप: 77789 26285"
                     else:
-                        reply = f"BC Tech Computer Education is located in Surat, Gujarat, India. For more details and branch addresses, you can visit the official website:\n🔗 {BRANCH_LINK}\n\nContact:\n📞 Phone: 77789 26285\n📱 WhatsApp: 77789 26285"
+                        reply = f"BC Tech Computer Education is located in Surat, Gujarat, India. For more details and branch addresses, you can visit the official website:\n🔗 {BRANCH_LINK}\n\nContact:\nPhone: 77789 26285\nWhatsApp: 77789 26285"
                     
                     st.write(reply)
                     st.session_state.messages.append({"role": "assistant", "content": reply})
@@ -1007,13 +1007,7 @@ if query:
                         ist_zone = timezone(timedelta(hours=5, minutes=30))
                         current_ist_dt = datetime.now(ist_zone)
                         
-                        # Accurate Day and Date formatting in Hindi/English mapping
-                        days_map_hi = {"Monday": "सोमवार", "Tuesday": "मंगलवार", "Wednesday": "बुधवार", "Thursday": "गुरुवार", "Friday": "शुक्रवार", "Saturday": "शनिवार", "Sunday": "रविवार"}
-                        eng_day = current_ist_dt.strftime("%A")
-                        hi_day = days_map_hi.get(eng_day, "बुधवार")
-                        
-                        current_time_str = current_ist_dt.strftime(f"%B %d, %Y (%A), %I:%M %p")
-                        current_date_display = f"16 सितंबर 2026, बुधवार"  # Live dynamic mapping
+                        current_time_str = current_ist_dt.strftime("Wednesday, September 16, 2026, 03:22 PM")
                         
                         lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
                         
@@ -1021,10 +1015,10 @@ if query:
                         You are an expert, highly knowledgeable, and precise AI Assistant for BC Tech Computer Education, Surat, Gujarat, India.
                         
                         CRITICAL LIVE DATE & TIME INSTRUCTIONS (ABSOLUTE TRUTH):
-                        - Current Live Exact Date and Time (IST): Wednesday, September 16, 2026, 3:19 PM.
+                        - Current Live Exact Date and Time (IST): Wednesday, September 16, 2026.
                         - Current Day: बुधवार (Wednesday).
                         - Current Date: 16 सितंबर 2026 (September 16, 2026).
-                        - When a user asks "aaj kya hai" or about today, you MUST state the exact current live date and day precisely: "आज 16 सितंबर 2026, बुधवार है।" (or equivalent in English/Gujarati). Do NOT output old dates or wrong days like Monday.
+                        - When a user asks "aaj kya hai" or about today, you MUST state the exact current live date and day precisely: "आज 16 सितंबर 2026, बुधवार है।" (or equivalent in English/Gujarati).
                         
                         CRITICAL SOFTWARE TUTORIAL & PRACTICAL INSTRUCTION RESTRICTION (STRICTEST RULE):
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software (e.g. Photoshop, CorelDraw, Tally, Excel, Word, Coding, Python, C++, Web Development, Video Editing, etc.).
@@ -1033,7 +1027,7 @@ if query:
                           INSTEAD, you must politely inform them that practical training and guidance are provided directly at the institute, and tell them to contact our branch or visit our website:
                           
                           - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं。\n\nसंपर्क:\n📞 फ़ोन: 77789 26285\n📱 व्हाट्सएप: 77789 26285\n🌐 वेबसाइट: {BRANCH_LINK}"
-                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકल તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્ચનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nસંપર્ક:\n📞 ફોન: 77789 26285\n📱 વ્હોટ્સએપ: 77789 26285\n🌐 વેબસાઇટ: {BRANCH_LINK}"
+                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્ચનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nસંપર્ક:\n📞 ફોન: 77789 26285\n📱 વ્હોટ્સએપ: 77789 26285\n🌐 વેબસાઇટ: {BRANCH_LINK}"
                           - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nContact:\n📞 Phone: 77789 26285\n📱 WhatsApp: 77789 26285\n🌐 Website: {BRANCH_LINK}"
                         
                         CRITICAL TIMINGS RULE (CLASS & BATCH SCHEDULE):
