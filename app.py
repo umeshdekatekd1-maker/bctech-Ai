@@ -1328,7 +1328,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         rooms = load_room_store()
         curr_code = st.session_state.active_room_code
         
-        # If Player 2 has joined, sync state
         if curr_code in rooms and rooms[curr_code]["game_state"] != "WAITING":
             st.session_state.game_state = rooms[curr_code]["game_state"]
             st.rerun()
@@ -1483,7 +1482,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         
         st.success(f"🎉 शानदार! **लेवल {finished_lvl}** सफलतापूर्वक पूरा हो गया है!")
         
-        # --- CALCULATE LEVEL-WISE WINNER & SCORES ---
         lvl_logs = [log for log in r_data.get("history_log", []) if log["level"] == finished_lvl]
         p1 = r_data.get("p1_name", "P1")
         p2 = r_data.get("p2_name", "P2")
@@ -1550,7 +1548,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         else:
             st.info("🤝 कुल मुकाबला **टाई (Tie)** रहा! दोनों खिलाड़ियों ने अद्भुत खेल दिखाया।")
             
-        # --- SHOW FULL REVIEW OF ALL WRONG/RIGHT ANSWERS ONLY AT THE VERY END ---
         with st.expander("📜 सभी लेवल्स के विस्तृत जवाब देखें (Full Game Review - Who got what right/wrong)", expanded=True):
             for idx, log in enumerate(r_data.get("history_log", []), 1):
                 st.markdown(f"""
