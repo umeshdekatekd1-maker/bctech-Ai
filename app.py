@@ -279,7 +279,7 @@ QUESTION_BANK = {
         {"q": "वेबसाइट का मुख्य पृष्ठ क्या कहलाता है?", "options": ["होम पेज (Home Page)", "मास्टर पेज", "फर्स्ट पेज", "वेब पेज"], "answer": "होम पेज (Home Page)"},
         {"q": "लाइन ब्रेक देने के लिए HTML में कौन सा टैग उपयोग होता है?", "options": ["<br>", "<lb>", "<break>", "<hr>"], "answer": "<br>"},
         {"q": "HTML का पूर्ण रूप क्या है?", "options": ["Hyper Text Markup Language", "High Text Machine Language", "Hyperlinks and Text Markup", "Home Tool Markup Language"], "answer": "Hyper Text Markup Language"},
-        {"q": "JavaScript किस प्रकार की भाषा है?", "options": ["स्क्रिप्टिंग भाषा (Scripting Language)", "मशीन भाषा", "અસેम्बली भाषा", "डेटाबेस भाषा"], "answer": "स्क्रिप्टिंग भाषा (Scripting Language)"},
+        {"q": "JavaScript किस प्रकार की भाषा है?", "options": ["स्क्रिप्टिंग भाषा (Scripting Language)", "मशीन भाषा", "અसेम्बली भाषा", "डेटाबेस भाषा"], "answer": "स्क्रिप्टिंग भाषा (Scripting Language)"},
         {"q": "CSS का उपयोग किस लिए होता है?", "options": ["वेबपेज को डिज़ाइन और स्टाइल करने के लिए", "डेटा स्टोर करने के लिए", "लॉजिक लिखने के लिए", "सर्वर चलाने के लिए"], "answer": "वेबपेज को डिज़ाइन और स्टाइल करने के लिए"},
         {"q": "Python में कमेंट लिखने के लिए किस चिन्ह का उपयोग होता है?", "options": ["#", "//", "/*", "<!--"], "answer": "#"},
         {"q": "इनमें से कौन सा टैग HTML में टेबल बनाने के लिए उपयोग होता है?", "options": ["<table>", "<tab>", "<tr>", "<td>"], "answer": "<table>"},
@@ -1243,13 +1243,14 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 2-PLAYER QUIZ GAME ARENA INTEGRATION (RADIO + DEDICATED SUBMIT BUTTON)
+# 2-PLAYER QUIZ GAME ARENA INTEGRATION (WITH 30s TIMER & TURN RESTRICTION)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
     
     rooms = load_room_store()
     curr_room_code = st.session_state.active_room_code
+    my_role = st.session_state.player_role  # "P1" or "P2"
 
     if curr_room_code and curr_room_code in rooms:
         room_info = rooms[curr_room_code]
@@ -1263,8 +1264,15 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         turn = room_info.get("turn", 1)
         shared_game_state = room_info.get("game_state", "WAITING")
         history_log = room_info.get("history_log", [])
+        
+        # Timer check initialization
+        if "question_start_time" not in room_info:
+            room_info["question_start_time"] = time.time()
+            save_room_store(rooms)
+        q_start_time = room_info.get("question_start_time", time.time())
     else:
         p1_name, p2_name, category, current_level, current_q_index, p1_score, p2_score, turn, shared_game_state, history_log = "", "", "", 1, 0, 0, 0, 1, "CREATING", []
+        q_start_time = time.time()
 
     if curr_room_code in rooms and rooms[curr_room_code]["game_state"] != st.session_state.game_state:
         st.session_state.game_state = rooms[curr_room_code]["game_state"]
@@ -1293,7 +1301,8 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         "turn": 1,
                         "game_state": "WAITING",
                         "questions": [],
-                        "history_log": []
+                        "history_log": [],
+                        "question_start_time": time.time()
                     }
                     save_room_store(rooms)
                     st.session_state.game_state = "WAITING"
@@ -1305,7 +1314,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         with col2:
             st.markdown("### 🔗 Room से जुड़ें (Player 2)")
             p2_name_input = st.text_input("Player 2 का नाम दर्ज करें:", key="p2_input")
-            room_code_input = st.text_input("रूम कोड दर्ज करें (जैसे bc-123 या BC-123):", key="code_input")
+            room_code_input = st.text_input("रूम कोड दर्ज करें (जैसे bc-123):", key="code_input")
             if st.button("Connect to Room"):
                 if p2_name_input.strip() != "" and room_code_input.strip() != "":
                     clean_input_code = room_code_input.strip().upper()
@@ -1404,6 +1413,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             rooms[curr_code]["turn"] = 1
             rooms[curr_code]["questions"] = all_qs[:5]  # Level 1 strictly 5 questions
             rooms[curr_code]["history_log"] = []
+            rooms[curr_code]["question_start_time"] = time.time()
             rooms[curr_code]["game_state"] = "PLAYING"
             save_room_store(rooms)
             
@@ -1426,8 +1436,40 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         p1_name = r_data.get("p1_name", "P1")
         p2_name = r_data.get("p2_name", "P2")
         active_player = p1_name if turn == 1 else p2_name
+        active_role = "P1" if turn == 1 else "P2"
 
         max_q_limit = 5 if curr_lvl == 1 else 10
+
+        # --- 30 SECONDS TIMEOUT AUTOMATIC CHECK ---
+        elapsed = time.time() - q_start_time
+        remaining = max(0, int(30 - elapsed))
+
+        if remaining == 0:
+            # Time's up -> auto advance turn/question with 0 points
+            r_data["history_log"].append({
+                "level": curr_lvl,
+                "player": active_player,
+                "question": q_list[q_idx]['q'],
+                "chosen": "समय समाप्त (Timeout)",
+                "correct": q_list[q_idx]["answer"],
+                "status": "Timeout (0 अंक)"
+            })
+            
+            if turn == 1:
+                r_data["turn"] = 2
+            else:
+                r_data["turn"] = 1
+                r_data["current_q_index"] += 1
+            
+            if r_data["current_q_index"] >= max_q_limit:
+                if curr_lvl < 3:
+                    r_data["game_state"] = "LEVEL_TRANSITION"
+                else:
+                    r_data["game_state"] = "RESULT"
+
+            r_data["question_start_time"] = time.time()
+            save_room_store(rooms)
+            st.rerun()
 
         if q_idx < len(q_list) and q_idx < max_q_limit:
             current_q_data = q_list[q_idx]
@@ -1438,57 +1480,70 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             with col_b:
                 st.markdown(f"**बारी:** 👤 {active_player}")
 
+            # Display 30-Second Countdown Timer
+            st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड** — जल्दी उत्तर दें!")
+            st.progress(remaining / 30.0)
+
             st.markdown(f"### ❓ {current_q_data['q']}")
 
             options = current_q_data["options"]
-            
-            # Use st.radio for option selection and a dedicated submit button
-            ans_choice = st.radio("विकल्प चुनें:", options, index=None, key=f"radio_lvl{curr_lvl}_q{q_idx}_t{turn}")
-            
-            if st.button("उत्तर जमा करें & अगला (Submit)", key=f"submit_btn_lvl{curr_lvl}_q{q_idx}_t{turn}"):
-                status_str = ""
-                if ans_choice is None:
-                    status_str = "उत्तर नहीं दिया (0 अंक)"
-                else:
-                    if ans_choice == current_q_data["answer"]:
-                        status_str = "सही (Right) (+1 अंक)"
-                        if turn == 1:
-                            r_data["p1_score"] += 1
-                        else:
-                            r_data["p2_score"] += 1
-                    else:
-                        status_str = "गलत (Wrong) (0 अंक)"
-                
-                r_data["history_log"].append({
-                    "level": curr_lvl,
-                    "player": active_player,
-                    "question": current_q_data['q'],
-                    "chosen": ans_choice if ans_choice else "None",
-                    "correct": current_q_data["answer"],
-                    "status": status_str
-                })
-                
-                # Switch turn or advance question
-                if turn == 1:
-                    r_data["turn"] = 2
-                else:
-                    r_data["turn"] = 1
-                    r_data["current_q_index"] += 1
-                
-                # Check level limits
-                if r_data["current_q_index"] >= max_q_limit:
-                    if curr_lvl < 3:
-                        r_data["game_state"] = "LEVEL_TRANSITION"
-                    else:
-                        r_data["game_state"] = "RESULT"
 
-                save_room_store(rooms)
-                st.session_state.game_state = r_data["game_state"]
-                st.rerun()
+            # --- TURN RESTRICTION LOGIC ---
+            is_my_turn = (st.session_state.player_role == active_role)
+
+            if is_my_turn:
+                st.success(f"👉 **यह आपकी बारी है ({active_player})! कृपया उत्तर चुनें।**")
+                ans_choice = st.radio("विकल्प चुनें:", options, index=None, key=f"radio_lvl{curr_lvl}_q{q_idx}_t{turn}")
+                
+                if st.button("उत्तर जमा करें & अगला (Submit)", key=f"submit_btn_lvl{curr_lvl}_q{q_idx}_t{turn}"):
+                    status_str = ""
+                    if ans_choice is None:
+                        status_str = "उत्तर नहीं दिया (0 अंक)"
+                    else:
+                        if ans_choice == current_q_data["answer"]:
+                            status_str = "सही (Right) (+1 अंक)"
+                            if turn == 1:
+                                r_data["p1_score"] += 1
+                            else:
+                                r_data["p2_score"] += 1
+                        else:
+                            status_str = "गलत (Wrong) (0 अंक)"
+                    
+                    r_data["history_log"].append({
+                        "level": curr_lvl,
+                        "player": active_player,
+                        "question": current_q_data['q'],
+                        "chosen": ans_choice if ans_choice else "None",
+                        "correct": current_q_data["answer"],
+                        "status": status_str
+                    })
+                    
+                    if turn == 1:
+                        r_data["turn"] = 2
+                    else:
+                        r_data["turn"] = 1
+                        r_data["current_q_index"] += 1
+                    
+                    if r_data["current_q_index"] >= max_q_limit:
+                        if curr_lvl < 3:
+                            r_data["game_state"] = "LEVEL_TRANSITION"
+                        else:
+                            r_data["game_state"] = "RESULT"
+
+                    r_data["question_start_time"] = time.time()
+                    save_room_store(rooms)
+                    st.session_state.game_state = r_data["game_state"]
+                    st.rerun()
+            else:
+                st.info(f"⏳ **यह {active_player} की बारी है। कृपया प्रतीक्षा करें...**")
 
             st.markdown("---")
             if st.button("🔄 स्क्रीन सिंक करें (Refresh View)", key=f"sync_btn_{q_idx}_{turn}"):
                 st.rerun()
+
+            # Auto-refresh loop to keep timer ticking live every 1 second
+            time.sleep(1)
+            st.rerun()
         else:
             if curr_lvl < 3:
                 r_data["game_state"] = "LEVEL_TRANSITION"
@@ -1540,6 +1595,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             r_data["current_level"] = next_lvl
             r_data["questions"] = all_qs[:10]  # Level 2 & 3: 10 Questions each
             r_data["current_q_index"] = 0
+            r_data["question_start_time"] = time.time()
             r_data["game_state"] = "PLAYING"
             save_room_store(rooms)
             
