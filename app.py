@@ -1327,13 +1327,32 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
     elif st.session_state.game_state == "WAITING":
         rooms = load_room_store()
         curr_code = st.session_state.active_room_code
+        
+        # If Player 2 has joined, sync state
         if curr_code in rooms and rooms[curr_code]["game_state"] != "WAITING":
             st.session_state.game_state = rooms[curr_code]["game_state"]
             st.rerun()
 
         st.subheader(f"⏳ रूम कोड: `{curr_code}`")
-        st.info(f"खिलाड़ी **{rooms.get(curr_code, {}).get('p1_name', 'P1')}** रूम में तैयार हैं। दूसरे खिलाड़ी (Player 2) को यह कोड दें ताकि वह जुड़ सके।")
+        st.info(f"खिलाड़ी **{rooms.get(curr_code, {}).get('p1_name', 'P1')}** रूम में तैयार हैं। दूसरे खिलाड़ी को यह कोड दें ताकि वह नीचे से जुड़ सके।")
         
+        st.markdown("---")
+        st.markdown("### 🔗 यदि आप Player 2 हैं, तो यहाँ से रूम जॉइन करें:")
+        p2_wait_name = st.text_input("Player 2 अपना नाम दर्ज करें:", key="p2_wait_input")
+        if st.button("Join This Room Now"):
+            if p2_wait_name.strip() != "":
+                if curr_code in rooms:
+                    rooms[curr_code]["p2_name"] = p2_wait_name
+                    rooms[curr_code]["game_state"] = "CATEGORY"
+                    save_room_store(rooms)
+                    
+                    st.session_state.player_role = "P2"
+                    st.session_state.game_state = "CATEGORY"
+                    st.success("सफलतापूर्वक कनेक्ट हो गए!")
+                    st.rerun()
+            else:
+                st.warning("कृपया अपना नाम दर्ज करें!")
+
         if st.button("🔄 चेक करें क्या दूसरा खिलाड़ी जुड़ गया है?"):
             st.rerun()
 
@@ -1464,7 +1483,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         
         st.success(f"🎉 शानदार! **लेवल {finished_lvl}** सफलतापूर्वक पूरा हो गया है!")
         
-        # --- CALCULATE LEVEL-WISE WINNER & SCORES (WITHOUT SHOWING MISTAKES YET) ---
+        # --- CALCULATE LEVEL-WISE WINNER & SCORES ---
         lvl_logs = [log for log in r_data.get("history_log", []) if log["level"] == finished_lvl]
         p1 = r_data.get("p1_name", "P1")
         p2 = r_data.get("p2_name", "P2")
