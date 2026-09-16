@@ -1243,7 +1243,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 2-PLAYER QUIZ GAME ARENA INTEGRATION (SYNCED & CASE-INSENSITIVE)
+# 2-PLAYER QUIZ GAME ARENA INTEGRATION (ONE-CLICK BUTTONS)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1265,6 +1265,9 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         history_log = room_info.get("history_log", [])
     else:
         p1_name, p2_name, category, current_level, current_q_index, p1_score, p2_score, turn, shared_game_state, history_log = "", "", "", 1, 0, 0, 0, 1, "CREATING", []
+
+    if curr_room_code in rooms and rooms[curr_room_code]["game_state"] != st.session_state.game_state:
+        st.session_state.game_state = rooms[curr_room_code]["game_state"]
 
     if st.session_state.game_state == "CREATING":
         st.subheader("👥 2-Player Room Connection Setup")
@@ -1424,12 +1427,14 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         p2_name = r_data.get("p2_name", "P2")
         active_player = p1_name if turn == 1 else p2_name
 
-        if q_idx < len(q_list):
+        max_q_limit = 5 if curr_lvl == 1 else 10
+
+        if q_idx < len(q_list) and q_idx < max_q_limit:
             current_q_data = q_list[q_idx]
             
             col_a, col_b = st.columns([3, 1])
             with col_a:
-                st.subheader(f"🔥 लेवल {curr_lvl} | सवाल {q_idx + 1} / {len(q_list)}")
+                st.subheader(f"🔥 लेवल {curr_lvl} | सवाल {q_idx + 1} / {max_q_limit}")
             with col_b:
                 st.markdown(f"**बारी:** 👤 {active_player}")
 
@@ -1437,27 +1442,24 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             options = current_q_data["options"]
             
-            ans_choice = st.radio("विकल्प चुनें:", options, index=None, key=f"radio_lvl{curr_lvl}_q{q_idx}_t{turn}")
-            
-            if st.button("उत्तर जमा करें & अगला (Submit)", key=f"btn_lvl{curr_lvl}_q{q_idx}_t{turn}"):
+            st.markdown("**कृपया नीचे दिए गए विकल्पों में से किसी एक पर क्लिक करें (एक क्लिक में उत्तर जमा होगा):**")
+
+            def handle_answer(chosen_option):
                 status_str = ""
-                if ans_choice is None:
-                    status_str = "उत्तर नहीं दिया (0 अंक)"
-                else:
-                    if ans_choice == current_q_data["answer"]:
-                        status_str = "सही (Right) (+1 अंक)"
-                        if turn == 1:
-                            r_data["p1_score"] += 1
-                        else:
-                            r_data["p2_score"] += 1
+                if chosen_option == current_q_data["answer"]:
+                    status_str = "सही (Right) (+1 अंक)"
+                    if turn == 1:
+                        r_data["p1_score"] += 1
                     else:
-                        status_str = "गलत (Wrong) (0 अंक)"
-                
+                        r_data["p2_score"] += 1
+                else:
+                    status_str = "गलत (Wrong) (0 अंक)"
+            
                 r_data["history_log"].append({
                     "level": curr_lvl,
                     "player": active_player,
                     "question": current_q_data['q'],
-                    "chosen": ans_choice if ans_choice else "None",
+                    "chosen": chosen_option,
                     "correct": current_q_data["answer"],
                     "status": status_str
                 })
@@ -1468,16 +1470,22 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                     r_data["turn"] = 1
                     r_data["current_q_index"] += 1
                 
-                if r_data["current_q_index"] >= len(q_list):
+                if r_data["current_q_index"] >= max_q_limit:
                     if curr_lvl < 3:
                         r_data["game_state"] = "LEVEL_TRANSITION"
                     else:
                         r_data["game_state"] = "RESULT"
 
                 save_room_store(rooms)
+                st.session_state.game_state = r_data["game_state"]
                 st.rerun()
 
-            if st.button("🔄 स्क्रीन सिंक करें (Refresh View)"):
+            for opt_idx, opt in enumerate(options):
+                if st.button(f"{opt_idx + 1}. {opt}", key=f"opt_btn_lvl{curr_lvl}_q{q_idx}_t{turn}_{opt_idx}", use_container_width=True):
+                    handle_answer(opt)
+
+            st.markdown("---")
+            if st.button("🔄 स्क्रीन सिंक करें (Refresh View)", key=f"sync_btn_{q_idx}_{turn}"):
                 st.rerun()
         else:
             if curr_lvl < 3:
@@ -1485,9 +1493,8 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             else:
                 r_data["game_state"] = "RESULT"
             save_room_store(rooms)
+            st.session_state.game_state = r_data["game_state"]
             st.rerun()
-
-        st.session_state.game_state = r_data["game_state"]
 
     elif st.session_state.game_state == "LEVEL_TRANSITION":
         rooms = load_room_store()
