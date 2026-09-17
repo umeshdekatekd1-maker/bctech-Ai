@@ -279,7 +279,7 @@ QUESTION_BANK = {
         {"q": "वेबसाइट का मुख्य पृष्ठ क्या कहलाता है?", "options": ["होम पेज (Home Page)", "मास्टर पेज", "फर्स्ट पेज", "वेब पेज"], "answer": "होम पेज (Home Page)"},
         {"q": "लाइन ब्रेक देने के लिए HTML में कौन सा टैग उपयोग होता है?", "options": ["<br>", "<lb>", "<break>", "<hr>"], "answer": "<br>"},
         {"q": "HTML का पूर्ण रूप क्या है?", "options": ["Hyper Text Markup Language", "High Text Machine Language", "Hyperlinks and Text Markup", "Home Tool Markup Language"], "answer": "Hyper Text Markup Language"},
-        {"q": "JavaScript किस प्रकार की भाषा है?", "options": ["स्क्रिप्टिंग भाषा (Scripting Language)", "मशीन भाषा", "અसेम्बली भाषा", "डेटाबेस भाषा"], "answer": "स्क्रिप्टिंग भाषा (Scripting Language)"},
+        {"q": "JavaScript किस प्रकार की भाषा है?", "options": ["स्क्रिप्टिंग भाषा (Scripting Language)", "मशीन भाषा", "અસેम्बली भाषा", "डेटाबेस भाषा"], "answer": "स्क्रिप्टिंग भाषा (Scripting Language)"},
         {"q": "CSS का उपयोग किस लिए होता है?", "options": ["वेबपेज को डिज़ाइन और स्टाइल करने के लिए", "डेटा स्टोर करने के लिए", "लॉजिक लिखने के लिए", "सर्वर चलाने के लिए"], "answer": "वेबपेज को डिज़ाइन और स्टाइल करने के लिए"},
         {"q": "Python में कमेंट लिखने के लिए किस चिन्ह का उपयोग होता है?", "options": ["#", "//", "/*", "<!--"], "answer": "#"},
         {"q": "इनमें से कौन सा टैग HTML में टेबल बनाने के लिए उपयोग होता है?", "options": ["<table>", "<tab>", "<tr>", "<td>"], "answer": "<table>"},
@@ -847,7 +847,7 @@ if query:
         with st.chat_message("user", avatar="👤"):
             st.write(query)
         st.session_state.game_state = "CREATING"
-        bot_reply = "बहुत बढ़िया! मैदान सज चुका है 🎮 2-Player Quiz Game शुरू करने के लिए नीचे दिए गए विकल्पों से अपना रूम बनाएं या जुड़ें।"
+        bot_reply = "बहुत बढ़िया! 🧠 BC Tech Brain Battle शुरू करने के लिए नीचे दिए गए विकल्पों से अपना रूम बनाएं या जुड़ें।"
         st.session_state.messages.append({"role": "assistant", "content": bot_reply})
         with st.chat_message("assistant", avatar="🤖"):
             st.markdown(bot_reply)
@@ -1243,7 +1243,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 2-PLAYER QUIZ GAME ARENA INTEGRATION (WITH 30s TIMER & TURN RESTRICTION)
+# 🧠 BC Tech Brain Battle - 2-PLAYER QUIZ ARENA (SYNCED & TIMED)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1265,7 +1265,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         shared_game_state = room_info.get("game_state", "WAITING")
         history_log = room_info.get("history_log", [])
         
-        # Timer check initialization
         if "question_start_time" not in room_info:
             room_info["question_start_time"] = time.time()
             save_room_store(rooms)
@@ -1278,7 +1277,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         st.session_state.game_state = rooms[curr_room_code]["game_state"]
 
     if st.session_state.game_state == "CREATING":
-        st.subheader("👥 2-Player Room Connection Setup")
+        st.subheader("🧠 BC Tech Brain Battle - 2-Player Room Setup")
         col1, col2 = st.columns(2)
         
         with col1:
@@ -1314,7 +1313,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         with col2:
             st.markdown("### 🔗 Room से जुड़ें (Player 2)")
             p2_name_input = st.text_input("Player 2 का नाम दर्ज करें:", key="p2_input")
-            room_code_input = st.text_input("रूम कोड दर्ज करें (जैसे bc-123):", key="code_input")
+            room_code_input = st.text_input("रूम कोड दर्ज करें (जैसे bc-123 या BC-123):", key="code_input")
             if st.button("Connect to Room"):
                 if p2_name_input.strip() != "" and room_code_input.strip() != "":
                     clean_input_code = room_code_input.strip().upper()
@@ -1440,12 +1439,12 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
         max_q_limit = 5 if curr_lvl == 1 else 10
 
-        # --- 30 SECONDS TIMEOUT AUTOMATIC CHECK ---
+        # --- 30 SECONDS COUNTDOWN TIMER CHECK ---
         elapsed = time.time() - q_start_time
         remaining = max(0, int(30 - elapsed))
 
         if remaining == 0:
-            # Time's up -> auto advance turn/question with 0 points
+            # Time's up -> auto skip turn / question
             r_data["history_log"].append({
                 "level": curr_lvl,
                 "player": active_player,
@@ -1476,23 +1475,23 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             
             col_a, col_b = st.columns([3, 1])
             with col_a:
-                st.subheader(f"🔥 लेवल {curr_lvl} | सवाल {q_idx + 1} / {max_q_limit}")
+                st.subheader(f"🧠 BC Tech Brain Battle - लेवल {curr_lvl} | सवाल {q_idx + 1} / {max_q_limit}")
             with col_b:
                 st.markdown(f"**बारी:** 👤 {active_player}")
 
-            # Display 30-Second Countdown Timer
-            st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड** — जल्दी उत्तर दें!")
+            # Display Live Countdown Timer Bar
+            st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
             st.progress(remaining / 30.0)
 
             st.markdown(f"### ❓ {current_q_data['q']}")
 
             options = current_q_data["options"]
-
-            # --- TURN RESTRICTION LOGIC ---
+            
+            # --- TURN RESTRICTION & SUBMIT LOGIC ---
             is_my_turn = (st.session_state.player_role == active_role)
 
             if is_my_turn:
-                st.success(f"👉 **यह आपकी बारी है ({active_player})! कृपया उत्तर चुनें।**")
+                st.success(f"👉 **यह आपकी बारी है ({active_player})!** विकल्प चुनकर सबमिट करें:")
                 ans_choice = st.radio("विकल्प चुनें:", options, index=None, key=f"radio_lvl{curr_lvl}_q{q_idx}_t{turn}")
                 
                 if st.button("उत्तर जमा करें & अगला (Submit)", key=f"submit_btn_lvl{curr_lvl}_q{q_idx}_t{turn}"):
@@ -1541,7 +1540,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             if st.button("🔄 स्क्रीन सिंक करें (Refresh View)", key=f"sync_btn_{q_idx}_{turn}"):
                 st.rerun()
 
-            # Auto-refresh loop to keep timer ticking live every 1 second
+            # Auto-refresh loop for live timer sync every 1 second
             time.sleep(1)
             st.rerun()
         else:
@@ -1608,7 +1607,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         r_data = rooms.get(curr_code, {})
         
         st.balloons()
-        st.header("🏆 फाइनल स्कोरकार्ड & सभी लेवल्स की समीक्षा (Final Results & Review)")
+        st.header("🏆 BC Tech Brain Battle - फाइनल स्कोरकार्ड & समीक्षा")
         
         p1 = r_data.get("p1_name", "P1")
         p2 = r_data.get("p2_name", "P2")
