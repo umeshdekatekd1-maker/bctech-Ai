@@ -204,7 +204,7 @@ QUESTION_BANK = {
         {"q": "CorelDraw फाइल का डिफॉल्ट एक्सटेंशन क्या होता है?", "options": [".cdr", ".psd", ".ai", ".doc"], "answer": ".cdr"},
         {"q": "किसी ऑब्जेक्ट की डुप्लीकेट कॉपी बनाने की शॉर्टकट की क्या है?", "options": ["Ctrl + C", "Ctrl + D", "Ctrl + V", "Ctrl + B"], "answer": "Ctrl + D"},
         {"q": "CorelDraw में टेक्स्ट को आर्टिस्टिक से पैराग्राफ में बदलने के लिए क्या शॉर्टकट है?", "options": ["Ctrl + F2", "Ctrl + F8", "Ctrl + F9", "Ctrl + F11"], "answer": "Ctrl + F8"},
-        {"q": "दो ऑब्जेक्ट्स को वेल्ड करने का मुख्य कार्य क्या होता है?", "options": ["अलग करना", "जोड़ना", "काटना", "डिलीट करना"], "answer": "जोड़ना"},
+        {"q": "दो ऑब्जेक्ट्स को वेल्ड करने का मुख्य कार्य क्या होता है?", "options": ["अलग करना", "जोड़ना", "काटना", "डिलीट करना"], "answer": "जोड़ना"},
         {"q": "CorelDraw में ज़ूम इन करने के लिए कौन सी शॉर्टकट की होती है?", "options": ["F2", "F3", "F4", "F9"], "answer": "F2"},
         {"q": "पूरे पेज को स्क्रीन पर फिट करने के लिए कौन सी की दबाई जाती है?", "options": ["F3", "F4", "F8", "F12"], "answer": "F4"},
         {"q": "CorelDraw में कलर पैलेट को ऑन या ऑफ करने के लिए कहाँ जाते हैं?", "options": ["View > Color Palette", "File > Open", "Edit > Copy", "Effects > Lens"], "answer": "View > Color Palette"},
@@ -279,7 +279,7 @@ QUESTION_BANK = {
         {"q": "वेबसाइट का मुख्य पृष्ठ क्या कहलाता है?", "options": ["होम पेज (Home Page)", "मास्टर पेज", "फर्स्ट पेज", "वेब पेज"], "answer": "होम पेज (Home Page)"},
         {"q": "लाइन ब्रेक देने के लिए HTML में कौन सा टैग उपयोग होता है?", "options": ["<br>", "<lb>", "<break>", "<hr>"], "answer": "<br>"},
         {"q": "HTML का पूर्ण रूप क्या है?", "options": ["Hyper Text Markup Language", "High Text Machine Language", "Hyperlinks and Text Markup", "Home Tool Markup Language"], "answer": "Hyper Text Markup Language"},
-        {"q": "JavaScript किस प्रकार की भाषा है?", "options": ["स्क्रिप्टिंग भाषा (Scripting Language)", "मशीन भाषा", "અસેम्बली भाषा", "डेटाबेस भाषा"], "answer": "स्क्रिप्टिंग भाषा (Scripting Language)"},
+        {"q": "JavaScript किस प्रकार की भाषा है?", "options": ["स्क्रिप्टिंग भाषा (Scripting Language)", "मशीन भाषा", "असेम्बली भाषा", "डेटाबेस भाषा"], "answer": "स्क्रिप्टिंग भाषा (Scripting Language)"},
         {"q": "CSS का उपयोग किस लिए होता है?", "options": ["वेबपेज को डिज़ाइन और स्टाइल करने के लिए", "डेटा स्टोर करने के लिए", "लॉजिक लिखने के लिए", "सर्वर चलाने के लिए"], "answer": "वेबपेज को डिज़ाइन और स्टाइल करने के लिए"},
         {"q": "Python में कमेंट लिखने के लिए किस चिन्ह का उपयोग होता है?", "options": ["#", "//", "/*", "<!--"], "answer": "#"},
         {"q": "इनमें से कौन सा टैग HTML में टेबल बनाने के लिए उपयोग होता है?", "options": ["<table>", "<tab>", "<tr>", "<td>"], "answer": "<table>"},
@@ -1243,7 +1243,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (BATTLE ZONE FIX)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT TURN-BASED VISIBILITY & BLINKING FIX)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1527,7 +1527,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                     st.rerun()
             else:
                 st.info(f"⏳ **यह {active_player} की बारी है। कृपया प्रतीक्षा करें...**")
-                # Auto-refresh waiting screen every 2 seconds so next player's turn loads automatically without freezing
                 time.sleep(2)
                 st.rerun()
 
