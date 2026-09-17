@@ -1262,7 +1262,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT TURN-BASED TIMER FIX)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (DUPLICATION & BLINK FIX)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1454,10 +1454,9 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         active_role = "P1" if turn == 1 else "P2"
 
         max_q_limit = 5 if curr_lvl == 1 else 10
-
         is_my_turn = (st.session_state.player_role == active_role)
 
-        # --- TIMER ONLY RUNS AND CHECKS TIMEOUT FOR THE ACTIVE PLAYER ---
+        # --- AUTO-TIMEOUT LOGIC (30 SECONDS) ---
         if is_my_turn:
             elapsed = time.time() - q_start_time
             remaining = max(0, int(30 - elapsed))
@@ -1488,18 +1487,18 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                 save_room_store(rooms)
                 st.rerun()
         else:
-            remaining = 30  # Dummy value for non-active player
+            remaining = 30
 
         if q_idx < len(q_list) and q_idx < max_q_limit:
             current_q_data = q_list[q_idx]
             
+            # SINGLE UNIFIED HEADER TO PREVENT DUPLICATION
             col_a, col_b = st.columns([3, 1])
             with col_a:
                 st.subheader(f"🧠 BC Tech Brain Battle - लेवल {curr_lvl} | सवाल {q_idx + 1} / {max_q_limit}")
             with col_b:
                 st.markdown(f"**बारी:** 👤 {active_player}")
 
-            # Timer is shown ONLY on the active player's screen
             if is_my_turn:
                 st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
                 st.progress(remaining / 30.0)
@@ -1508,10 +1507,11 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             options = current_q_data["options"]
 
+            # STRICT SEPARATION: Render form ONLY if it is my turn, otherwise show clean waiting message
             if is_my_turn:
-                st.success(f"👉 **यह आपकी बारी है ({active_player})!** विकल्प चुनकर सबमिट करें:")
+                st.success(f"👉 **यह आपकी बारी है!** विकल्प चुनकर सबमिट करें:")
                 
-                with st.form(key=f"turn_form_l{curr_lvl}_q{q_idx}_t{turn}"):
+                with st.form(key=f"clean_turn_l{curr_lvl}_q{q_idx}_t{turn}"):
                     ans_choice = st.radio("विकल्प चुनें:", options, index=None)
                     submitted = st.form_submit_button("उत्तर जमा करें & अगला (Submit)")
                     
@@ -1555,7 +1555,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         st.session_state.game_state = r_data["game_state"]
                         st.rerun()
             else:
-                # Waiting screen for the player whose turn it is NOT
                 st.info(f"⏳ **यह {active_player} की बारी है। कृपया प्रतीक्षा करें...**")
                 time.sleep(2)
                 st.rerun()
