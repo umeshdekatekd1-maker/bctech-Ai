@@ -173,7 +173,6 @@ if "active_room_code" not in st.session_state:
 if "player_role" not in st.session_state:
     st.session_state.player_role = None
 
-# --- EXPANDED QUESTION BANK (25+ QUESTIONS PER CATEGORY) ---
 QUESTION_BANK = {
     "Basic Computer & Internet": [
         {"q": "कंप्यूटर में किसी फाइल को कॉपी करने की शॉर्टकट की क्या है?", "options": ["Ctrl + C", "Ctrl + V", "Ctrl + X", "Ctrl + S"], "answer": "Ctrl + C"},
@@ -224,7 +223,7 @@ QUESTION_BANK = {
         {"q": "फुल स्क्रीन प्रीव्यू देखने के लिए कौन सी की दबाई जाती है?", "options": ["F9", "F3", "F4", "F2"], "answer": "F9"},
         {"q": "पेज सेटअप या ऑप्शन विंडो खोलने की शॉर्टकट की क्या है?", "options": ["Ctrl + J", "Ctrl + P", "Ctrl + T", "Ctrl + M"], "answer": "Ctrl + J"},
         {"q": "पिन्ट करने की शॉर्टकट की क्या है?", "options": ["Ctrl + P", "Ctrl + S", "Ctrl + N", "Ctrl + O"], "answer": "Ctrl + P"},
-        {"q": "CorelDraw में किसी ऑब्जेक्ट को लॉक करने के लिए क्या किया जाता है?", "options": ["Right Click > Lock Object", "Ctrl + L", "Ctrl + K", "Alt + L"], "answer": "Right Click > Lock Object"},
+        {"q": "CorelDraw में किसी ऑब्जेक्ट को लॉक करने के लिए کیا किया जाता है?", "options": ["Right Click > Lock Object", "Ctrl + L", "Ctrl + K", "Alt + L"], "answer": "Right Click > Lock Object"},
         {"q": "फ्रीहैंड टूल का उपयोग किस लिए होता है?", "options": ["फ्री हैंड ड्राइंग के लिए", "सर्कल बनाने के लिए", "कलर भरने के लिए", "टेक्स्ट लिखने के लिए"], "answer": "फ्री हैंड ड्राइंग के लिए"},
         {"q": "CorelDraw में पेज ओरिएंटेशन कितने प्रकार के होते हैं?", "options": ["2 (Portrait & Landscape)", "3", "4", "1"], "answer": "2 (Portrait & Landscape)"},
         {"q": "किसी ऑब्जेक्ट को डिलीट करने की शॉर्टकट की क्या है?", "options": ["Delete", "Backspace", "Ctrl + D", "Alt + D"], "answer": "Delete"}
@@ -1195,7 +1194,7 @@ if query:
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software.
                         - If a user asks HOW to do something in software, politely inform them to contact our branch or visit our website:
                           - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं。\n\nवेबसाइट: {BRANCH_LINK}"
-                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્चનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
+                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્चનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાत લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
                           - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nWebsite: {BRANCH_LINK}"
                         
                         CRITICAL TIMINGS RULE:
@@ -1263,7 +1262,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (FULL 25+ QUESTION POOL & TIMED SYNC)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (TURN-BASED TIMER FIX)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1418,7 +1417,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             rooms = load_room_store()
             curr_code = st.session_state.active_room_code
             
-            # Pool of 25 questions shuffled per level requirements: Level 1 = 5 questions, Level 2 = 10, Level 3 = 10
             all_qs = QUESTION_BANK[cat_choice].copy()
             random.shuffle(all_qs)
             
@@ -1428,7 +1426,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             rooms[curr_code]["p1_score"] = 0
             rooms[curr_code]["p2_score"] = 0
             rooms[curr_code]["turn"] = 1
-            rooms[curr_code]["questions"] = all_qs[:5]  # Level 1 takes 5 random questions out of 25
+            rooms[curr_code]["questions"] = all_qs[:5]
             rooms[curr_code]["history_log"] = []
             rooms[curr_code]["question_start_time"] = time.time()
             rooms[curr_code]["game_state"] = "PLAYING"
@@ -1455,38 +1453,40 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         active_player = p1_name if turn == 1 else p2_name
         active_role = "P1" if turn == 1 else "P2"
 
-        # Level 1 = 5 questions, Level 2 = 10 questions, Level 3 = 10 questions
         max_q_limit = 5 if curr_lvl == 1 else 10
 
-        elapsed = time.time() - q_start_time
-        remaining = max(0, int(30 - elapsed))
+        is_my_turn = (st.session_state.player_role == active_role)
 
-        # --- 30 SECONDS AUTO-TIMEOUT & SKIP FOR BOTH PLAYERS ---
-        if remaining == 0:
-            r_data["history_log"].append({
-                "level": curr_lvl,
-                "player": active_player,
-                "question": q_list[q_idx]['q'],
-                "chosen": "समय समाप्त (Timeout)",
-                "correct": q_list[q_idx]["answer"],
-                "status": "Timeout (0 अंक)"
-            })
-            
-            if turn == 1:
-                r_data["turn"] = 2
-            else:
-                r_data["turn"] = 1
-                r_data["current_q_index"] += 1
-            
-            if r_data["current_q_index"] >= max_q_limit:
-                if curr_lvl < 3:
-                    r_data["game_state"] = "LEVEL_TRANSITION"
+        # --- TIMER ONLY RUNS FOR THE ACTIVE PLAYER'S SCREEN ---
+        if is_my_turn:
+            elapsed = time.time() - q_start_time
+            remaining = max(0, int(30 - elapsed))
+
+            if remaining == 0:
+                r_data["history_log"].append({
+                    "level": curr_lvl,
+                    "player": active_player,
+                    "question": q_list[q_idx]['q'],
+                    "chosen": "समय समाप्त (Timeout)",
+                    "correct": q_list[q_idx]["answer"],
+                    "status": "Timeout (0 अंक)"
+                })
+                
+                if turn == 1:
+                    r_data["turn"] = 2
                 else:
-                    r_data["game_state"] = "RESULT"
+                    r_data["turn"] = 1
+                    r_data["current_q_index"] += 1
+                
+                if r_data["current_q_index"] >= max_q_limit:
+                    if curr_lvl < 3:
+                        r_data["game_state"] = "LEVEL_TRANSITION"
+                    else:
+                        r_data["game_state"] = "RESULT"
 
-            r_data["question_start_time"] = time.time()
-            save_room_store(rooms)
-            st.rerun()
+                r_data["question_start_time"] = time.time()
+                save_room_store(rooms)
+                st.rerun()
 
         if q_idx < len(q_list) and q_idx < max_q_limit:
             current_q_data = q_list[q_idx]
@@ -1497,14 +1497,13 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             with col_b:
                 st.markdown(f"**बारी:** 👤 {active_player}")
 
-            # Live Countdown Timer for both players
-            st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
-            st.progress(remaining / 30.0)
+            if is_my_turn:
+                st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
+                st.progress(remaining / 30.0)
 
             st.markdown(f"### ❓ {current_q_data['q']}")
 
             options = current_q_data["options"]
-            is_my_turn = (st.session_state.player_role == active_role)
 
             if is_my_turn:
                 st.success(f"👉 **यह आपकी बारी है ({active_player})!** विकल्प चुनकर सबमिट करें:")
@@ -1553,8 +1552,8 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         st.session_state.game_state = r_data["game_state"]
                         st.rerun()
             else:
-                st.info(f"⏳ **यह {active_player} की बारी है। कृपया प्रतीक्षा करें... (लाइव टाइमर चल रहा है)**")
-                time.sleep(1)
+                st.info(f"⏳ **यह {active_player} की बारी है। कृपया प्रतीक्षा करें...**")
+                time.sleep(2)
                 st.rerun()
 
             st.markdown("---")
@@ -1607,7 +1606,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             random.shuffle(all_qs)
             
             r_data["current_level"] = next_lvl
-            # Level 2 & 3 get 10 random questions each from the 25-question pool
+            # Level 2 = 10 questions, Level 3 = 10 questions from the 25-question pool
             r_data["questions"] = all_qs[:10]
             r_data["current_q_index"] = 0
             r_data["question_start_time"] = time.time()
