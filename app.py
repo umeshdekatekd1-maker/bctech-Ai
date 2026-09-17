@@ -204,7 +204,7 @@ QUESTION_BANK = {
         {"q": "CorelDraw फाइल का डिफॉल्ट एक्सटेंशन क्या होता है?", "options": [".cdr", ".psd", ".ai", ".doc"], "answer": ".cdr"},
         {"q": "किसी ऑब्जेक्ट की डुप्लीकेट कॉपी बनाने की शॉर्टकट की क्या है?", "options": ["Ctrl + C", "Ctrl + D", "Ctrl + V", "Ctrl + B"], "answer": "Ctrl + D"},
         {"q": "CorelDraw में टेक्स्ट को आर्टिस्टिक से पैराग्राफ में बदलने के लिए क्या शॉर्टकट है?", "options": ["Ctrl + F2", "Ctrl + F8", "Ctrl + F9", "Ctrl + F11"], "answer": "Ctrl + F8"},
-        {"q": "दो ऑब्जेक्ट्स को वेल्ड करने का मुख्य कार्य क्या होता है?", "options": ["अलग करना", "जोड़ना", "काटना", "डिलीट करना"], "answer": "जोड़ना"},
+        {"q": "दो ऑब्जेक्ट्स को वेल्ड करने का मुख्य कार्य क्या होता है?", "options": ["अलग करना", "जोड़ना", "काटना", "डिलीट करना"], "answer": "जोड़ना"},
         {"q": "CorelDraw में ज़ूम इन करने के लिए कौन सी शॉर्टकट की होती है?", "options": ["F2", "F3", "F4", "F9"], "answer": "F2"},
         {"q": "पूरे पेज को स्क्रीन पर फिट करने के लिए कौन सी की दबाई जाती है?", "options": ["F3", "F4", "F8", "F12"], "answer": "F4"},
         {"q": "CorelDraw में कलर पैलेट को ऑन या ऑफ करने के लिए कहाँ जाते हैं?", "options": ["View > Color Palette", "File > Open", "Edit > Copy", "Effects > Lens"], "answer": "View > Color Palette"},
@@ -847,7 +847,7 @@ if query:
         with st.chat_message("user", avatar="👤"):
             st.write(query)
         st.session_state.game_state = "CREATING"
-        bot_reply = "बहुत बढ़िया! 🧠 BC Tech Brain Battle शुरू करने के लिए नीचे दिए गए विकल्पों से अपना रूम बनाएं या जुड़ें।"
+        bot_reply = "बहुत बढ़िया! 🧠 BC Tech Brain Battle शुरू करने के लिए नीचे दिए गए Battle Zone से अपना बैटल ज़ोन बनाएं या जुड़ें।"
         st.session_state.messages.append({"role": "assistant", "content": bot_reply})
         with st.chat_message("assistant", avatar="🤖"):
             st.markdown(bot_reply)
@@ -1175,7 +1175,7 @@ if query:
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software.
                         - If a user asks HOW to do something in software, politely inform them to contact our branch or visit our website:
                           - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं。\n\nवेबसाइट: {BRANCH_LINK}"
-                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્चનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
+                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્ચનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
                           - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nWebsite: {BRANCH_LINK}"
                         
                         CRITICAL TIMINGS RULE:
@@ -1243,7 +1243,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (AUTO-REFRESH SYNCED)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (BATTLE ZONE FIX)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1281,9 +1281,9 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("### ⚔️ Room बनाएं (Player 1)")
+            st.markdown("### ⚔️ Battle Zone बनाएं (Player 1)")
             p1_name_input = st.text_input("Player 1 का नाम दर्ज करें:", key="p1_input")
-            if st.button("Generate Room Code"):
+            if st.button("Generate Battle Code"):
                 if p1_name_input.strip() != "":
                     code = f"BC-{random.randint(100, 999)}"
                     st.session_state.active_room_code = code
@@ -1305,16 +1305,16 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                     }
                     save_room_store(rooms)
                     st.session_state.game_state = "WAITING"
-                    st.success(f"रूम कोड जनरेट हो गया: {code}")
+                    st.success(f"Battle Code जनरेट हो गया: {code}")
                     st.rerun()
                 else:
                     st.warning("कृपया अपना नाम दर्ज करें!")
 
         with col2:
-            st.markdown("### 🔗 Room से जुड़ें (Player 2)")
+            st.markdown("### 🔗 Battle Zone में जुड़ें (Player 2)")
             p2_name_input = st.text_input("Player 2 का नाम दर्ज करें:", key="p2_input")
-            room_code_input = st.text_input("रूम कोड दर्ज करें (जैसे bc-123):", key="code_input")
-            if st.button("Connect to Room"):
+            room_code_input = st.text_input("Battle Code दर्ज करें (जैसे bc-123):", key="code_input")
+            if st.button("Connect to Battle Zone"):
                 if p2_name_input.strip() != "" and room_code_input.strip() != "":
                     clean_input_code = room_code_input.strip().upper()
                     matched_key = None
@@ -1331,12 +1331,12 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         st.session_state.active_room_code = matched_key
                         st.session_state.player_role = "P2"
                         st.session_state.game_state = "CATEGORY"
-                        st.success("सफलतापूर्वक कनेक्ट हो गए!")
+                        st.success("सफलतापूर्वक Battle Zone से कनेक्ट हो गए!")
                         st.rerun()
                     else:
-                        st.error("यह रूम कोड मौजूद नहीं है! सही कोड डालें।")
+                        st.error("यह Battle Code मौजूद नहीं है! सही कोड डालें।")
                 else:
-                    st.warning("कृपया नाम और सही रूम कोड दोनों भरें!")
+                    st.warning("कृपया नाम और सही Battle Code दोनों भरें!")
 
         if st.button("⬅️ वापस चैट पर जाएं"):
             st.session_state.game_state = "IDLE"
@@ -1350,14 +1350,14 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.session_state.game_state = rooms[curr_code]["game_state"]
             st.rerun()
 
-        st.subheader(f"⏳ रूम कोड: `{curr_code}`")
-        st.info(f"खिलाड़ी **{rooms.get(curr_code, {}).get('p1_name', 'P1')}** रूम में तैयार हैं। दूसरे खिलाड़ी को यह कोड दें ताकि वह जुड़ सके।")
+        st.subheader(f"⏳ Battle Code: `{curr_code}`")
+        st.info(f"खिलाड़ी **{rooms.get(curr_code, {}).get('p1_name', 'P1')}** बैटल ज़ोन में तैयार हैं। दूसरे खिलाड़ी को यह कोड दें ताकि वह जुड़ सके।")
         
         st.markdown("---")
-        st.markdown("### 🔗 यदि आप Player 2 हैं, तो यहाँ से रूम जॉइन करें:")
+        st.markdown("### 🔗 यदि आप Player 2 हैं, तो यहाँ से Battle Zone जॉइन करें:")
         p2_wait_name = st.text_input("Player 2 अपना नाम दर्ज करें:", key="p2_wait_input")
-        wait_code_input = st.text_input("यही रूम कोड दोबारा दर्ज करें:", key="wait_code_input")
-        if st.button("Join This Room Now"):
+        wait_code_input = st.text_input("यही Battle Code दोबारा दर्ज करें:", key="wait_code_input")
+        if st.button("Join Battle Zone Now"):
             if p2_wait_name.strip() != "" and wait_code_input.strip() != "":
                 clean_input_code = wait_code_input.strip().upper()
                 matched_key = None
@@ -1377,9 +1377,9 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                     st.success("सफलतापूर्वक कनेक्ट हो गए!")
                     st.rerun()
                 else:
-                    st.error("गलत रूम कोड!")
+                    st.error("गलत Battle Code!")
             else:
-                st.warning("कृपया नाम और रूम कोड दोनों भरें!")
+                st.warning("कृपया नाम और Battle Code दोनों भरें!")
 
         if st.button("🔄 चेक करें क्या दूसरा खिलाड़ी जुड़ गया है?"):
             st.rerun()
@@ -1389,12 +1389,12 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.rerun()
 
     elif st.session_state.game_state == "CATEGORY":
-        st.subheader("🎯 विषय (Category) चुनें")
+        st.subheader("🎯 युद्ध का विषय (Category) चुनें")
         st.write(f"खिलाड़ी: **{p1_name}** vs **{p2_name}**")
         
         cat_choice = st.selectbox("कृपया क्विज के लिए विषय चुनें:", list(QUESTION_BANK.keys()))
         
-        if st.button("🚀 मुकाबला शुरू करें! (Start Game)"):
+        if st.button("🚀 Battle Start करें! (Launch Arena)"):
             rooms = load_room_store()
             curr_code = st.session_state.active_room_code
             
@@ -1420,7 +1420,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         rooms = load_room_store()
         curr_code = st.session_state.active_room_code
         if curr_code not in rooms:
-            st.warning("रूम समाप्त हो गया है।")
+            st.warning("बैटल ज़ोन समाप्त हो गया है।")
             st.session_state.game_state = "IDLE"
             st.rerun()
 
@@ -1527,7 +1527,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                     st.rerun()
             else:
                 st.info(f"⏳ **यह {active_player} की बारी है। कृपया प्रतीक्षा करें...**")
-                # Auto-refresh loop every 2 seconds for waiting player to catch sync instantly without manual click
+                # Auto-refresh waiting screen every 2 seconds so next player's turn loads automatically without freezing
                 time.sleep(2)
                 st.rerun()
 
