@@ -279,7 +279,7 @@ QUESTION_BANK = {
         {"q": "वेबसाइट का मुख्य पृष्ठ क्या कहलाता है?", "options": ["होम पेज (Home Page)", "मास्टर पेज", "फर्स्ट पेज", "वेब पेज"], "answer": "होम पेज (Home Page)"},
         {"q": "लाइन ब्रेक देने के लिए HTML में कौन सा टैग उपयोग होता है?", "options": ["<br>", "<lb>", "<break>", "<hr>"], "answer": "<br>"},
         {"q": "HTML का पूर्ण रूप क्या है?", "options": ["Hyper Text Markup Language", "High Text Machine Language", "Hyperlinks and Text Markup", "Home Tool Markup Language"], "answer": "Hyper Text Markup Language"},
-        {"q": "JavaScript किस प्रकार की भाषा है?", "options": ["स्क्रिप्टिंग भाषा (Scripting Language)", "मशीन भाषा", "અસેम्बली भाषा", "डेटाबेस भाषा"], "answer": "स्क्रिप्टिंग भाषा (Scripting Language)"},
+        {"q": "JavaScript किस प्रकार की भाषा है?", "options": ["स्क्रिप्टिंग भाषा (Scripting Language)", "मशीन भाषा", "असेम्बली भाषा", "डेटाबेस भाषा"], "answer": "स्क्रिप्टिंग भाषा (Scripting Language)"},
         {"q": "CSS का उपयोग किस लिए होता है?", "options": ["वेबपेज को डिज़ाइन और स्टाइल करने के लिए", "डेटा स्टोर करने के लिए", "लॉजिक लिखने के लिए", "सर्वर चलाने के लिए"], "answer": "वेबपेज को डिज़ाइन और स्टाइल करने के लिए"},
         {"q": "Python में कमेंट लिखने के लिए किस चिन्ह का उपयोग होता है?", "options": ["#", "//", "/*", "<!--"], "answer": "#"},
         {"q": "इनमें से कौन सा टैग HTML में टेबल बनाने के लिए उपयोग होता है?", "options": ["<table>", "<tab>", "<tr>", "<td>"], "answer": "<table>"},
@@ -847,7 +847,7 @@ if query:
         with st.chat_message("user", avatar="👤"):
             st.write(query)
         st.session_state.game_state = "CREATING"
-        bot_reply = "बहुत बढ़िया! 🧠 BC Tech Brain Battle शुरू करने के लिए नीचे दिए गए विकल्पों से अपना रूम बनाएं या जुड़ें।"
+        bot_reply = "बहुत बढ़िया! 🧠 BC Tech Brain Battle शुरू करने के लिए नीचे दिए गए Battle Zone से अपना रूम बनाएं या जुड़ें।"
         st.session_state.messages.append({"role": "assistant", "content": bot_reply})
         with st.chat_message("assistant", avatar="🤖"):
             st.markdown(bot_reply)
@@ -1243,7 +1243,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - 2-PLAYER QUIZ ARENA (SYNCED & TIMED)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1277,7 +1277,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         st.session_state.game_state = rooms[curr_room_code]["game_state"]
 
     if st.session_state.game_state == "CREATING":
-        st.subheader("🧠 BC Tech Brain Battle - 2-Player Room Setup")
+        st.subheader("⚔️ BC Tech Brain Battle - Battle Zone Setup")
         col1, col2 = st.columns(2)
         
         with col1:
@@ -1311,10 +1311,10 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                     st.warning("कृपया अपना नाम दर्ज करें!")
 
         with col2:
-            st.markdown("### 🔗 Room से जुड़ें (Player 2)")
+            st.markdown("### 🔗 Battle Zone में जुड़ें (Player 2)")
             p2_name_input = st.text_input("Player 2 का नाम दर्ज करें:", key="p2_input")
-            room_code_input = st.text_input("रूम कोड दर्ज करें (जैसे bc-123 या BC-123):", key="code_input")
-            if st.button("Connect to Room"):
+            room_code_input = st.text_input("रूम कोड दर्ज करें (जैसे bc-123):", key="code_input")
+            if st.button("Connect to Battle Zone"):
                 if p2_name_input.strip() != "" and room_code_input.strip() != "":
                     clean_input_code = room_code_input.strip().upper()
                     matched_key = None
@@ -1331,7 +1331,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         st.session_state.active_room_code = matched_key
                         st.session_state.player_role = "P2"
                         st.session_state.game_state = "CATEGORY"
-                        st.success("सफलतापूर्वक कनेक्ट हो गए!")
+                        st.success("सफलतापूर्वक Battle Zone से कनेक्ट हो गए!")
                         st.rerun()
                     else:
                         st.error("यह रूम कोड मौजूद नहीं है! सही कोड डालें।")
@@ -1350,14 +1350,14 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.session_state.game_state = rooms[curr_code]["game_state"]
             st.rerun()
 
-        st.subheader(f"⏳ रूम कोड: `{curr_code}`")
-        st.info(f"खिलाड़ी **{rooms.get(curr_code, {}).get('p1_name', 'P1')}** रूम में तैयार हैं। दूसरे खिलाड़ी को यह कोड दें ताकि वह नीचे से जुड़ सके।")
+        st.subheader(f"⏳ Battle Zone कोड: `{curr_code}`")
+        st.info(f"खिलाड़ी **{rooms.get(curr_code, {}).get('p1_name', 'P1')}** बैटल ज़ोन में तैयार हैं। दूसरे खिलाड़ी को यह कोड दें ताकि वह जुड़ सके।")
         
         st.markdown("---")
-        st.markdown("### 🔗 यदि आप Player 2 हैं, तो यहाँ से रूम जॉइन करें:")
+        st.markdown("### 🔗 यदि आप Player 2 हैं, तो यहाँ से Battle Zone जॉइन करें:")
         p2_wait_name = st.text_input("Player 2 अपना नाम दर्ज करें:", key="p2_wait_input")
         wait_code_input = st.text_input("यही रूम कोड दोबारा दर्ज करें:", key="wait_code_input")
-        if st.button("Join This Room Now"):
+        if st.button("Join Battle Zone Now"):
             if p2_wait_name.strip() != "" and wait_code_input.strip() != "":
                 clean_input_code = wait_code_input.strip().upper()
                 matched_key = None
@@ -1389,12 +1389,12 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.rerun()
 
     elif st.session_state.game_state == "CATEGORY":
-        st.subheader("🎯 विषय (Category) चुनें")
+        st.subheader("🎯 युद्ध का विषय (Category) चुनें")
         st.write(f"खिलाड़ी: **{p1_name}** vs **{p2_name}**")
         
         cat_choice = st.selectbox("कृपया क्विज के लिए विषय चुनें:", list(QUESTION_BANK.keys()))
         
-        if st.button("🚀 मुकाबला शुरू करें! (Start Game)"):
+        if st.button("🚀 Battle Start करें! (Launch Arena)"):
             rooms = load_room_store()
             curr_code = st.session_state.active_room_code
             
@@ -1487,7 +1487,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             options = current_q_data["options"]
             
-            # --- TURN RESTRICTION & SUBMIT LOGIC ---
+            # --- TURN RESTRICTION LOGIC ---
             is_my_turn = (st.session_state.player_role == active_role)
 
             if is_my_turn:
