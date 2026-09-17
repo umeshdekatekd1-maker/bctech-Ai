@@ -866,7 +866,7 @@ if query:
         with st.chat_message("user", avatar="👤"):
             st.write(query)
         st.session_state.game_state = "CREATING"
-        bot_reply = "बहुत बढ़िया! 🧠 BC Tech Brain Battle शुरू करने के लिए नीचे दिए गए Battle Zone से अपना बैटल ज़ोन बनाएं या जुड़ें।"
+        bot_reply = "बहुत बढ़िया! मैदान सज चुका है। 🧠 BC Tech Brain Battle शुरू करने के लिए नीचे दिए गए Battle Zone से अपना बैटल ज़ोन बनाएं या जुड़ें।"
         st.session_state.messages.append({"role": "assistant", "content": bot_reply})
         with st.chat_message("assistant", avatar="🤖"):
             st.markdown(bot_reply)
@@ -1262,7 +1262,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (DUPLICATION & BLINK FIX)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (CLEAN SINGLE VIEW FIX)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1499,16 +1499,14 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             with col_b:
                 st.markdown(f"**बारी:** 👤 {active_player}")
 
-            if is_my_turn:
-                st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
-                st.progress(remaining / 30.0)
-
             st.markdown(f"### ❓ {current_q_data['q']}")
 
             options = current_q_data["options"]
 
-            # STRICT SEPARATION: Render form ONLY if it is my turn, otherwise show clean waiting message
+            # STRICT SINGLE VIEW: If it's my turn, show options & timer. If NOT my turn, show ONLY the clean waiting message with NO duplication.
             if is_my_turn:
+                st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
+                st.progress(remaining / 30.0)
                 st.success(f"👉 **यह आपकी बारी है!** विकल्प चुनकर सबमिट करें:")
                 
                 with st.form(key=f"clean_turn_l{curr_lvl}_q{q_idx}_t{turn}"):
