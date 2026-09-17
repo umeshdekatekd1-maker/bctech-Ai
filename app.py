@@ -1243,7 +1243,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (FULLY RANDOMIZED QUESTIONS)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1398,11 +1398,9 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             rooms = load_room_store()
             curr_code = st.session_state.active_room_code
             
-            room_seed = sum(ord(c) for c in curr_code)
-            rng = random.Random(room_seed)
-            
+            # Use completely random shuffle with current timestamp seed so questions are always different
             all_qs = QUESTION_BANK[cat_choice].copy()
-            rng.shuffle(all_qs)
+            random.shuffle(all_qs)
             
             rooms[curr_code]["category"] = cat_choice
             rooms[curr_code]["current_level"] = 1
@@ -1410,7 +1408,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             rooms[curr_code]["p1_score"] = 0
             rooms[curr_code]["p2_score"] = 0
             rooms[curr_code]["turn"] = 1
-            rooms[curr_code]["questions"] = all_qs[:5]  # Level 1 strictly 5 questions
+            rooms[curr_code]["questions"] = all_qs[:5]  # Level 1 strictly 5 completely random questions
             rooms[curr_code]["history_log"] = []
             rooms[curr_code]["question_start_time"] = time.time()
             rooms[curr_code]["game_state"] = "PLAYING"
@@ -1585,14 +1583,12 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         st.markdown("---")
         
         if st.button(f"लेवल {next_lvl} पर आगे बढ़ें 🚀"):
-            room_seed = sum(ord(c) for c in curr_code) + next_lvl
-            rng = random.Random(room_seed)
             cat = r_data.get("category", "Basic Computer & Internet")
             all_qs = QUESTION_BANK[cat].copy()
-            rng.shuffle(all_qs)
+            random.shuffle(all_qs)
             
             r_data["current_level"] = next_lvl
-            r_data["questions"] = all_qs[:10]  # Level 2 & 3: 10 Questions each
+            r_data["questions"] = all_qs[:10]  # Level 2 & 3: 10 Completely new random questions
             r_data["current_q_index"] = 0
             r_data["question_start_time"] = time.time()
             r_data["game_state"] = "PLAYING"
