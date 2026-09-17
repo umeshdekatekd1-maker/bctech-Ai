@@ -1262,7 +1262,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT MUTEX VIEW FIX)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT MUTEX IF-ELSE VIEW FIX)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1503,7 +1503,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             options = current_q_data["options"]
 
-            # STRICT MUTEX VIEW: Completely separate code blocks for Active Player and Waiting Player to avoid overlapping text/boxes
+            # STRICT MUTEX BLOCK: Using if-else to ensure ONLY ONE view is rendered at a time per client
             if is_my_turn:
                 st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
                 st.progress(remaining / 30.0)
@@ -1553,7 +1553,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         st.session_state.game_state = r_data["game_state"]
                         st.rerun()
             else:
-                # Clean single-view waiting screen for the non-active player
                 st.info(f"⏳ **यह {active_player} की बारी है। कृपया प्रतीक्षा करें...**")
                 time.sleep(2)
                 st.rerun()
