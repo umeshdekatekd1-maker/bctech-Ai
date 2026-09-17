@@ -1243,7 +1243,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (TURN-BASED FIX)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (AUTO-REFRESH SYNCED)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1527,6 +1527,9 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                     st.rerun()
             else:
                 st.info(f"⏳ **यह {active_player} की बारी है। कृपया प्रतीक्षा करें...**")
+                # Auto-refresh loop every 2 seconds for waiting player to catch sync instantly without manual click
+                time.sleep(2)
+                st.rerun()
 
             st.markdown("---")
             if st.button("🔄 स्क्रीन सिंक करें (Refresh View)", key=f"sync_btn_{q_idx}_{turn}"):
