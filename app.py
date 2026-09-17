@@ -1175,7 +1175,7 @@ if query:
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software.
                         - If a user asks HOW to do something in software, politely inform them to contact our branch or visit our website:
                           - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं。\n\nवेबसाइट: {BRANCH_LINK}"
-                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્ચનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
+                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્चનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
                           - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nWebsite: {BRANCH_LINK}"
                         
                         CRITICAL TIMINGS RULE:
@@ -1243,7 +1243,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (AUTO-TIMEOUT & CLEAN TURN-BASED FIX)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (AUTO-TIMEOUT & TURN-BASED FIX)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1486,7 +1486,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             if is_my_turn:
                 st.success(f"👉 **यह आपकी बारी है ({active_player})!** विकल्प चुनकर सबमिट करें:")
                 
-                with st.form(key=f"turn_form_l{curr_lvl}_q{q_idx}_t{turn}"):
+                with st.form(key=f"timeout_form_l{curr_lvl}_q{q_idx}_t{turn}"):
                     ans_choice = st.radio("विकल्प चुनें:", options, index=None)
                     submitted = st.form_submit_button("उत्तर जमा करें & अगला (Submit)")
                     
