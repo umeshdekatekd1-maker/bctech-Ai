@@ -1503,8 +1503,11 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             options = current_q_data["options"]
 
-            # STRICT MUTEX SEPARATION: Using explicit if-else so that NEITHER screen ever shows both messages at once
+            # ==========================================
+            # STRICT MUTEX VIEW: TRUE IF-ELSE SEPARATION
+            # ==========================================
             if is_my_turn:
+                # ONLY FOR ACTIVE PLAYER (Shows Timer, Question Form, and Submit Button)
                 st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
                 st.progress(remaining / 30.0)
                 st.success(f"👉 **यह आपकी बारी है!** विकल्प चुनकर सबमिट करें:")
@@ -1553,6 +1556,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         st.session_state.game_state = r_data["game_state"]
                         st.rerun()
             else:
+                # ONLY FOR WAITING PLAYER (Shows ONLY the waiting info box, NO options/forms)
                 st.info(f"⏳ **यह {active_player} की बारी है। कृपया प्रतीक्षा करें...**")
                 time.sleep(2)
                 st.rerun()
