@@ -1243,7 +1243,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (CLEAN DYNAMIC KEYS FIX)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (ZERO BLINK & CLEAN SUBMIT FIX)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1484,47 +1484,51 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             if is_my_turn:
                 st.success(f"👉 **यह आपकी बारी है ({active_player})!** विकल्प चुनकर सबमिट करें:")
-                ans_choice = st.radio("विकल्प चुनें:", options, index=None, key=f"radio_l{curr_lvl}_q{q_idx}_t{turn}")
                 
-                if st.button("उत्तर जमा करें & अगला (Submit)", key=f"btn_l{curr_lvl}_q{q_idx}_t{turn}"):
-                    status_str = ""
-                    if ans_choice is None:
-                        status_str = "उत्तर नहीं दिया (0 अंक)"
-                    else:
-                        if ans_choice == current_q_data["answer"]:
-                            status_str = "सही (Right) (+1 अंक)"
-                            if turn == 1:
-                                r_data["p1_score"] += 1
+                # Using st.form ensures the inputs disappear immediately and cleanly upon submission without blinking
+                with st.form(key=f"form_lvl{curr_lvl}_q{q_idx}_t{turn}"):
+                    ans_choice = st.radio("विकल्प चुनें:", options, index=None)
+                    submitted = st.form_submit_button("उत्तर जमा करें & अगला (Submit)")
+                    
+                    if submitted:
+                        status_str = ""
+                        if ans_choice is None:
+                            status_str = "उत्तर नहीं दिया (0 अंक)"
+                        else:
+                            if ans_choice == current_q_data["answer"]:
+                                status_str = "सही (Right) (+1 अंक)"
+                                if turn == 1:
+                                    r_data["p1_score"] += 1
+                                else:
+                                    r_data["p2_score"] += 1
                             else:
-                                r_data["p2_score"] += 1
+                                status_str = "गलत (Wrong) (0 अंक)"
+                        
+                        r_data["history_log"].append({
+                            "level": curr_lvl,
+                            "player": active_player,
+                            "question": current_q_data['q'],
+                            "chosen": ans_choice if ans_choice else "None",
+                            "correct": current_q_data["answer"],
+                            "status": status_str
+                        })
+                        
+                        if turn == 1:
+                            r_data["turn"] = 2
                         else:
-                            status_str = "गलत (Wrong) (0 अंक)"
-                    
-                    r_data["history_log"].append({
-                        "level": curr_lvl,
-                        "player": active_player,
-                        "question": current_q_data['q'],
-                        "chosen": ans_choice if ans_choice else "None",
-                        "correct": current_q_data["answer"],
-                        "status": status_str
-                    })
-                    
-                    if turn == 1:
-                        r_data["turn"] = 2
-                    else:
-                        r_data["turn"] = 1
-                        r_data["current_q_index"] += 1
-                    
-                    if r_data["current_q_index"] >= max_q_limit:
-                        if curr_lvl < 3:
-                            r_data["game_state"] = "LEVEL_TRANSITION"
-                        else:
-                            r_data["game_state"] = "RESULT"
+                            r_data["turn"] = 1
+                            r_data["current_q_index"] += 1
+                        
+                        if r_data["current_q_index"] >= max_q_limit:
+                            if curr_lvl < 3:
+                                r_data["game_state"] = "LEVEL_TRANSITION"
+                            else:
+                                r_data["game_state"] = "RESULT"
 
-                    r_data["question_start_time"] = time.time()
-                    save_room_store(rooms)
-                    st.session_state.game_state = r_data["game_state"]
-                    st.rerun()
+                        r_data["question_start_time"] = time.time()
+                        save_room_store(rooms)
+                        st.session_state.game_state = r_data["game_state"]
+                        st.rerun()
             else:
                 st.info(f"⏳ **यह {active_player} की बारी है। कृपया प्रतीक्षा करें...**")
                 time.sleep(2)
