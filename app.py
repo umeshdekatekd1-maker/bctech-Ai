@@ -1243,7 +1243,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT TURN-BASED SUBMISSION CLEANUP)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (AUTO-TIMEOUT & CLEAN TURN-BASED FIX)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1439,6 +1439,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         elapsed = time.time() - q_start_time
         remaining = max(0, int(30 - elapsed))
 
+        # --- 30 SECONDS AUTO-TIMEOUT & SKIP ---
         if remaining == 0:
             r_data["history_log"].append({
                 "level": curr_lvl,
@@ -1485,8 +1486,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             if is_my_turn:
                 st.success(f"👉 **यह आपकी बारी है ({active_player})!** विकल्प चुनकर सबमिट करें:")
                 
-                # Using unique form key per question index and turn ensures options disappear cleanly without blinking
-                with st.form(key=f"clean_form_l{curr_lvl}_q{q_idx}_t{turn}"):
+                with st.form(key=f"turn_form_l{curr_lvl}_q{q_idx}_t{turn}"):
                     ans_choice = st.radio("विकल्प चुनें:", options, index=None)
                     submitted = st.form_submit_button("उत्तर जमा करें & अगला (Submit)")
                     
@@ -1531,7 +1531,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         st.rerun()
             else:
                 st.info(f"⏳ **यह {active_player} की बारी है। कृपया प्रतीक्षा करें...**")
-                time.sleep(1.5)
+                time.sleep(2)
                 st.rerun()
 
             st.markdown("---")
