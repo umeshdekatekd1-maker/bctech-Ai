@@ -9,7 +9,6 @@ import json
 import os
 import uuid
 import random
-import time
 from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
@@ -1243,7 +1242,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (FULLY RANDOMIZED QUESTIONS)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STABLE & NO-LOOP)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1281,13 +1280,13 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("### ⚔️ Battle Zone बनाएं (Player 1)")
+            st.markdown("### ⚔️ Room बनाएं (Player 1)")
             p1_name_input = st.text_input("Player 1 का नाम दर्ज करें:", key="p1_input")
-            if st.button("Generate Battle Code"):
+            if st.button("Generate Room Code"):
                 if p1_name_input.strip() != "":
                     code = f"BC-{random.randint(100, 999)}"
                     st.session_state.active_room_code = code
-                    st.session_state.player_role = "P1"
+                    st.session_state.player_role = "P1()
                     
                     rooms[code] = {
                         "p1_name": p1_name_input,
@@ -1305,16 +1304,16 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                     }
                     save_room_store(rooms)
                     st.session_state.game_state = "WAITING"
-                    st.success(f"Battle Code जनरेट हो गया: {code}")
+                    st.success(f"रूम कोड जनरेट हो गया: {code}")
                     st.rerun()
                 else:
                     st.warning("कृपया अपना नाम दर्ज करें!")
 
         with col2:
-            st.markdown("### 🔗 Battle Zone में जुड़ें (Player 2)")
+            st.markdown("### 🔗 Room से जुड़ें (Player 2)")
             p2_name_input = st.text_input("Player 2 का नाम दर्ज करें:", key="p2_input")
-            room_code_input = st.text_input("Battle Code दर्ज करें (जैसे bc-123):", key="code_input")
-            if st.button("Connect to Battle Zone"):
+            room_code_input = st.text_input("रूम कोड दर्ज करें (जैसे bc-123):", key="code_input")
+            if st.button("Connect to Room"):
                 if p2_name_input.strip() != "" and room_code_input.strip() != "":
                     clean_input_code = room_code_input.strip().upper()
                     matched_key = None
@@ -1331,12 +1330,12 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         st.session_state.active_room_code = matched_key
                         st.session_state.player_role = "P2"
                         st.session_state.game_state = "CATEGORY"
-                        st.success("सफलतापूर्वक Battle Zone से कनेक्ट हो गए!")
+                        st.success("सफलतापूर्वक कनेक्ट हो गए!")
                         st.rerun()
                     else:
-                        st.error("यह Battle Code मौजूद नहीं है! सही कोड डालें।")
+                        st.error("यह रूम कोड मौजूद नहीं है! सही कोड डालें।")
                 else:
-                    st.warning("कृपया नाम और सही Battle Code दोनों भरें!")
+                    st.warning("कृपया नाम और सही रूम कोड दोनों भरें!")
 
         if st.button("⬅️ वापस चैट पर जाएं"):
             st.session_state.game_state = "IDLE"
@@ -1350,14 +1349,14 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.session_state.game_state = rooms[curr_code]["game_state"]
             st.rerun()
 
-        st.subheader(f"⏳ Battle Code: `{curr_code}`")
-        st.info(f"खिलाड़ी **{rooms.get(curr_code, {}).get('p1_name', 'P1')}** बैटल ज़ोन में तैयार हैं। दूसरे खिलाड़ी को यह कोड दें ताकि वह जुड़ सके।")
+        st.subheader(f"⏳ रूम कोड: `{curr_code}`")
+        st.info(f"खिलाड़ी **{rooms.get(curr_code, {}).get('p1_name', 'P1')}** रूम में तैयार हैं। दूसरे खिलाड़ी को यह कोड दें ताकि वह जुड़ सके।")
         
         st.markdown("---")
-        st.markdown("### 🔗 यदि आप Player 2 हैं, तो यहाँ से Battle Zone जॉइन करें:")
+        st.markdown("### 🔗 यदि आप Player 2 हैं, तो यहाँ से रूम जॉइन करें:")
         p2_wait_name = st.text_input("Player 2 अपना नाम दर्ज करें:", key="p2_wait_input")
-        wait_code_input = st.text_input("यही Battle Code दोबारा दर्ज करें:", key="wait_code_input")
-        if st.button("Join Battle Zone Now"):
+        wait_code_input = st.text_input("यही रूम कोड दोबारा दर्ज करें:", key="wait_code_input")
+        if st.button("Join This Room Now"):
             if p2_wait_name.strip() != "" and wait_code_input.strip() != "":
                 clean_input_code = wait_code_input.strip().upper()
                 matched_key = None
@@ -1377,9 +1376,9 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                     st.success("सफलतापूर्वक कनेक्ट हो गए!")
                     st.rerun()
                 else:
-                    st.error("गलत Battle Code!")
+                    st.error("गलत रूम कोड!")
             else:
-                st.warning("कृपया नाम और Battle Code दोनों भरें!")
+                st.warning("कृपया नाम और रूम कोड दोनों भरें!")
 
         if st.button("🔄 चेक करें क्या दूसरा खिलाड़ी जुड़ गया है?"):
             st.rerun()
@@ -1389,16 +1388,15 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.rerun()
 
     elif st.session_state.game_state == "CATEGORY":
-        st.subheader("🎯 युद्ध का विषय (Category) चुनें")
+        st.subheader("🎯 विषय (Category) चुनें")
         st.write(f"खिलाड़ी: **{p1_name}** vs **{p2_name}**")
         
         cat_choice = st.selectbox("कृपया क्विज के लिए विषय चुनें:", list(QUESTION_BANK.keys()))
         
-        if st.button("🚀 Battle Start करें! (Launch Arena)"):
+        if st.button("🚀 मुकाबला शुरू करें! (Start Game)"):
             rooms = load_room_store()
             curr_code = st.session_state.active_room_code
             
-            # Use completely random shuffle with current timestamp seed so questions are always different
             all_qs = QUESTION_BANK[cat_choice].copy()
             random.shuffle(all_qs)
             
@@ -1408,7 +1406,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             rooms[curr_code]["p1_score"] = 0
             rooms[curr_code]["p2_score"] = 0
             rooms[curr_code]["turn"] = 1
-            rooms[curr_code]["questions"] = all_qs[:5]  # Level 1 strictly 5 completely random questions
+            rooms[curr_code]["questions"] = all_qs[:5]  # Level 1 strictly 5 new randomized questions
             rooms[curr_code]["history_log"] = []
             rooms[curr_code]["question_start_time"] = time.time()
             rooms[curr_code]["game_state"] = "PLAYING"
@@ -1437,12 +1435,12 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
         max_q_limit = 5 if curr_lvl == 1 else 10
 
-        # --- 30 SECONDS COUNTDOWN TIMER CHECK ---
+        # --- STABLE TIMER CHECK (NO INFINITE LOOP) ---
         elapsed = time.time() - q_start_time
         remaining = max(0, int(30 - elapsed))
 
         if remaining == 0:
-            # Time's up -> auto skip turn / question
+            # Time's up -> auto skip turn / question safely
             r_data["history_log"].append({
                 "level": curr_lvl,
                 "player": active_player,
@@ -1477,7 +1475,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             with col_b:
                 st.markdown(f"**बारी:** 👤 {active_player}")
 
-            # Display Live Countdown Timer Bar
             st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
             st.progress(remaining / 30.0)
 
@@ -1485,7 +1482,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             options = current_q_data["options"]
             
-            # --- TURN RESTRICTION LOGIC ---
             is_my_turn = (st.session_state.player_role == active_role)
 
             if is_my_turn:
@@ -1537,10 +1533,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.markdown("---")
             if st.button("🔄 स्क्रीन सिंक करें (Refresh View)", key=f"sync_btn_{q_idx}_{turn}"):
                 st.rerun()
-
-            # Auto-refresh loop for live timer sync every 1 second
-            time.sleep(1)
-            st.rerun()
         else:
             if curr_lvl < 3:
                 r_data["game_state"] = "LEVEL_TRANSITION"
