@@ -9,6 +9,7 @@ import json
 import os
 import uuid
 import random
+import time
 from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
@@ -1435,12 +1436,10 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
         max_q_limit = 5 if curr_lvl == 1 else 10
 
-        # --- STABLE TIMER CHECK (NO INFINITE LOOP) ---
         elapsed = time.time() - q_start_time
         remaining = max(0, int(30 - elapsed))
 
         if remaining == 0:
-            # Time's up -> auto skip turn / question safely
             r_data["history_log"].append({
                 "level": curr_lvl,
                 "player": active_player,
