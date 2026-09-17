@@ -1503,7 +1503,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             options = current_q_data["options"]
 
-            # STRICT MUTEX BLOCK: Using if-else to ensure ONLY ONE view is rendered at a time per client
+            # STRICT MUTEX SEPARATION: Using explicit if-else so that NEITHER screen ever shows both messages at once
             if is_my_turn:
                 st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
                 st.progress(remaining / 30.0)
