@@ -223,7 +223,7 @@ QUESTION_BANK = {
         {"q": "फुल स्क्रीन प्रीव्यू देखने के लिए कौन सी की दबाई जाती है?", "options": ["F9", "F3", "F4", "F2"], "answer": "F9"},
         {"q": "पेज सेटअप या ऑप्शन विंडो खोलने की शॉर्टकट की क्या है?", "options": ["Ctrl + J", "Ctrl + P", "Ctrl + T", "Ctrl + M"], "answer": "Ctrl + J"},
         {"q": "पिन्ट करने की शॉर्टकट की क्या है?", "options": ["Ctrl + P", "Ctrl + S", "Ctrl + N", "Ctrl + O"], "answer": "Ctrl + P"},
-        {"q": "CorelDraw में किसी ऑब्जेक्ट को लॉक करने के लिए کیا किया जाता है?", "options": ["Right Click > Lock Object", "Ctrl + L", "Ctrl + K", "Alt + L"], "answer": "Right Click > Lock Object"},
+        {"q": "CorelDraw में किसी ऑब्जेक्ट को लॉक करने के लिए क्या किया जाता है?", "options": ["Right Click > Lock Object", "Ctrl + L", "Ctrl + K", "Alt + L"], "answer": "Right Click > Lock Object"},
         {"q": "फ्रीहैंड टूल का उपयोग किस लिए होता है?", "options": ["फ्री हैंड ड्राइंग के लिए", "सर्कल बनाने के लिए", "कलर भरने के लिए", "टेक्स्ट लिखने के लिए"], "answer": "फ्री हैंड ड्राइंग के लिए"},
         {"q": "CorelDraw में पेज ओरिएंटेशन कितने प्रकार के होते हैं?", "options": ["2 (Portrait & Landscape)", "3", "4", "1"], "answer": "2 (Portrait & Landscape)"},
         {"q": "किसी ऑब्जेक्ट को डिलीट करने की शॉर्टकट की क्या है?", "options": ["Delete", "Backspace", "Ctrl + D", "Alt + D"], "answer": "Delete"}
@@ -1194,7 +1194,7 @@ if query:
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software.
                         - If a user asks HOW to do something in software, politely inform them to contact our branch or visit our website:
                           - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं。\n\nवेबसाइट: {BRANCH_LINK}"
-                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્चનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાत લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
+                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્चનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
                           - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nWebsite: {BRANCH_LINK}"
                         
                         CRITICAL TIMINGS RULE:
@@ -1262,7 +1262,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (TURN-BASED TIMER FIX)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT TURN-BASED TIMER FIX)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1457,7 +1457,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
         is_my_turn = (st.session_state.player_role == active_role)
 
-        # --- TIMER ONLY RUNS FOR THE ACTIVE PLAYER'S SCREEN ---
+        # --- TIMER ONLY RUNS AND CHECKS TIMEOUT FOR THE ACTIVE PLAYER ---
         if is_my_turn:
             elapsed = time.time() - q_start_time
             remaining = max(0, int(30 - elapsed))
@@ -1487,6 +1487,8 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                 r_data["question_start_time"] = time.time()
                 save_room_store(rooms)
                 st.rerun()
+        else:
+            remaining = 30  # Dummy value for non-active player
 
         if q_idx < len(q_list) and q_idx < max_q_limit:
             current_q_data = q_list[q_idx]
@@ -1497,6 +1499,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             with col_b:
                 st.markdown(f"**बारी:** 👤 {active_player}")
 
+            # Timer is shown ONLY on the active player's screen
             if is_my_turn:
                 st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
                 st.progress(remaining / 30.0)
@@ -1552,6 +1555,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         st.session_state.game_state = r_data["game_state"]
                         st.rerun()
             else:
+                # Waiting screen for the player whose turn it is NOT
                 st.info(f"⏳ **यह {active_player} की बारी है। कृपया प्रतीक्षा करें...**")
                 time.sleep(2)
                 st.rerun()
@@ -1606,7 +1610,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             random.shuffle(all_qs)
             
             r_data["current_level"] = next_lvl
-            # Level 2 = 10 questions, Level 3 = 10 questions from the 25-question pool
             r_data["questions"] = all_qs[:10]
             r_data["current_q_index"] = 0
             r_data["question_start_time"] = time.time()
