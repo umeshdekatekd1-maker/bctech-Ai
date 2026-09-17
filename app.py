@@ -1029,11 +1029,11 @@ if query:
 
                 elif check_is_creator_intent(query):
                     if lang == "GUJARATI":
-                        reply = "મને BC Tech Computer Education ના એડમિન અને ડેવલपर દ્વારા બનાવવામાં આવ્યો છે."
+                        reply = f"મને BC Tech Computer Education ના એડમિન અને ડેવલपर દ્વારા બનાવવામાં આવ્યો છે."
                     elif lang == "HINDI":
-                        reply = "मुझे BC Tech Computer Education के डेवलपर और एडमिन द्वारा बनाया गया है।"
+                        reply = f"मुझे BC Tech Computer Education के डेवलपर और एडमिन द्वारा बनाया गया है।"
                     else:
-                        reply = "I was created by the developer and admin of BC Tech Computer Education."
+                        reply = f"I was created by the developer and admin of BC Tech Computer Education."
                     st.write(reply)
                     st.session_state.messages.append({"role": "assistant", "content": reply})
                     lang_code = "hi-IN" if lang == "HINDI" else ("gu-IN" if lang == "GUJARATI" else "en-US")
@@ -1243,7 +1243,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STABLE & NO-LOOP)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT TURN-BASED VISIBILITY)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1407,7 +1407,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             rooms[curr_code]["p1_score"] = 0
             rooms[curr_code]["p2_score"] = 0
             rooms[curr_code]["turn"] = 1
-            rooms[curr_code]["questions"] = all_qs[:5]  # Level 1 strictly 5 new randomized questions
+            rooms[curr_code]["questions"] = all_qs[:5]
             rooms[curr_code]["history_log"] = []
             rooms[curr_code]["question_start_time"] = time.time()
             rooms[curr_code]["game_state"] = "PLAYING"
@@ -1480,7 +1480,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.markdown(f"### ❓ {current_q_data['q']}")
 
             options = current_q_data["options"]
-            
             is_my_turn = (st.session_state.player_role == active_role)
 
             if is_my_turn:
@@ -1579,7 +1578,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             random.shuffle(all_qs)
             
             r_data["current_level"] = next_lvl
-            r_data["questions"] = all_qs[:10]  # Level 2 & 3: 10 Completely new random questions
+            r_data["questions"] = all_qs[:10]
             r_data["current_q_index"] = 0
             r_data["question_start_time"] = time.time()
             r_data["game_state"] = "PLAYING"
