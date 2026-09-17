@@ -279,7 +279,7 @@ QUESTION_BANK = {
         {"q": "वेबसाइट का मुख्य पृष्ठ क्या कहलाता है?", "options": ["होम पेज (Home Page)", "मास्टर पेज", "फर्स्ट पेज", "वेब पेज"], "answer": "होम पेज (Home Page)"},
         {"q": "लाइन ब्रेक देने के लिए HTML में कौन सा टैग उपयोग होता है?", "options": ["<br>", "<lb>", "<break>", "<hr>"], "answer": "<br>"},
         {"q": "HTML का पूर्ण रूप क्या है?", "options": ["Hyper Text Markup Language", "High Text Machine Language", "Hyperlinks and Text Markup", "Home Tool Markup Language"], "answer": "Hyper Text Markup Language"},
-        {"q": "JavaScript किस प्रकार की भाषा है?", "options": ["स्क्रिप्टिंग भाषा (Scripting Language)", "मशीन भाषा", "અસેम्बली भाषा", "डेटाबेस भाषा"], "answer": "स्क्रिप्टिंग भाषा (Scripting Language)"},
+        {"q": "JavaScript किस प्रकार की भाषा है?", "options": ["स्क्रिप्टिंग भाषा (Scripting Language)", "मशीन भाषा", "असेम्बली भाषा", "डेटाबेस भाषा"], "answer": "स्क्रिप्टिंग भाषा (Scripting Language)"},
         {"q": "CSS का उपयोग किस लिए होता है?", "options": ["वेबपेज को डिज़ाइन और स्टाइल करने के लिए", "डेटा स्टोर करने के लिए", "लॉजिक लिखने के लिए", "सर्वर चलाने के लिए"], "answer": "वेबपेज को डिज़ाइन और स्टाइल करने के लिए"},
         {"q": "Python में कमेंट लिखने के लिए किस चिन्ह का उपयोग होता है?", "options": ["#", "//", "/*", "<!--"], "answer": "#"},
         {"q": "इनमें से कौन सा टैग HTML में टेबल बनाने के लिए उपयोग होता है?", "options": ["<table>", "<tab>", "<tr>", "<td>"], "answer": "<table>"},
@@ -847,7 +847,7 @@ if query:
         with st.chat_message("user", avatar="👤"):
             st.write(query)
         st.session_state.game_state = "CREATING"
-        bot_reply = "बहुत बढ़िया! 🧠 BC Tech Brain Battle शुरू करने के लिए नीचे दिए गए Battle Zone से अपना बैटल ज़ोन बनाएं या जुड़ें।"
+        bot_reply = "बहुत बढ़िया! 🧠 BC Tech Brain Battle शुरू करने के लिए नीचे दिए गए विकल्पों से अपना रूम बनाएं या जुड़ें।"
         st.session_state.messages.append({"role": "assistant", "content": bot_reply})
         with st.chat_message("assistant", avatar="🤖"):
             st.markdown(bot_reply)
@@ -1277,7 +1277,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         st.session_state.game_state = rooms[curr_room_code]["game_state"]
 
     if st.session_state.game_state == "CREATING":
-        st.subheader("Battle Zone Setup")
+        st.subheader("BC Tech Brain Battle")
         col1, col2 = st.columns(2)
         
         with col1:
