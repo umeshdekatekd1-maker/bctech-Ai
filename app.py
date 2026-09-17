@@ -1243,7 +1243,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT TURN LOCK & BLINKING FIX)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (CLEAN DYNAMIC KEYS FIX)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1482,12 +1482,15 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             options = current_q_data["options"]
             is_my_turn = (st.session_state.player_role == active_role)
 
-            # STRICT TURN LOCK: Render options ONLY for the active player to completely prevent blinking/ghosting on other screen
+            # DYNAMIC UNIQUE KEY FOR RADIO & BUTTON TO PREVENT GHOSTING & BLINKING
+            unique_radio_key = f"radio_l{curr_lvl}_q{q_idx}_t{turn}_{st.session_state.player_role}"
+            unique_btn_key = f"btn_l{curr_lvl}_q{q_idx}_t{turn}_{st.session_state.player_role}"
+
             if is_my_turn:
                 st.success(f"👉 **यह आपकी बारी है ({active_player})!** विकल्प चुनकर सबमिट करें:")
-                ans_choice = st.radio("विकल्प चुनें:", options, index=None, key=f"radio_lvl{curr_lvl}_q{q_idx}_t{turn}")
+                ans_choice = st.radio("विकल्प चुनें:", options, index=None, key=unique_radio_key)
                 
-                if st.button("उत्तर जमा करें & अगला (Submit)", key=f"submit_btn_lvl{curr_lvl}_q{q_idx}_t{turn}"):
+                if st.button("उत्तर जमा करें & अगला (Submit)", key=unique_btn_key):
                     status_str = ""
                     if ans_choice is None:
                         status_str = "उत्तर नहीं दिया (0 अंक)"
