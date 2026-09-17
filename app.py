@@ -866,7 +866,7 @@ if query:
         with st.chat_message("user", avatar="👤"):
             st.write(query)
         st.session_state.game_state = "CREATING"
-        bot_reply = "बहुत बढ़िया! मैदान सज चुका है। 🧠 BC Tech Brain Battle शुरू करने के लिए नीचे दिए गए Battle Zone से अपना बैटल ज़ोन बनाएं या जुड़ें।"
+        bot_reply = "बहुत बढ़िया! 🧠 BC Tech Brain Battle शुरू करने के लिए नीचे दिए गए Battle Zone से अपना बैटल ज़ोन बनाएं या जुड़ें।"
         st.session_state.messages.append({"role": "assistant", "content": bot_reply})
         with st.chat_message("assistant", avatar="🤖"):
             st.markdown(bot_reply)
@@ -1262,7 +1262,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (CLEAN SINGLE VIEW FIX)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT SINGLE VIEW SEPARATION FIX)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1491,8 +1491,8 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
         if q_idx < len(q_list) and q_idx < max_q_limit:
             current_q_data = q_list[q_idx]
-            
-            # SINGLE UNIFIED HEADER TO PREVENT DUPLICATION
+
+            # HEADER SECTION
             col_a, col_b = st.columns([3, 1])
             with col_a:
                 st.subheader(f"🧠 BC Tech Brain Battle - लेवल {curr_lvl} | सवाल {q_idx + 1} / {max_q_limit}")
@@ -1503,7 +1503,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             options = current_q_data["options"]
 
-            # STRICT SINGLE VIEW: If it's my turn, show options & timer. If NOT my turn, show ONLY the clean waiting message with NO duplication.
+            # ABSOLUTE MUTEX RENDERING: If it's my turn, show question + form. If NOT my turn, show ONLY the waiting info box.
             if is_my_turn:
                 st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
                 st.progress(remaining / 30.0)
