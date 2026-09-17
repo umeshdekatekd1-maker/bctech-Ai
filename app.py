@@ -253,7 +253,7 @@ QUESTION_BANK = {
         {"q": "बिक्री वाउचर की शॉर्टकट की क्या है?", "options": ["F7", "F8", "F9", "F5"], "answer": "F8"},
         {"q": "खरीद वाउचर की शॉर्टकट की क्या है?", "options": ["F7", "F8", "F9", "F4"], "answer": "F9"},
         {"q": "जर्नल वाउचर की शॉर्टकट की क्या है?", "options": ["F5", "F6", "F7", "F8"], "answer": "F7"},
-        {"q": "Tally में Trial Balance देखने के लिए शॉर्टकट क्या है?", "options": ["Gateway of Tally > Balance Sheet", "Gateway of Tally > Display More Reports > Trial Balance", "F11", "F12"], "answer": "Gateway of Tally > Display More Reports > Trial Balance"},
+        {"q": "Tally में Trial Balance देखने के लिए शॉर्टकट क्या है?", "options": ["Gateway of Tally > Balance Sheet", "Gateway of Tally > Display More Reports > Trial Balance", "F11", "F12"], "answer": "Gateway of Tally > Balance Sheet"},
         {"q": "क्रेडिट नोट की शॉर्टकट की क्या होती है?", "options": ["Alt + F6", "Ctrl + F6", "Alt + F8", "Ctrl + F8"], "answer": "Alt + F6"},
         {"q": "डेबिट नोट की शॉर्टकट की क्या होती है?", "options": ["Alt + F5", "Ctrl + F5", "Alt + F7", "Ctrl + F7"], "answer": "Alt + F5"},
         {"q": "Tally में कंपनी अल्टर करने के लिए कहाँ जाते हैं?", "options": ["Gateway of Tally > Alter", "Gateway of Tally > Company > Alter", "F3", "Alt + C"], "answer": "Gateway of Tally > Company > Alter"},
@@ -847,7 +847,7 @@ if query:
         with st.chat_message("user", avatar="👤"):
             st.write(query)
         st.session_state.game_state = "CREATING"
-        bot_reply = "बहुत बढ़िया! 🧠 BC Tech Brain Battle शुरू करने के लिए नीचे दिए गए Battle Zone से अपना रूम बनाएं या जुड़ें।"
+        bot_reply = "बहुत बढ़िया! 🧠 BC Tech Brain Battle शुरू करने के लिए नीचे दिए गए Battle Zone से अपना बैटल ज़ोन बनाएं या जुड़ें।"
         st.session_state.messages.append({"role": "assistant", "content": bot_reply})
         with st.chat_message("assistant", avatar="🤖"):
             st.markdown(bot_reply)
@@ -1281,9 +1281,9 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("### 🏠 Room बनाएं (Player 1)")
+            st.markdown("### ⚔️ Battle Zone बनाएं (Player 1)")
             p1_name_input = st.text_input("Player 1 का नाम दर्ज करें:", key="p1_input")
-            if st.button("Generate Room Code"):
+            if st.button("Generate Battle Code"):
                 if p1_name_input.strip() != "":
                     code = f"BC-{random.randint(100, 999)}"
                     st.session_state.active_room_code = code
@@ -1305,7 +1305,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                     }
                     save_room_store(rooms)
                     st.session_state.game_state = "WAITING"
-                    st.success(f"रूम कोड जनरेट हो गया: {code}")
+                    st.success(f"Battle Code जनरेट हो गया: {code}")
                     st.rerun()
                 else:
                     st.warning("कृपया अपना नाम दर्ज करें!")
@@ -1313,7 +1313,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         with col2:
             st.markdown("### 🔗 Battle Zone में जुड़ें (Player 2)")
             p2_name_input = st.text_input("Player 2 का नाम दर्ज करें:", key="p2_input")
-            room_code_input = st.text_input("रूम कोड दर्ज करें (जैसे bc-123):", key="code_input")
+            room_code_input = st.text_input("Battle Code दर्ज करें (जैसे bc-123):", key="code_input")
             if st.button("Connect to Battle Zone"):
                 if p2_name_input.strip() != "" and room_code_input.strip() != "":
                     clean_input_code = room_code_input.strip().upper()
@@ -1334,9 +1334,9 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         st.success("सफलतापूर्वक Battle Zone से कनेक्ट हो गए!")
                         st.rerun()
                     else:
-                        st.error("यह रूम कोड मौजूद नहीं है! सही कोड डालें।")
+                        st.error("यह Battle Code मौजूद नहीं है! सही कोड डालें।")
                 else:
-                    st.warning("कृपया नाम और सही रूम कोड दोनों भरें!")
+                    st.warning("कृपया नाम और सही Battle Code दोनों भरें!")
 
         if st.button("⬅️ वापस चैट पर जाएं"):
             st.session_state.game_state = "IDLE"
@@ -1350,13 +1350,13 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.session_state.game_state = rooms[curr_code]["game_state"]
             st.rerun()
 
-        st.subheader(f"⏳ Battle Zone कोड: `{curr_code}`")
+        st.subheader(f"⏳ Battle Code: `{curr_code}`")
         st.info(f"खिलाड़ी **{rooms.get(curr_code, {}).get('p1_name', 'P1')}** बैटल ज़ोन में तैयार हैं। दूसरे खिलाड़ी को यह कोड दें ताकि वह जुड़ सके।")
         
         st.markdown("---")
         st.markdown("### 🔗 यदि आप Player 2 हैं, तो यहाँ से Battle Zone जॉइन करें:")
         p2_wait_name = st.text_input("Player 2 अपना नाम दर्ज करें:", key="p2_wait_input")
-        wait_code_input = st.text_input("यही रूम कोड दोबारा दर्ज करें:", key="wait_code_input")
+        wait_code_input = st.text_input("यही Battle Code दोबारा दर्ज करें:", key="wait_code_input")
         if st.button("Join Battle Zone Now"):
             if p2_wait_name.strip() != "" and wait_code_input.strip() != "":
                 clean_input_code = wait_code_input.strip().upper()
@@ -1377,9 +1377,9 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                     st.success("सफलतापूर्वक कनेक्ट हो गए!")
                     st.rerun()
                 else:
-                    st.error("गलत रूम कोड!")
+                    st.error("गलत Battle Code!")
             else:
-                st.warning("कृपया नाम और रूम कोड दोनों भरें!")
+                st.warning("कृपया नाम और Battle Code दोनों भरें!")
 
         if st.button("🔄 चेक करें क्या दूसरा खिलाड़ी जुड़ गया है?"):
             st.rerun()
