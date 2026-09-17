@@ -204,7 +204,7 @@ QUESTION_BANK = {
         {"q": "CorelDraw फाइल का डिफॉल्ट एक्सटेंशन क्या होता है?", "options": [".cdr", ".psd", ".ai", ".doc"], "answer": ".cdr"},
         {"q": "किसी ऑब्जेक्ट की डुप्लीकेट कॉपी बनाने की शॉर्टकट की क्या है?", "options": ["Ctrl + C", "Ctrl + D", "Ctrl + V", "Ctrl + B"], "answer": "Ctrl + D"},
         {"q": "CorelDraw में टेक्स्ट को आर्टिस्टिक से पैराग्राफ में बदलने के लिए क्या शॉर्टकट है?", "options": ["Ctrl + F2", "Ctrl + F8", "Ctrl + F9", "Ctrl + F11"], "answer": "Ctrl + F8"},
-        {"q": "दो ऑब्जेक्ट्स को वेल्ड करने का मुख्य कार्य क्या होता है?", "options": ["अलग करना", "जोड़ना", "काटना", "डिलीट करना"], "answer": "जोड़ना"},
+        {"q": "दो ऑब्जेक्ट्स को वेल्ड करने का मुख्य कार्य क्या होता है?", "options": ["अलग करना", "जोड़ना", "काटना", "डिलीट करना"], "answer": "जोड़ना"},
         {"q": "CorelDraw में ज़ूम इन करने के लिए कौन सी शॉर्टकट की होती है?", "options": ["F2", "F3", "F4", "F9"], "answer": "F2"},
         {"q": "पूरे पेज को स्क्रीन पर फिट करने के लिए कौन सी की दबाई जाती है?", "options": ["F3", "F4", "F8", "F12"], "answer": "F4"},
         {"q": "CorelDraw में कलर पैलेट को ऑन या ऑफ करने के लिए कहाँ जाते हैं?", "options": ["View > Color Palette", "File > Open", "Edit > Copy", "Effects > Lens"], "answer": "View > Color Palette"},
@@ -1243,7 +1243,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT TURN-BASED VISIBILITY & BLINKING FIX)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT TURN LOCK & BLINKING FIX)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1482,6 +1482,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             options = current_q_data["options"]
             is_my_turn = (st.session_state.player_role == active_role)
 
+            # STRICT TURN LOCK: Render options ONLY for the active player to completely prevent blinking/ghosting on other screen
             if is_my_turn:
                 st.success(f"👉 **यह आपकी बारी है ({active_player})!** विकल्प चुनकर सबमिट करें:")
                 ans_choice = st.radio("विकल्प चुनें:", options, index=None, key=f"radio_lvl{curr_lvl}_q{q_idx}_t{turn}")
