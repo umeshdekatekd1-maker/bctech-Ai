@@ -174,6 +174,7 @@ if "active_room_code" not in st.session_state:
 if "player_role" not in st.session_state:
     st.session_state.player_role = None
 
+# FULL 25 QUESTIONS PER CATEGORY QUESTION BANK
 QUESTION_BANK = {
     "Basic Computer & Internet": [
         {"q": "कंप्यूटर में किसी फाइल को कॉपी करने की शॉर्टकट की क्या है?", "options": ["Ctrl + C", "Ctrl + V", "Ctrl + X", "Ctrl + S"], "answer": "Ctrl + C"},
@@ -833,7 +834,7 @@ About Bctech Computer Education:
   2. ग्राफिक डिज़ाइन (Graphic Designing: CorelDraw, Photoshop, Illustrator) - Topics: लोगो डिज़ाइन, बैनर, फोटो एडिटिंग
   3. एकाउंटिंग & टैली प्राइम (Accounting & Tally Prime) - Topics: बुनियादी लेखा, टैली में लेन-देन
   4. वेब डेवलपमेंट (Web Development) - Topics: HTML, CSS, JavaScript, WordPress
-  5. प्रोग्रामिंग (Programming: Python / C++) - टॉपिक्स: बेसिक से एडवांस, प्रोजेक्ट वर्क
+  5. प्रोग्रामिंग (Programming: Python / C++) - Topics: बेसिक से एडवांस, प्रोजेक्ट वर्क
 - Location/Address: Surat, Gujarat, India.
 - Institute Timing (Class Open & Close Time): Class opens at 7:00 AM and remains active/open until 8:30 PM.
 - Batch Timings: 
@@ -1402,7 +1403,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             rooms[curr_code]["p1_score"] = 0
             rooms[curr_code]["p2_score"] = 0
             rooms[curr_code]["turn"] = 1
-            rooms[curr_code]["questions"] = all_qs[:5]
+            rooms[curr_code]["questions"] = all_qs[:5]  # Level 1: 5 Questions
             rooms[curr_code]["history_log"] = []
             rooms[curr_code]["question_start_time"] = time.time()
             rooms[curr_code]["game_state"] = "PLAYING"
@@ -1429,7 +1430,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         active_player = p1_name if turn == 1 else p2_name
         active_role = "P1" if turn == 1 else "P2"
 
-        max_q_limit = 5 if curr_lvl == 1 else 10
+        max_q_limit = 5 if curr_lvl == 1 else 10  # Level 1 = 5, Level 2 & 3 = 10 Questions
         is_my_turn = (st.session_state.player_role == active_role)
 
         # --- AUTO-TIMEOUT LOGIC (30 SECONDS) ---
@@ -1584,10 +1585,10 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         if st.button(f"लेवल {next_lvl} पर आगे बढ़ें 🚀"):
             cat = r_data.get("category", "Basic Computer & Internet")
             all_qs = QUESTION_BANK[cat].copy()
-            random.shuffle(all_qs)
+            random.shuffle(all_qs)  # Fresh random shuffle for next level from 25 pool
             
             r_data["current_level"] = next_lvl
-            r_data["questions"] = all_qs[:10]
+            r_data["questions"] = all_qs[:10]  # Level 2 & 3 gets 10 random questions
             r_data["current_q_index"] = 0
             r_data["question_start_time"] = time.time()
             r_data["game_state"] = "PLAYING"
