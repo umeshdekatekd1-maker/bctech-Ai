@@ -561,7 +561,7 @@ def clean_val_display(val):
     except Exception:
         return str(val).strip()
 
-# Sidebar - Admin Panel with Lock/Unlock Feature & Permanent Storage
+# Sidebar - Admin Panel with Safe Paper Handling
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -833,7 +833,7 @@ About Bctech Computer Education:
   2. ग्राफिक डिज़ाइन (Graphic Designing: CorelDraw, Photoshop, Illustrator) - Topics: लोगो डिज़ाइन, बैनर, फोटो एडिटिंग
   3. एकाउंटिंग & टैली प्राइम (Accounting & Tally Prime) - Topics: बुनियादी लेखा, टैली में लेन-देन
   4. वेब डेवलपमेंट (Web Development) - Topics: HTML, CSS, JavaScript, WordPress
-  5. प्रोग्रामिंग (Programming: Python / C++) - Topics: बेसिक से एडवांस, प्रोजेक्ट वर्क
+  5. प्रोग्रामिंग (Programming: Python / C++) - टॉपिक्स: बेसिक से एडवांस, प्रोजेक्ट वर्क
 - Location/Address: Surat, Gujarat, India.
 - Institute Timing (Class Open & Close Time): Class opens at 7:00 AM and remains active/open until 8:30 PM.
 - Batch Timings: 
@@ -890,22 +890,30 @@ if query:
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 render_voice_and_copy_toolbar(reply, f"locked_p_{len(st.session_state.messages)}", "hi-IN")
+            elif "data_b64" not in p_info:
+                reply = f"⚠️ The paper '{d_name}' file data is missing. Please re-upload it from the Admin panel."
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
             else:
                 st.write(f"📂 Here is your requested paper: **{d_name}**")
                 mtype = p_info.get("mime", "")
-                raw_bytes = base64.b64decode(p_info["data_b64"])
-                if "image/" in mtype:
-                    st.image(raw_bytes, caption=d_name, use_container_width=True)
-                    reply = f"Displayed large image paper: {d_name}"
-                else:
-                    st.download_button(
-                        label=f"📂 Open Paper: {d_name}",
-                        data=raw_bytes,
-                        file_name=p_info["filename"],
-                        mime="application/pdf",
-                        key=f"view_btn_{paper_requested}_{len(st.session_state.messages)}"
-                    )
-                    reply = f"Generated paper view button for: {d_name}"
+                try:
+                    raw_bytes = base64.b64decode(p_info["data_b64"])
+                    if "image/" in mtype:
+                        st.image(raw_bytes, caption=d_name, use_container_width=True)
+                        reply = f"Displayed large image paper: {d_name}"
+                    else:
+                        st.download_button(
+                            label=f"📂 Open Paper: {d_name}",
+                            data=raw_bytes,
+                            file_name=p_info.get("filename", f"{d_name}.pdf"),
+                            mime="application/pdf",
+                            key=f"view_btn_{paper_requested}_{len(st.session_state.messages)}"
+                        )
+                        reply = f"Generated paper view button for: {d_name}"
+                except Exception as e:
+                    reply = f"Error loading file for {d_name}: {e}"
+                    st.error(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
         persist_current_state()
 
@@ -1101,7 +1109,7 @@ if query:
                                     full_reply += "પ્રૅક્ટિકલ ટેસ્ટ:\n"
                                     for pk, pv in valid_practical:
                                         full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
-                                    full_reply += f"- કુલ પ્રૅક્ટિકल: {tot_prac}\n\n"
+                                    full_reply += f"- કુલ પ્રૅક્ટિકલ: {tot_prac}\n\n"
                                 full_reply += f"કુલ ગુણ: {total_obtained} / {max_total}\n"
                                 full_reply += f"ટકાવારી: {percentage}%\n\n"
                                 full_reply += f"{motivational_tip}\n\n"
