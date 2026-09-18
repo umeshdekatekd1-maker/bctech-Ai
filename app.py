@@ -561,7 +561,7 @@ def clean_val_display(val):
     except Exception:
         return str(val).strip()
 
-# Sidebar - Admin Panel with Lock/Unlock Support & Permanent Base64 Storage
+# Sidebar - Admin Panel with Lock/Unlock Feature & Permanent Storage
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -886,7 +886,7 @@ if query:
 
         with st.chat_message("assistant", avatar="🤖"):
             if is_locked:
-                reply = f"Sorry! The paper '{d_name.upper()}' is currently locked and cannot be opened without teacher permission."
+                reply = "⏳ This question paper is currently unavailable. Please ask your teacher for access."
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 render_voice_and_copy_toolbar(reply, f"locked_p_{len(st.session_state.messages)}", "hi-IN")
@@ -1101,7 +1101,7 @@ if query:
                                     full_reply += "પ્રૅક્ટિકલ ટેસ્ટ:\n"
                                     for pk, pv in valid_practical:
                                         full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
-                                    full_reply += f"- કુલ પ્રૅક્ટિકલ: {tot_prac}\n\n"
+                                    full_reply += f"- કુલ પ્રૅક્ટિકल: {tot_prac}\n\n"
                                 full_reply += f"કુલ ગુણ: {total_obtained} / {max_total}\n"
                                 full_reply += f"ટકાવારી: {percentage}%\n\n"
                                 full_reply += f"{motivational_tip}\n\n"
@@ -1230,7 +1230,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT EXCLUSIVE RENDER FIX)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT EXCLUSIVE RENDERING)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
