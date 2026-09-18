@@ -10,6 +10,7 @@ import os
 import uuid
 import random
 import time
+import base64
 from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
@@ -560,7 +561,7 @@ def clean_val_display(val):
     except Exception:
         return str(val).strip()
 
-# Sidebar - Admin Panel with Website & Branch Location Icons
+# Sidebar - Admin Panel with Permanent Base64 Storage for Papers (No Lock Restriction)
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -595,10 +596,8 @@ with st.sidebar:
                 
                 if st.button("Upload & Save Paper"):
                     p_key = base_name.strip().lower()
-                    os.makedirs("uploaded_papers", exist_ok=True)
-                    file_path = os.path.join("uploaded_papers", original_filename)
-                    with open(file_path, "wb") as f:
-                        f.write(uploaded_file.getbuffer())
+                    file_bytes = uploaded_file.getvalue()
+                    encoded_file = base64.b64encode(file_bytes).decode("utf-8")
                     
                     file_ext = os.path.splitext(original_filename)[1].lower()
                     mimetype = "application/pdf" if file_ext == ".pdf" else (f"image/{file_ext[1:]}" if file_ext in [".jpg", ".jpeg", ".png"] else "application/octet-stream")
@@ -606,33 +605,19 @@ with st.sidebar:
                     st.session_state.papers_data[p_key] = {
                         "display_name": base_name,
                         "filename": original_filename,
-                        "path": file_path,
-                        "mime": mimetype,
-                        "locked": True
+                        "data_b64": encoded_file,
+                        "mime": mimetype
                     }
                     save_papers_db(st.session_state.papers_data)
-                    st.success(f"Paper '{base_name}' successfully uploaded!")
+                    st.success(f"Paper '{base_name}' successfully saved permanently!")
             
             if st.session_state.papers_data:
                 st.markdown("**Existing Papers Status:**")
                 for pk, p_info in list(st.session_state.papers_data.items()):
                     d_name = p_info.get("display_name", pk)
-                    status_str = "🔒 Locked" if p_info["locked"] else "🟢 Unlocked"
                     
-                    st.text(f"{d_name} ({status_str})")
-                    col_t, col_d = st.columns(2)
-                    
-                    if col_t.button("Toggle Lock", key=f"tog_{pk}"):
-                        st.session_state.papers_data[pk]["locked"] = not p_info["locked"]
-                        save_papers_db(st.session_state.papers_data)
-                        st.rerun()
-                        
-                    if col_d.button("🗑️ Delete", key=f"del_{pk}"):
-                        try:
-                            if os.path.exists(p_info["path"]):
-                                os.remove(p_info["path"])
-                        except Exception:
-                            pass
+                    st.text(f"{d_name}")
+                    if st.button("🗑️ Delete", key=f"del_{pk}"):
                         del st.session_state.papers_data[pk]
                         save_papers_db(st.session_state.papers_data)
                         st.success(f"Deleted '{d_name}' successfully!")
@@ -715,7 +700,7 @@ def update_language_state(text):
     hindi_romanized = [
         "kaise", "kaisa", "kaisi", "kaha", "kahan", "kya", "hain", "ho", "hu", "mera", 
         "meri", "karo", "batao", "bata do", "aap", "tum", "kaun", "kisne", "kyu", "kyon",
-        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai", "ka bhi", "kare", "show", "dekh", "samay", "time", "date", "tarikh", "lock", "unlock", "open", "class", "batch", "chalu", "band", "timing"
+        "kab", "mein", "main", "hai", "kya hai", "kon hai", "kaha ke hai", "ka bhi", "kare", "show", "dekh", "samay", "time", "date", "tarikh", "open", "class", "batch", "chalu", "band", "timing"
     ]
     words = text_clean.split()
     
@@ -728,7 +713,7 @@ def update_language_state(text):
         st.session_state.current_language = "HINDI"
         return "HINDI"
         
-    english_common = ["name", "is", "the", "and", "you", "your", "what", "where", "how", "am", "time", "date", "lock", "unlock", "open", "timing", "batch", "class"]
+    english_common = ["name", "is", "the", "and", "you", "your", "what", "where", "how", "am", "time", "date", "open", "timing", "batch", "class"]
     if any(w in english_common for w in words) and not any(w in hindi_romanized for w in words):
         st.session_state.current_language = "ENGLISH"
         return "ENGLISH"
@@ -881,65 +866,31 @@ if query:
             break
 
     if paper_requested:
-        if "lock" in clean_q_lower and "unlock" not in clean_q_lower:
-            st.session_state.papers_data[paper_requested]["locked"] = True
-            save_papers_db(st.session_state.papers_data)
-            st.session_state.messages.append({"role": "user", "content": query})
-            with st.chat_message("user", avatar="👤"):
-                st.write(query)
-            with st.chat_message("assistant", avatar="🤖"):
-                p_disp = st.session_state.papers_data[paper_requested].get("display_name", paper_requested)
-                reply = f"🔒 Paper '{p_disp}' has been successfully locked."
-                st.write(reply)
-                st.session_state.messages.append({"role": "assistant", "content": reply})
-                render_voice_and_copy_toolbar(reply, f"lock_ack_{len(st.session_state.messages)}", "hi-IN")
-            persist_current_state()
-        elif "unlock" in clean_q_lower:
-            st.session_state.papers_data[paper_requested]["locked"] = False
-            save_papers_db(st.session_state.papers_data)
-            st.session_state.messages.append({"role": "user", "content": query})
-            with st.chat_message("user", avatar="👤"):
-                st.write(query)
-            with st.chat_message("assistant", avatar="🤖"):
-                p_disp = st.session_state.papers_data[paper_requested].get("display_name", paper_requested)
-                reply = f"🟢 Paper '{p_disp}' has been successfully unlocked."
-                st.write(reply)
-                st.session_state.messages.append({"role": "assistant", "content": reply})
-                render_voice_and_copy_toolbar(reply, f"unlock_ack_{len(st.session_state.messages)}", "hi-IN")
-            persist_current_state()
-        else:
-            p_info = st.session_state.papers_data[paper_requested]
-            d_name = p_info.get("display_name", paper_requested)
+        p_info = st.session_state.papers_data[paper_requested]
+        d_name = p_info.get("display_name", paper_requested)
 
-            st.session_state.messages.append({"role": "user", "content": query})
-            with st.chat_message("user", avatar="👤"):
-                st.write(query)
+        st.session_state.messages.append({"role": "user", "content": query})
+        with st.chat_message("user", avatar="👤"):
+            st.write(query)
 
-            with st.chat_message("assistant", avatar="🤖"):
-                if p_info["locked"]:
-                    reply = f"Sorry! The paper '{d_name.upper()}' is currently locked and cannot be opened without teacher permission."
-                    st.write(reply)
-                    st.session_state.messages.append({"role": "assistant", "content": reply})
-                    render_voice_and_copy_toolbar(reply, f"locked_p_{len(st.session_state.messages)}", "hi-IN")
-                else:
-                    st.write(f"📂 Here is your requested paper: **{d_name}**")
-                    mtype = p_info.get("mime", "")
-                    if "image/" in mtype:
-                        st.image(p_info["path"], caption=d_name, use_container_width=True)
-                        reply = f"Displayed large image paper: {d_name}"
-                    else:
-                        with open(p_info["path"], "rb") as pf:
-                            pdf_bytes = pf.read()
-                        st.download_button(
-                            label=f"📂 Open Paper: {d_name}",
-                            data=pdf_bytes,
-                            file_name=p_info["filename"],
-                            mime="application/pdf",
-                            key=f"view_btn_{paper_requested}_{len(st.session_state.messages)}"
-                        )
-                        reply = f"Generated paper view button for: {d_name}"
-                    st.session_state.messages.append({"role": "assistant", "content": reply})
-            persist_current_state()
+        with st.chat_message("assistant", avatar="🤖"):
+            st.write(f"📂 Here is your requested paper: **{d_name}**")
+            mtype = p_info.get("mime", "")
+            raw_bytes = base64.b64decode(p_info["data_b64"])
+            if "image/" in mtype:
+                st.image(raw_bytes, caption=d_name, use_container_width=True)
+                reply = f"Displayed large image paper: {d_name}"
+            else:
+                st.download_button(
+                    label=f"📂 Open Paper: {d_name}",
+                    data=raw_bytes,
+                    file_name=p_info["filename"],
+                    mime="application/pdf",
+                    key=f"view_btn_{paper_requested}_{len(st.session_state.messages)}"
+                )
+                reply = f"Generated paper view button for: {d_name}"
+            st.session_state.messages.append({"role": "assistant", "content": reply})
+        persist_current_state()
 
     else:
         if clean_q_lower in ["or", "aur", "hi", "hello", "ok", "hey", "h", "k"]:
@@ -1262,7 +1213,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (CLEAN MUTEX RENDERING FIX)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT IF-ELSE EXCLUSIVE FIX)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1503,11 +1454,11 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             options = current_q_data["options"]
 
-            # ==========================================
-            # TRUE EXCLUSIVE VIEW: NEVER SHOW BOTH AT ONCE
-            # ==========================================
+            # =========================================================================
+            # STRICT MUTEX RENDERING: ONLY ONE BLOCK WILL EXECUTE
+            # =========================================================================
             if is_my_turn:
-                # ONLY FOR ACTIVE PLAYER (Shows Timer, Progress, and Submit Form)
+                # 1. Active Player Screen (Form & Options ONLY)
                 st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
                 st.progress(remaining / 30.0)
                 st.success(f"👉 **यह आपकी बारी है!** विकल्प चुनकर सबमिट करें:")
@@ -1556,7 +1507,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         st.session_state.game_state = r_data["game_state"]
                         st.rerun()
             else:
-                # ONLY FOR WAITING PLAYER (Shows ONLY the waiting box, completely isolated)
+                # 2. Waiting Player Screen (Waiting Info Box ONLY)
                 st.info(f"⏳ **यह {active_player} की बारी है। कृपया प्रतीक्षा करें...**")
                 time.sleep(2)
                 st.rerun()
@@ -1634,10 +1585,8 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         s2 = r_data.get("p2_score", 0)
         
         col1, col2 = st.columns(2)
-        with col1:
-            st.metric(label=f"👤 {p1}", value=f"{s1} कुल अंक")
-        with col2:
-            st.metric(label=f"👤 {p2}", value=f"{s2} कुल अंक")
+        col1.metric(label=f"👤 {p1}", value=f"{s1} कुल अंक")
+        col2.metric(label=f"👤 {p2}", value=f"{s2} कुल अंक")
             
         st.markdown("---")
         if s1 > s2:
