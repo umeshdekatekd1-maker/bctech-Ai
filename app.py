@@ -1238,7 +1238,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (ABSOLUTE TURN LOCK & WORKING TIMER)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (ABSOLUTE 100% ISOLATION FIX)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1475,67 +1475,68 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.markdown("---")
 
             # =========================================================================
-            # ABSOLUTE ISOLATION BLOCK: IF IT IS NOT MY TURN, SHOW ONLY WAITING MESSAGE AND STOP
+            # STRICT HARD BOUNDARY: IF NOT MY TURN, RENDER WAITING MESSAGE & EXECUTE st.stop()
             # =========================================================================
             if not is_my_turn:
                 st.info(f"⏳ यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
                 time.sleep(1.5)
                 st.rerun()
-            else:
-                # ACTIVE PLAYER VIEW ONLY (NO LEAKAGE TO WAITING PLAYER)
-                st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
-                st.progress(remaining / 30.0)
-                st.success(f"👉 **यह आपकी बारी है!** विकल्प चुनकर सबमिट करें:")
+                st.stop()  # Yeh code ke aage ke kisi bhi question/option ko render hone se rok dega!
+            
+            # ACTIVE PLAYER VIEW ONLY
+            st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
+            st.progress(remaining / 30.0)
+            st.success(f"👉 **यह आपकी बारी है!** विकल्प चुनकर सबमिट करें:")
 
-                st.markdown(f"### ❓ {current_q_data['q']}")
-                options = current_q_data["options"]
+            st.markdown(f"### ❓ {current_q_data['q']}")
+            options = current_q_data["options"]
+            
+            with st.form(key=f"clean_turn_l{curr_lvl}_q{q_idx}_t{turn}"):
+                ans_choice = st.radio("विकल्प चुनें:", options, index=None)
+                submitted = st.form_submit_button("उत्तर जमा करें & अगला (Submit)")
                 
-                with st.form(key=f"clean_turn_l{curr_lvl}_q{q_idx}_t{turn}"):
-                    ans_choice = st.radio("विकल्प चुनें:", options, index=None)
-                    submitted = st.form_submit_button("उत्तर जमा करें & अगला (Submit)")
+                if submitted:
+                    status_str = ""
+                    if ans_choice is None:
+                        status_str = "उत्तर नहीं दिया (0 अंक)"
+                    else:
+                        if ans_choice == current_q_data["answer"]:
+                            status_str = "सही (Right) (+1 अंक)"
+                            if turn == 1:
+                                r_data["p1_score"] += 1
+                            else:
+                                r_data["p2_score"] += 1
+                        else:
+                            status_str = "गलत (Wrong) (0 अंक)"
                     
-                    if submitted:
-                        status_str = ""
-                        if ans_choice is None:
-                            status_str = "उत्तर नहीं दिया (0 अंक)"
+                    r_data["history_log"].append({
+                        "level": curr_lvl,
+                        "player": active_player,
+                        "question": current_q_data['q'],
+                        "chosen": ans_choice if ans_choice else "None",
+                        "correct": current_q_data["answer"],
+                        "status": status_str
+                    })
+                    
+                    if turn == 1:
+                        r_data["turn"] = 2
+                    else:
+                        r_data["turn"] = 1
+                        r_data["current_q_index"] += 1
+                    
+                    if r_data["current_q_index"] >= max_q_limit:
+                        if curr_lvl < 3:
+                            r_data["game_state"] = "LEVEL_TRANSITION"
                         else:
-                            if ans_choice == current_q_data["answer"]:
-                                status_str = "सही (Right) (+1 अंक)"
-                                if turn == 1:
-                                    r_data["p1_score"] += 1
-                                else:
-                                    r_data["p2_score"] += 1
-                            else:
-                                status_str = "गलत (Wrong) (0 अंक)"
-                        
-                        r_data["history_log"].append({
-                            "level": curr_lvl,
-                            "player": active_player,
-                            "question": current_q_data['q'],
-                            "chosen": ans_choice if ans_choice else "None",
-                            "correct": current_q_data["answer"],
-                            "status": status_str
-                        })
-                        
-                        if turn == 1:
-                            r_data["turn"] = 2
-                        else:
-                            r_data["turn"] = 1
-                            r_data["current_q_index"] += 1
-                        
-                        if r_data["current_q_index"] >= max_q_limit:
-                            if curr_lvl < 3:
-                                r_data["game_state"] = "LEVEL_TRANSITION"
-                            else:
-                                r_data["game_state"] = "RESULT"
+                            r_data["game_state"] = "RESULT"
 
-                        r_data["question_start_time"] = time.time()
-                        save_room_store(rooms)
-                        st.session_state.game_state = r_data["game_state"]
-                        st.rerun()
-
-                if st.button("🔄 स्क्रीन सिंक करें (Refresh View)", key=f"sync_btn_{q_idx}_{turn}"):
+                    r_data["question_start_time"] = time.time()
+                    save_room_store(rooms)
+                    st.session_state.game_state = r_data["game_state"]
                     st.rerun()
+
+            if st.button("🔄 स्क्रीन सिंक करें (Refresh View)", key=f"sync_btn_{q_idx}_{turn}"):
+                st.rerun()
         else:
             if curr_lvl < 3:
                 r_data["game_state"] = "LEVEL_TRANSITION"
