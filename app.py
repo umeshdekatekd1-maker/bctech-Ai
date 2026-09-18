@@ -1238,7 +1238,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (JAPANESE-GRADE ZERO-GHOST ISOLATION)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT TURN-BASED STREAMLIT NATIVE BUTTONS)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1475,99 +1475,62 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.markdown("---")
 
             # =========================================================================
-            # ZERO-GHOST ISOLATION: PURE JS WIPEOUT FOR WAITING PLAYER
+            # PERFECT TURN SEPARATION: WAITING PLAYER SEES ONLY WAITING MESSAGE
             # =========================================================================
             if not is_my_turn:
                 st.info(f"⏳ यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
-                
-                # JavaScript cleaner component to completely wipe any previous DOM elements instantly
-                components.html("""
-                <script>
-                    const doc = window.parent.document;
-                    // Wipe out any lingering quiz buttons or radio inputs from previous turn
-                    const elements = doc.querySelectorAll('button, [data-testid="stRadio"], .stRadio');
-                    elements.forEach(el => {
-                        if (!el.innerText.includes('New Chat') && !el.innerText.includes('सिंक')) {
-                            el.style.display = 'none';
-                        }
-                    });
-                </script>
-                """, height=0)
-
-                time.sleep(1.2)
+                time.sleep(1)
                 st.rerun()
                 st.stop()
             
-            # ACTIVE PLAYER VIEW ONLY
+            # ACTIVE PLAYER VIEW ONLY (Timer, Question, and Options with Streamlit Buttons)
             st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
             st.progress(remaining / 30.0)
-            st.success(f"👉 **यह आपकी बारी है!** नीचे सही विकल्प पर क्लिक करें:")
+            st.success(f"👉 **यह आपकी बारी है!** नीचे सही विकल्प चुनें:")
 
             st.markdown(f"### ❓ {current_q_data['q']}")
             options = current_q_data["options"]
             correct_ans = current_q_data["answer"]
 
-            # Query param check for option selection
-            query_params = st.query_params
-            selected_option = query_params.get("ans_selected", None)
-
-            if selected_option:
-                st.query_params.clear()
-                st.query_params["chat_id"] = current_chat_id
-
-                status_str = ""
-                if selected_option == correct_ans:
-                    status_str = "सही (Right) (+1 अंक)"
-                    if turn == 1:
-                        r_data["p1_score"] += 1
-                    else:
-                        r_data["p2_score"] += 1
-                else:
-                    status_str = "गलत (Wrong) (0 अंक)"
-                
-                r_data["history_log"].append({
-                    "level": curr_lvl,
-                    "player": active_player,
-                    "question": current_q_data['q'],
-                    "chosen": selected_option,
-                    "correct": correct_ans,
-                    "status": status_str
-                })
-                
-                if turn == 1:
-                    r_data["turn"] = 2
-                else:
-                    r_data["turn"] = 1
-                    r_data["current_q_index"] += 1
-                
-                if r_data["current_q_index"] >= max_q_limit:
-                    if curr_lvl < 3:
-                        r_data["game_state"] = "LEVEL_TRANSITION"
-                    else:
-                        r_data["game_state"] = "RESULT"
-
-                r_data["question_start_time"] = time.time()
-                save_room_store(rooms)
-                st.session_state.game_state = r_data["game_state"]
-                st.rerun()
-
-            # Render Custom HTML Buttons for active player
-            buttons_html = """
-            <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
-            """
             for opt in options:
-                safe_opt = opt.replace("'", "\\'")
-                buttons_html += f"""
-                <button onclick="window.parent.location.search = '?chat_id={current_chat_id}&ans_selected={safe_opt}';" 
-                    style="padding: 12px 20px; font-size: 16px; font-weight: 500; text-align: left; background-color: #ffffff; color: #1a73e8; border: 1px solid #dadce0; border-radius: 12px; cursor: pointer; transition: 0.2s;"
-                    onmouseover="this.style.backgroundColor='#e8f0fe'; this.style.borderColor='#4285f4';"
-                    onmouseout="this.style.backgroundColor='#ffffff'; this.style.borderColor='#dadce0';">
-                    👉 {opt}
-                </button>
-                """
-            buttons_html += "</div>"
-            components.html(buttons_html, height=250)
+                if st.button(f"👉 {opt}", key=f"opt_btn_{q_idx}_{opt}"):
+                    status_str = ""
+                    if opt == correct_ans:
+                        status_str = "सही (Right) (+1 अंक)"
+                        if turn == 1:
+                            r_data["p1_score"] += 1
+                        else:
+                            r_data["p2_score"] += 1
+                    else:
+                        status_str = "गलत (Wrong) (0 अंक)"
+                    
+                    r_data["history_log"].append({
+                        "level": curr_lvl,
+                        "player": active_player,
+                        "question": current_q_data['q'],
+                        "chosen": opt,
+                        "correct": correct_ans,
+                        "status": status_str
+                    })
+                    
+                    if turn == 1:
+                        r_data["turn"] = 2
+                    else:
+                        r_data["turn"] = 1
+                        r_data["current_q_index"] += 1
+                    
+                    if r_data["current_q_index"] >= max_q_limit:
+                        if curr_lvl < 3:
+                            r_data["game_state"] = "LEVEL_TRANSITION"
+                        else:
+                            r_data["game_state"] = "RESULT"
 
+                    r_data["question_start_time"] = time.time()
+                    save_room_store(rooms)
+                    st.session_state.game_state = r_data["game_state"]
+                    st.rerun()
+
+            st.markdown("---")
             if st.button("🔄 स्क्रीन सिंक करें (Refresh View)", key=f"sync_btn_{q_idx}_{turn}"):
                 st.rerun()
         else:
