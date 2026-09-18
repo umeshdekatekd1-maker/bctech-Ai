@@ -1238,7 +1238,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT TURN-BASED STREAMLIT NATIVE BUTTONS)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (COLOR-CODED TURN ISOLATION: GREEN vs BLUE)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1475,18 +1475,19 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.markdown("---")
 
             # =========================================================================
-            # PERFECT TURN SEPARATION: WAITING PLAYER SEES ONLY WAITING MESSAGE
+            # COLOR-CODED TURN SEPARATION: 
+            # - WAITING PLAYER (Not my turn): Shows BLUE info box only.
+            # - ACTIVE PLAYER (My turn): Shows GREEN warning/success box, timer, and options.
             # =========================================================================
             if not is_my_turn:
-                st.info(f"⏳ यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
+                st.info(f"🔵 **प्रतीक्षा करें (Waiting):** यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
                 time.sleep(1)
                 st.rerun()
                 st.stop()
             
-            # ACTIVE PLAYER VIEW ONLY (Timer, Question, and Options with Streamlit Buttons)
-            st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
+            # ACTIVE PLAYER VIEW ONLY (Green Theme)
+            st.success(f"🟢 **आपकी बारी (Your Turn)!** शेष समय: **{remaining} सेकंड**")
             st.progress(remaining / 30.0)
-            st.success(f"👉 **यह आपकी बारी है!** नीचे सही विकल्प चुनें:")
 
             st.markdown(f"### ❓ {current_q_data['q']}")
             options = current_q_data["options"]
