@@ -1262,7 +1262,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT MUTEX IF-ELSE VIEW FIX)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (CLEAN MUTEX RENDERING FIX)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1504,10 +1504,10 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             options = current_q_data["options"]
 
             # ==========================================
-            # STRICT MUTEX VIEW: TRUE IF-ELSE SEPARATION
+            # TRUE EXCLUSIVE VIEW: NEVER SHOW BOTH AT ONCE
             # ==========================================
             if is_my_turn:
-                # ONLY FOR ACTIVE PLAYER (Shows Timer, Question Form, and Submit Button)
+                # ONLY FOR ACTIVE PLAYER (Shows Timer, Progress, and Submit Form)
                 st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
                 st.progress(remaining / 30.0)
                 st.success(f"👉 **यह आपकी बारी है!** विकल्प चुनकर सबमिट करें:")
@@ -1556,7 +1556,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         st.session_state.game_state = r_data["game_state"]
                         st.rerun()
             else:
-                # ONLY FOR WAITING PLAYER (Shows ONLY the waiting info box, NO options/forms)
+                # ONLY FOR WAITING PLAYER (Shows ONLY the waiting box, completely isolated)
                 st.info(f"⏳ **यह {active_player} की बारी है। कृपया प्रतीक्षा करें...**")
                 time.sleep(2)
                 st.rerun()
