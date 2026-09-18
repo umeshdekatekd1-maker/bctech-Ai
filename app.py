@@ -1239,7 +1239,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT EXCLUSIVE RENDERING)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT EXCLUSIVE RENDERING & TURN OPTIONS)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1403,7 +1403,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             rooms[curr_code]["p1_score"] = 0
             rooms[curr_code]["p2_score"] = 0
             rooms[curr_code]["turn"] = 1
-            rooms[curr_code]["questions"] = all_qs[:5]  # Level 1: 5 Questions
+            rooms[curr_code]["questions"] = all_qs[:5]  # Level 1: 5 Questions from 25 pool
             rooms[curr_code]["history_log"] = []
             rooms[curr_code]["question_start_time"] = time.time()
             rooms[curr_code]["game_state"] = "PLAYING"
@@ -1481,10 +1481,10 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             options = current_q_data["options"]
 
             # =========================================================================
-            # STRICT MUTEX RENDERING: ONLY ONE BLOCK WILL EXECUTE
+            # STRICT MUTEX RENDERING: ONLY ACTIVE PLAYER SEES OPTIONS & TIMER FORM
             # =========================================================================
             if is_my_turn:
-                # 1. Active Player Screen (Form & Options ONLY)
+                # 1. Active Player View (Shows Timer, Progress, and Submit Form with Options)
                 st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
                 st.progress(remaining / 30.0)
                 st.success(f"👉 **यह आपकी बारी है!** विकल्प चुनकर सबमिट करें:")
@@ -1533,7 +1533,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         st.session_state.game_state = r_data["game_state"]
                         st.rerun()
             else:
-                # 2. Waiting Player Screen (Waiting Info Box ONLY)
+                # 2. Waiting Player View (Shows ONLY waiting message, NO options, NO form)
                 st.info(f"⏳ **यह {active_player} की बारी है। कृपया प्रतीक्षा करें...**")
                 time.sleep(2)
                 st.rerun()
