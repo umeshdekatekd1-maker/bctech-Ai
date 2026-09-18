@@ -1170,7 +1170,7 @@ if query:
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software.
                         - If a user asks HOW to do something in software, politely inform them to contact our branch or visit our website:
                           - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं。\n\nवेबसाइट: {BRANCH_LINK}"
-                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્चનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
+                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્चનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાत લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
                           - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nWebsite: {BRANCH_LINK}"
                         
                         CRITICAL TIMINGS RULE:
@@ -1238,7 +1238,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (ABSOLUTE 100% GHOST-FREE ISOLATION)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (ABSOLUTE 100% BLANK WAITING SCREEN FIX)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1402,7 +1402,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             rooms[curr_code]["p1_score"] = 0
             rooms[curr_code]["p2_score"] = 0
             rooms[curr_code]["turn"] = 1
-            rooms[curr_code]["questions"] = all_qs[:5]  # Level 1: 5 Questions
+            rooms[curr_code]["questions"] = all_qs[:5]
             rooms[curr_code]["history_log"] = []
             rooms[curr_code]["question_start_time"] = time.time()
             rooms[curr_code]["game_state"] = "PLAYING"
@@ -1475,15 +1475,18 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.markdown("---")
 
             # =========================================================================
-            # ABSOLUTE 100% ISOLATION: IF NOT MY TURN, SHOW ONLY WAITING MESSAGE & HALT COMPLETELY
+            # ABSOLUTE HARD BLOCK: IF NOT MY TURN, CLEAR EVERYTHING AND SHOW ONLY WAITING MESSAGE
             # =========================================================================
+            if not is_my_temp_turn := is_my_turn:
+                pass
+
             if not is_my_turn:
                 st.info(f"⏳ यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
-                time.sleep(1.5)
+                time.sleep(1)
                 st.rerun()
-                st.stop()  # Yeh ensure karega ki waiting player ki screen par question ya options ki parchhaai bhi na aaye!
+                st.stop()  # Koyi bhi option ya question load hone se pehle hi script turant ruk jayegi!
             
-            # ACTIVE PLAYER VIEW ONLY
+            # ACTIVE PLAYER VIEW ONLY (Timer & Options)
             st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
             st.progress(remaining / 30.0)
             st.success(f"👉 **यह आपकी बारी है!** विकल्प चुनकर सबमिट करें:")
