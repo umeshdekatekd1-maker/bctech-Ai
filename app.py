@@ -1238,7 +1238,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT TURN-BASED ISOLATION & WORKING TIMER)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (ABSOLUTE TURN LOCK & WORKING TIMER)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1432,7 +1432,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         max_q_limit = 5 if curr_lvl == 1 else 10
         is_my_turn = (st.session_state.player_role == active_role)
 
-        # --- PRECISE COUNTDOWN TIMER LOGIC (30 SECONDS) ---
+        # --- TIMER & TIMEOUT LOGIC ---
         elapsed = time.time() - q_start_time
         remaining = max(0, int(30 - elapsed))
 
@@ -1465,7 +1465,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         if q_idx < len(q_list) and q_idx < max_q_limit:
             current_q_data = q_list[q_idx]
 
-            # HEADER SECTION SHOWS TURN STATUS TO BOTH
+            # HEADER SECTION
             col_a, col_b = st.columns([3, 1])
             with col_a:
                 st.subheader(f"🧠 BC Tech Brain Battle - लेवल {curr_lvl} | सवाल {q_idx + 1} / {max_q_limit}")
@@ -1475,10 +1475,14 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.markdown("---")
 
             # =========================================================================
-            # ABSOLUTE TURN ISOLATION: IF IT IS NOT MY TURN, HIDE QUESTION & OPTIONS ENTIRELY
+            # ABSOLUTE ISOLATION BLOCK: IF IT IS NOT MY TURN, SHOW ONLY WAITING MESSAGE AND STOP
             # =========================================================================
-            if is_my_turn:
-                # ACTIVE PLAYER VIEW: Show question, countdown timer and form options
+            if not is_my_turn:
+                st.info(f"⏳ यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
+                time.sleep(1.5)
+                st.rerun()
+            else:
+                # ACTIVE PLAYER VIEW ONLY (NO LEAKAGE TO WAITING PLAYER)
                 st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
                 st.progress(remaining / 30.0)
                 st.success(f"👉 **यह आपकी बारी है!** विकल्प चुनकर सबमिट करें:")
@@ -1529,14 +1533,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         save_room_store(rooms)
                         st.session_state.game_state = r_data["game_state"]
                         st.rerun()
-            else:
-                # WAITING PLAYER VIEW: Hide question and options completely, show waiting message only
-                st.info(f"⏳ यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
-                st.markdown("---")
-                time.sleep(1.5)
-                st.rerun()
 
-            if is_my_turn:
                 if st.button("🔄 स्क्रीन सिंक करें (Refresh View)", key=f"sync_btn_{q_idx}_{turn}"):
                     st.rerun()
         else:
@@ -1586,7 +1583,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             random.shuffle(all_qs)
             
             r_data["current_level"] = next_lvl
-            r_data["questions"] = all_qs[:10]  # Level 2 and 3 get 10 questions
+            r_data["questions"] = all_qs[:10]
             r_data["current_q_index"] = 0
             r_data["question_start_time"] = time.time()
             r_data["game_state"] = "PLAYING"
