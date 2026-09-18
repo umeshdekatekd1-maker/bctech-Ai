@@ -561,7 +561,7 @@ def clean_val_display(val):
     except Exception:
         return str(val).strip()
 
-# Sidebar - Admin Panel with Permanent Base64 Storage for Papers (No Lock Restriction)
+# Sidebar - Admin Panel with Lock/Unlock Support & Permanent Base64 Storage
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -606,7 +606,8 @@ with st.sidebar:
                         "display_name": base_name,
                         "filename": original_filename,
                         "data_b64": encoded_file,
-                        "mime": mimetype
+                        "mime": mimetype,
+                        "locked": True
                     }
                     save_papers_db(st.session_state.papers_data)
                     st.success(f"Paper '{base_name}' successfully saved permanently!")
@@ -615,9 +616,18 @@ with st.sidebar:
                 st.markdown("**Existing Papers Status:**")
                 for pk, p_info in list(st.session_state.papers_data.items()):
                     d_name = p_info.get("display_name", pk)
+                    is_locked = p_info.get("locked", True)
+                    status_str = "🔒 Locked" if is_locked else "🟢 Unlocked"
                     
-                    st.text(f"{d_name}")
-                    if st.button("🗑️ Delete", key=f"del_{pk}"):
+                    st.text(f"{d_name} ({status_str})")
+                    col_t, col_d = st.columns(2)
+                    
+                    if col_t.button("Toggle Lock", key=f"tog_{pk}"):
+                        st.session_state.papers_data[pk]["locked"] = not is_locked
+                        save_papers_db(st.session_state.papers_data)
+                        st.rerun()
+                        
+                    if col_d.button("🗑️ Delete", key=f"del_{pk}"):
                         del st.session_state.papers_data[pk]
                         save_papers_db(st.session_state.papers_data)
                         st.success(f"Deleted '{d_name}' successfully!")
@@ -868,28 +878,35 @@ if query:
     if paper_requested:
         p_info = st.session_state.papers_data[paper_requested]
         d_name = p_info.get("display_name", paper_requested)
+        is_locked = p_info.get("locked", False)
 
         st.session_state.messages.append({"role": "user", "content": query})
         with st.chat_message("user", avatar="👤"):
             st.write(query)
 
         with st.chat_message("assistant", avatar="🤖"):
-            st.write(f"📂 Here is your requested paper: **{d_name}**")
-            mtype = p_info.get("mime", "")
-            raw_bytes = base64.b64decode(p_info["data_b64"])
-            if "image/" in mtype:
-                st.image(raw_bytes, caption=d_name, use_container_width=True)
-                reply = f"Displayed large image paper: {d_name}"
+            if is_locked:
+                reply = f"Sorry! The paper '{d_name.upper()}' is currently locked and cannot be opened without teacher permission."
+                st.write(reply)
+                st.session_state.messages.append({"role": "assistant", "content": reply})
+                render_voice_and_copy_toolbar(reply, f"locked_p_{len(st.session_state.messages)}", "hi-IN")
             else:
-                st.download_button(
-                    label=f"📂 Open Paper: {d_name}",
-                    data=raw_bytes,
-                    file_name=p_info["filename"],
-                    mime="application/pdf",
-                    key=f"view_btn_{paper_requested}_{len(st.session_state.messages)}"
-                )
-                reply = f"Generated paper view button for: {d_name}"
-            st.session_state.messages.append({"role": "assistant", "content": reply})
+                st.write(f"📂 Here is your requested paper: **{d_name}**")
+                mtype = p_info.get("mime", "")
+                raw_bytes = base64.b64decode(p_info["data_b64"])
+                if "image/" in mtype:
+                    st.image(raw_bytes, caption=d_name, use_container_width=True)
+                    reply = f"Displayed large image paper: {d_name}"
+                else:
+                    st.download_button(
+                        label=f"📂 Open Paper: {d_name}",
+                        data=raw_bytes,
+                        file_name=p_info["filename"],
+                        mime="application/pdf",
+                        key=f"view_btn_{paper_requested}_{len(st.session_state.messages)}"
+                    )
+                    reply = f"Generated paper view button for: {d_name}"
+                st.session_state.messages.append({"role": "assistant", "content": reply})
         persist_current_state()
 
     else:
@@ -1213,7 +1230,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT IF-ELSE EXCLUSIVE FIX)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT EXCLUSIVE RENDER FIX)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
