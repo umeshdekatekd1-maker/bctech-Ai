@@ -295,7 +295,7 @@ QUESTION_BANK = {
         {"q": "वेबसाइट का मुख्य पृष्ठ क्या कहलाता है?", "options": ["होम पेज (Home Page)", "मास्टर पेज", "फर्स्ट पेज", "वेब पेज"], "answer": "होम पेज (Home Page)"},
         {"q": "लाइन ब्रेक देने के लिए HTML में कौन सा टैग उपयोग होता है?", "options": ["<br>", "<lb>", "<break>", "<hr>"], "answer": "<br>"},
         {"q": "HTML का पूर्ण रूप क्या है?", "options": ["Hyper Text Markup Language", "High Text Machine Language", "Hyperlinks and Text Markup", "Home Tool Markup Language"], "answer": "Hyper Text Markup Language"},
-        {"q": "JavaScript किस प्रकार की भाषा है?", "options": ["स्क्रिप्टिंग भाषा (Scripting Language)", "मशीन भाषा", "असेम्बली भाषा", "डेटाबेस भाषा"], "answer": "JavaScript किस प्रकार की भाषा है?"},
+        {"q": "JavaScript किस प्रकार की भाषा है?", "options": ["स्क्रिप्टिंग भाषा (Scripting Language)", "मशीन भाषा", "असेम्बली भाषा", "डेटाबेस भाषा"], "answer": "स्क्रिप्टिंग भाषा (Scripting Language)"},
         {"q": "CSS का उपयोग किस लिए होता है?", "options": ["वेबपेज को डिज़ाइन और स्टाइल करने के लिए", "डेटा स्टोर करने के लिए", "लॉजिक लिखने के लिए", "सर्वर चलाने के लिए"], "answer": "वेबपेज को डिज़ाइन और स्टाइल करने के लिए"},
         {"q": "Python में कमेंट लिखने के लिए किस चिन्ह का उपयोग होता है?", "options": ["#", "//", "/*", "<!--"], "answer": "#"},
         {"q": "इनमें से कौन सा टैग HTML में टेबल बनाने के लिए उपयोग होता है?", "options": ["<table>", "<tab>", "<tr>", "<td>"], "answer": "<table>"},
@@ -1238,7 +1238,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (ABSOLUTE 100% PERFECT FIX)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (JAPANESE-GRADE ZERO-GHOST ISOLATION)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1475,65 +1475,98 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.markdown("---")
 
             # =========================================================================
-            # STRICT GUARD: IF NOT MY TURN, SHOW WAITING MESSAGE ONLY AND STOP IMMEDIATELY
+            # ZERO-GHOST ISOLATION: PURE JS WIPEOUT FOR WAITING PLAYER
             # =========================================================================
             if not is_my_turn:
                 st.info(f"⏳ यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
-                time.sleep(1)
+                
+                # JavaScript cleaner component to completely wipe any previous DOM elements instantly
+                components.html("""
+                <script>
+                    const doc = window.parent.document;
+                    // Wipe out any lingering quiz buttons or radio inputs from previous turn
+                    const elements = doc.querySelectorAll('button, [data-testid="stRadio"], .stRadio');
+                    elements.forEach(el => {
+                        if (!el.innerText.includes('New Chat') && !el.innerText.includes('सिंक')) {
+                            el.style.display = 'none';
+                        }
+                    });
+                </script>
+                """, height=0)
+
+                time.sleep(1.2)
                 st.rerun()
                 st.stop()
             
-            # ACTIVE PLAYER VIEW ONLY (Timer, Question, Options)
+            # ACTIVE PLAYER VIEW ONLY
             st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
             st.progress(remaining / 30.0)
-            st.success(f"👉 **यह आपकी बारी है!** विकल्प चुनकर सबमिट करें:")
+            st.success(f"👉 **यह आपकी बारी है!** नीचे सही विकल्प पर क्लिक करें:")
 
             st.markdown(f"### ❓ {current_q_data['q']}")
             options = current_q_data["options"]
-            
-            with st.form(key=f"clean_turn_l{curr_lvl}_q{q_idx}_t{turn}"):
-                ans_choice = st.radio("विकल्प चुनें:", options, index=None)
-                submitted = st.form_submit_button("उत्तर जमा करें & अगला (Submit)")
-                
-                if submitted:
-                    status_str = ""
-                    if ans_choice is None:
-                        status_str = "उत्तर नहीं दिया (0 अंक)"
-                    else:
-                        if ans_choice == current_q_data["answer"]:
-                            status_str = "सही (Right) (+1 अंक)"
-                            if turn == 1:
-                                r_data["p1_score"] += 1
-                            else:
-                                r_data["p2_score"] += 1
-                        else:
-                            status_str = "गलत (Wrong) (0 अंक)"
-                    
-                    r_data["history_log"].append({
-                        "level": curr_lvl,
-                        "player": active_player,
-                        "question": current_q_data['q'],
-                        "chosen": ans_choice if ans_choice else "None",
-                        "correct": current_q_data["answer"],
-                        "status": status_str
-                    })
-                    
-                    if turn == 1:
-                        r_data["turn"] = 2
-                    else:
-                        r_data["turn"] = 1
-                        r_data["current_q_index"] += 1
-                    
-                    if r_data["current_q_index"] >= max_q_limit:
-                        if curr_lvl < 3:
-                            r_data["game_state"] = "LEVEL_TRANSITION"
-                        else:
-                            r_data["game_state"] = "RESULT"
+            correct_ans = current_q_data["answer"]
 
-                    r_data["question_start_time"] = time.time()
-                    save_room_store(rooms)
-                    st.session_state.game_state = r_data["game_state"]
-                    st.rerun()
+            # Query param check for option selection
+            query_params = st.query_params
+            selected_option = query_params.get("ans_selected", None)
+
+            if selected_option:
+                st.query_params.clear()
+                st.query_params["chat_id"] = current_chat_id
+
+                status_str = ""
+                if selected_option == correct_ans:
+                    status_str = "सही (Right) (+1 अंक)"
+                    if turn == 1:
+                        r_data["p1_score"] += 1
+                    else:
+                        r_data["p2_score"] += 1
+                else:
+                    status_str = "गलत (Wrong) (0 अंक)"
+                
+                r_data["history_log"].append({
+                    "level": curr_lvl,
+                    "player": active_player,
+                    "question": current_q_data['q'],
+                    "chosen": selected_option,
+                    "correct": correct_ans,
+                    "status": status_str
+                })
+                
+                if turn == 1:
+                    r_data["turn"] = 2
+                else:
+                    r_data["turn"] = 1
+                    r_data["current_q_index"] += 1
+                
+                if r_data["current_q_index"] >= max_q_limit:
+                    if curr_lvl < 3:
+                        r_data["game_state"] = "LEVEL_TRANSITION"
+                    else:
+                        r_data["game_state"] = "RESULT"
+
+                r_data["question_start_time"] = time.time()
+                save_room_store(rooms)
+                st.session_state.game_state = r_data["game_state"]
+                st.rerun()
+
+            # Render Custom HTML Buttons for active player
+            buttons_html = """
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
+            """
+            for opt in options:
+                safe_opt = opt.replace("'", "\\'")
+                buttons_html += f"""
+                <button onclick="window.parent.location.search = '?chat_id={current_chat_id}&ans_selected={safe_opt}';" 
+                    style="padding: 12px 20px; font-size: 16px; font-weight: 500; text-align: left; background-color: #ffffff; color: #1a73e8; border: 1px solid #dadce0; border-radius: 12px; cursor: pointer; transition: 0.2s;"
+                    onmouseover="this.style.backgroundColor='#e8f0fe'; this.style.borderColor='#4285f4';"
+                    onmouseout="this.style.backgroundColor='#ffffff'; this.style.borderColor='#dadce0';">
+                    👉 {opt}
+                </button>
+                """
+            buttons_html += "</div>"
+            components.html(buttons_html, height=250)
 
             if st.button("🔄 स्क्रीन सिंक करें (Refresh View)", key=f"sync_btn_{q_idx}_{turn}"):
                 st.rerun()
