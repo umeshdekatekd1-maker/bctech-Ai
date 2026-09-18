@@ -295,7 +295,7 @@ QUESTION_BANK = {
         {"q": "वेबसाइट का मुख्य पृष्ठ क्या कहलाता है?", "options": ["होम पेज (Home Page)", "मास्टर पेज", "फर्स्ट पेज", "वेब पेज"], "answer": "होम पेज (Home Page)"},
         {"q": "लाइन ब्रेक देने के लिए HTML में कौन सा टैग उपयोग होता है?", "options": ["<br>", "<lb>", "<break>", "<hr>"], "answer": "<br>"},
         {"q": "HTML का पूर्ण रूप क्या है?", "options": ["Hyper Text Markup Language", "High Text Machine Language", "Hyperlinks and Text Markup", "Home Tool Markup Language"], "answer": "Hyper Text Markup Language"},
-        {"q": "JavaScript किस प्रकार की भाषा है?", "options": ["स्क्रिप्टिंग भाषा (Scripting Language)", "मशीन भाषा", "असेम्बली भाषा", "डेटाबेस भाषा"], "answer": "स्क्रिप्टिंग भाषा (Scripting Language)"},
+        {"q": "JavaScript किस प्रकार की भाषा है?", "options": ["स्क्रिप्टिंग भाषा (Scripting Language)", "मशीन भाषा", "असेम्बली भाषा", "डेटाबेस भाषा"], "answer": "JavaScript किस प्रकार की भाषा है?"},
         {"q": "CSS का उपयोग किस लिए होता है?", "options": ["वेबपेज को डिज़ाइन और स्टाइल करने के लिए", "डेटा स्टोर करने के लिए", "लॉजिक लिखने के लिए", "सर्वर चलाने के लिए"], "answer": "वेबपेज को डिज़ाइन और स्टाइल करने के लिए"},
         {"q": "Python में कमेंट लिखने के लिए किस चिन्ह का उपयोग होता है?", "options": ["#", "//", "/*", "<!--"], "answer": "#"},
         {"q": "इनमें से कौन सा टैग HTML में टेबल बनाने के लिए उपयोग होता है?", "options": ["<table>", "<tab>", "<tr>", "<td>"], "answer": "<table>"},
@@ -1170,7 +1170,7 @@ if query:
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software.
                         - If a user asks HOW to do something in software, politely inform them to contact our branch or visit our website:
                           - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं。\n\nवेबसाइट: {BRANCH_LINK}"
-                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્चનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાत લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
+                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્चનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
                           - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nWebsite: {BRANCH_LINK}"
                         
                         CRITICAL TIMINGS RULE:
@@ -1238,7 +1238,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (ABSOLUTE 100% BLANK WAITING SCREEN FIX)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (ABSOLUTE 100% PERFECT FIX)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1475,18 +1475,15 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.markdown("---")
 
             # =========================================================================
-            # ABSOLUTE HARD BLOCK: IF NOT MY TURN, CLEAR EVERYTHING AND SHOW ONLY WAITING MESSAGE
+            # STRICT GUARD: IF NOT MY TURN, SHOW WAITING MESSAGE ONLY AND STOP IMMEDIATELY
             # =========================================================================
-            if not is_my_temp_turn := is_my_turn:
-                pass
-
             if not is_my_turn:
                 st.info(f"⏳ यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
                 time.sleep(1)
                 st.rerun()
-                st.stop()  # Koyi bhi option ya question load hone se pehle hi script turant ruk jayegi!
+                st.stop()
             
-            # ACTIVE PLAYER VIEW ONLY (Timer & Options)
+            # ACTIVE PLAYER VIEW ONLY (Timer, Question, Options)
             st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
             st.progress(remaining / 30.0)
             st.success(f"👉 **यह आपकी बारी है!** विकल्प चुनकर सबमिट करें:")
