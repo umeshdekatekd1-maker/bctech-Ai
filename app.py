@@ -1238,7 +1238,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (ABSOLUTE 100% ISOLATION FIX)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (ABSOLUTE 100% GHOST-FREE ISOLATION)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1475,13 +1475,13 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.markdown("---")
 
             # =========================================================================
-            # STRICT HARD BOUNDARY: IF NOT MY TURN, RENDER WAITING MESSAGE & EXECUTE st.stop()
+            # ABSOLUTE 100% ISOLATION: IF NOT MY TURN, SHOW ONLY WAITING MESSAGE & HALT COMPLETELY
             # =========================================================================
             if not is_my_turn:
                 st.info(f"⏳ यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
                 time.sleep(1.5)
                 st.rerun()
-                st.stop()  # Yeh code ke aage ke kisi bhi question/option ko render hone se rok dega!
+                st.stop()  # Yeh ensure karega ki waiting player ki screen par question ya options ki parchhaai bhi na aaye!
             
             # ACTIVE PLAYER VIEW ONLY
             st.warning(f"⏳ **शेष समय (Time Left): {remaining} सेकंड**")
