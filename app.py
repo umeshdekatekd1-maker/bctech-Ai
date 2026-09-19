@@ -185,7 +185,7 @@ if "room_code" in query_params and query_params["room_code"] and st.session_stat
         if "role" in query_params:
             st.session_state.player_role = query_params["role"]
 
-# EXPANDED 75 QUESTIONS PER CATEGORY QUESTION BANK (Divided into 3 pools of 25 each for Level 1, 2, 3)
+# EXPANDED 75 QUESTIONS PER CATEGORY QUESTION BANK (3 pools of 25 each for Level 1, 2, 3)
 QUESTION_BANK = {
     "Basic Computer & Internet": {
         "pool_1": [
@@ -481,8 +481,8 @@ QUESTION_BANK = {
             {"q": "Tally में 'Payroll' फीचर किसके लिए होता है?", "options": ["कर्मचारी वेतन और उपस्थिति (Salary & Attendance)", "बैंक लेन-देन", "स्टॉक एंट्री", "जीएसटी रिपोर्ट"], "answer": "कर्मचारी वेतन और उपस्थिति (Salary & Attendance)"},
             {"q": "Tally में 'Budgets' का क्या उपयोग है?", "options": ["वित्तीय नियंत्रण और योजना बनाने के लिए", "बिल बनाने के लिए", "टैक्स चुकाने के लिए", "खाता बंद करने के लिए"], "answer": "वित्तीय नियंत्रण और योजना बनाने के लिए"},
             {"q": "Tally में 'Order Processing' में कौन से ऑर्डर शामिल हैं?", "options": ["Purchase & Sales Order", "Receipt & Payment", "Contra & Journal", "Debit & Credit Note"], "answer": "Purchase & Sales Order"},
-            {"q": "Tally में 'Debit Note' वाउचर का उपयोग कब होता है?", "options": ["खरीदा हुआ माल वापस करने पर (Purchase Return)", "बिक्री वापसी", "नकद प्राप्ति", "भुगतान"], "answer": "खरीदा हुआ माल वापस करने पर (Purchase Return)"},
-            {"q": "Tally में 'Credit Note' वाउचर का उपयोग कब होता है?", "options": ["बेचा हुआ माल वापस मिलने पर (Sales Return)", "खरीद वापसी", "खर्च", "आय"], "answer": "बेचा हुआ माल वापस मिलने पर (Sales Return)"},
+            {"q": "Tally में 'Debit Note' वाउचर का उपयोग कब होता है?", "options": ["खरीद वापस करने पर (Purchase Return)", "बिक्री वापसी", "नकद प्राप्ति", "भुगतान"], "answer": "खरीद वापस करने पर (Purchase Return)"},
+            {"q": "Tally में 'Credit Note' वाउचर का उपयोग कब होता है?", "options": ["बिका हुआ माल वापस मिलने पर (Sales Return)", "खरीद वापसी", "खर्च", "आय"], "answer": "बिका हुआ माल वापस मिलने पर (Sales Return)"},
             {"q": "Tally में 'Memorandum Voucher' किस प्रकार का वाउचर है?", "options": ["नॉन-अकाउंटिंग वाउचर (याददाश्त के लिए)", "ओरिजिनल अकाउंटिंग", "कैश वाउचर", "बैंक वाउचर"], "answer": "नॉन-अकाउंटिंग वाउचर (याददाश्त के लिए)"},
             {"q": "Tally में 'Reversing Journal' वाउचर का उपयोग किसके लिए होता है?", "options": ["एंटीसिपेटेड एन्ट्रीज और एडजस्टमेंट के लिए", "दैनिक बिक्री", "स्टॉक एंट्री", "सैलरी"], "answer": "एंटीसिपेटेड एन्ट्रीज और एडजस्टमेंट के लिए"},
             {"q": "Tally Prime में कंपनी का डेटा किस फोल्डर में मुख्य रूप से स्टोर होता है?", "options": ["Data Folder", "System 32", "Program Files", "Temp Folder"], "answer": "Data Folder"},
@@ -1401,7 +1401,7 @@ if query:
                                     full_reply += "પ્રૅક્ટિકલ ટેસ્ટ:\n"
                                     for pk, pv in valid_practical:
                                         full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
-                                    full_reply += f"- કુલ પ્રૅક્ટિકल: {tot_prac}\n\n"
+                                    full_reply += f"- કુલ પ્રૅક્ટિકલ: {tot_prac}\n\n"
                                 full_reply += f"કુલ ગુણ: {total_obtained} / {max_total}\n"
                                 full_reply += f"ટકાવારી: {percentage}%\n\n"
                                 full_reply += f"{motivational_tip}\n\n"
@@ -1530,7 +1530,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (75 Qs POOL STRUCTURE & AUTO-RECOVERY)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT 30s TIMEOUT & 75 Qs POOL)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1695,7 +1695,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             rooms = load_room_store()
             curr_code = st.session_state.active_room_code
             
-            # Level 1 gets 5 random questions shuffled from Pool 1 (25 questions)
             pool_1_qs = QUESTION_BANK[cat_choice]["pool_1"].copy()
             random.shuffle(pool_1_qs)
             selected_qs = pool_1_qs[:5]
@@ -1736,11 +1735,11 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         max_q_limit = 5 if curr_lvl == 1 else 10
         is_my_turn = (st.session_state.player_role == active_role)
 
-        # --- TIMER & TIMEOUT LOGIC ---
+        # --- STRICT 30-SECOND TIMEOUT CHECK ---
         elapsed = time.time() - q_start_time
         remaining = max(0, int(30 - elapsed))
 
-        if is_my_turn and remaining == 0:
+        if remaining == 0:
             r_data["history_log"].append({
                 "level": curr_lvl,
                 "player": active_player,
@@ -1779,10 +1778,10 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.markdown("---")
 
             # =========================================================================
-            # COLOR-CODED TURN SEPARATION WITH RECONNECT SAFETY
+            # COLOR-CODED TURN SEPARATION
             # =========================================================================
             if not is_my_turn:
-                st.info(f"🔵 **प्रतीक्षा करें (Waiting):** यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
+                st.info(f"🔵 **प्रतीक्षा करें (Waiting):** यह **{active_player}** की बारी है। (शेष समय: {remaining}s) कृपया प्रतीक्षा करें...")
                 time.sleep(1)
                 st.rerun()
                 st.stop()
@@ -1880,12 +1879,11 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         if st.button(f"लेवल {next_lvl} पर आगे बढ़ें 🚀"):
             cat = r_data.get("category", "Basic Computer & Internet")
             
-            # Select appropriate pool based on next level (Level 2 gets pool_2, Level 3 gets pool_3)
             pool_key = f"pool_{next_lvl}"
             if pool_key in QUESTION_BANK[cat]:
                 next_pool = QUESTION_BANK[cat][pool_key].copy()
                 random.shuffle(next_pool)
-                next_qs = next_pool[:10]  # 10 questions for level 2 and 3
+                next_qs = next_pool[:10]
             else:
                 next_qs = []
 
