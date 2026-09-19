@@ -164,7 +164,7 @@ def save_room_store(rooms):
 if "papers_data" not in st.session_state:
     st.session_state.papers_data = load_papers_db()
 
-# Initialize Quiz Game Session State
+# Initialize Quiz Game Session State with Auto-Recovery check from query params / storage
 if "game_state" not in st.session_state:
     st.session_state.game_state = "IDLE"
 
@@ -173,6 +173,17 @@ if "active_room_code" not in st.session_state:
 
 if "player_role" not in st.session_state:
     st.session_state.player_role = None
+
+# Auto-Recovery check from query params if room code exists
+query_params = st.query_params
+if "room_code" in query_params and query_params["room_code"] and st.session_state.game_state == "IDLE":
+    r_code = query_params["room_code"].strip().upper()
+    all_rooms = load_room_store()
+    if r_code in all_rooms:
+        st.session_state.active_room_code = r_code
+        st.session_state.game_state = all_rooms[r_code].get("game_state", "PLAYING")
+        if "role" in query_params:
+            st.session_state.player_role = query_params["role"]
 
 QUESTION_BANK = {
     "Basic Computer & Internet": [
@@ -1238,7 +1249,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (COLOR-CODED TURN ISOLATION: GREEN vs BLUE)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (AUTO-RECOVERY & PERSISTENT SYNC)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1300,6 +1311,8 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                     }
                     save_room_store(rooms)
                     st.session_state.game_state = "WAITING"
+                    st.query_params["room_code"] = code
+                    st.query_params["role"] = "P1"
                     st.success(f"Battle Code जनरेट हो गया: {code}")
                     st.rerun()
                 else:
@@ -1326,6 +1339,8 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         st.session_state.active_room_code = matched_key
                         st.session_state.player_role = "P2"
                         st.session_state.game_state = "CATEGORY"
+                        st.query_params["room_code"] = matched_key
+                        st.query_params["role"] = "P2"
                         st.success("सफलतापूर्वक Battle Zone से कनेक्ट हो गए!")
                         st.rerun()
                     else:
@@ -1335,6 +1350,8 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
         if st.button("⬅️ वापस चैट पर जाएं"):
             st.session_state.game_state = "IDLE"
+            st.query_params.clear()
+            st.query_params["chat_id"] = current_chat_id
             st.rerun()
 
     elif st.session_state.game_state == "WAITING":
@@ -1369,6 +1386,8 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                     st.session_state.active_room_code = matched_key
                     st.session_state.player_role = "P2"
                     st.session_state.game_state = "CATEGORY"
+                    st.query_params["room_code"] = matched_key
+                    st.query_params["role"] = "P2"
                     st.success("सफलतापूर्वक कनेक्ट हो गए!")
                     st.rerun()
                 else:
@@ -1381,6 +1400,8 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
         if st.button("❌ गेम रद्द करें"):
             st.session_state.game_state = "IDLE"
+            st.query_params.clear()
+            st.query_params["chat_id"] = current_chat_id
             st.rerun()
 
     elif st.session_state.game_state == "CATEGORY":
@@ -1475,9 +1496,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.markdown("---")
 
             # =========================================================================
-            # COLOR-CODED TURN SEPARATION: 
-            # - WAITING PLAYER (Not my turn): Shows BLUE info box only.
-            # - ACTIVE PLAYER (My turn): Shows GREEN warning/success box, timer, and options.
+            # COLOR-CODED TURN SEPARATION WITH RECONNECT SAFETY
             # =========================================================================
             if not is_my_turn:
                 st.info(f"🔵 **प्रतीक्षा करें (Waiting):** यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
@@ -1627,4 +1646,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         if st.button("🔄 दोबारा खेलें (Play Again)"):
             st.session_state.game_state = "IDLE"
             st.session_state.active_room_code = None
+            st.query_params.clear()
+            st.query_params["chat_id"] = current_chat_id
             st.rerun()
