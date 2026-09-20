@@ -1416,7 +1416,7 @@ if query:
                                     full_reply += "પ્રૅક્ટિકલ ટેસ્ટ:\n"
                                     for pk, pv in valid_practical:
                                         full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
-                                    full_reply += f"- કુલ પ્રૅક્ટિકल: {tot_prac}\n\n"
+                                    full_reply += f"- કુલ પ્રૅક્ટિકલ: {tot_prac}\n\n"
                                 full_reply += f"કુલ ગુણ: {total_obtained} / {max_total}\n"
                                 full_reply += f"ટકાવારી: {percentage}%\n\n"
                                 full_reply += f"{motivational_tip}\n\n"
@@ -1448,7 +1448,7 @@ if query:
                                         full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
                                     full_reply += f"- Total Practical: {tot_prac}\n\n"
                                 full_reply += f"Total Marks: {total_obtained} / {max_total}\n"
-                                full_reply: f"Percentage: {percentage}%\n\n"
+                                full_reply += f"Percentage: {percentage}%\n\n"
                                 full_reply += f"{motivational_tip}\n\n"
 
                         st.markdown(full_reply.strip())
@@ -1923,7 +1923,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
     elif st.session_state.game_state == "RESULT":
         rooms = load_room_store()
--       curr_code = st.session_state.active_room_code
+        curr_code = st.session_state.active_room_code
         r_data = rooms.get(curr_code, {})
         
         st.balloons()
