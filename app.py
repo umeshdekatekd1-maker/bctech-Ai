@@ -108,9 +108,10 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- PERSISTENT STORAGE DB MANAGER WITH FAIL-SAFE BACKUP ---
+# --- BULLET-PROOF PERSISTENT STORAGE DB MANAGER ---
 DB_FILE = "bctech_chat_storage.json"
 PAPERS_META_FILE = "bctech_papers_store.json"
+BACKUP_PAPERS_FILE = "bctech_papers_backup.json"
 GAME_ROOMS_FILE = "bctech_game_rooms.json"
 
 def load_db():
@@ -131,17 +132,33 @@ def save_db(db):
 
 def load_papers_db():
     data = {}
+    # First check main papers file
     if os.path.exists(PAPERS_META_FILE):
         try:
             with open(PAPERS_META_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
         except Exception:
             data = {}
+    
+    # If empty, check bullet-proof backup file
+    if not data and os.path.exists(BACKUP_PAPERS_FILE):
+        try:
+            with open(BACKUP_PAPERS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            # Restore main file from backup
+            with open(PAPERS_META_FILE, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        except Exception:
+            pass
     return data
 
 def save_papers_db(papers_db):
     try:
+        # Save to main file
         with open(PAPERS_META_FILE, "w", encoding="utf-8") as f:
+            json.dump(papers_db, f, ensure_ascii=False, indent=2)
+        # Simultaneously save to fail-safe backup file
+        with open(BACKUP_PAPERS_FILE, "w", encoding="utf-8") as f:
             json.dump(papers_db, f, ensure_ascii=False, indent=2)
     except Exception:
         pass
@@ -1468,7 +1485,7 @@ if query:
                         CRITICAL LIVE DATE & TIME INSTRUCTIONS (ABSOLUTE TRUTH - DYNAMIC):
                         - Current Live Exact Date and Time (IST): {formatted_date_en} at {formatted_time}.
                         - Today in Hindi: आज {formatted_date_hi} है, और समय {formatted_time} हो रहा है।
-                        - When a user asks "aaj kya hai" or about today's date/day/time, you MUST use this exact current live date and time dynamically without hardcoding any old date.
+                        - When a user asks "aaj kya hai" or about today's date/day/time, you MUST use this exact current live date and time dynamically.
                         
                         CRITICAL SOFTWARE TUTORIAL & PRACTICAL INSTRUCTION RESTRICTION (STRICTEST RULE):
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software.
@@ -1943,7 +1960,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
         if st.button("🔄 दोबारा खेलें (Play Again)"):
             st.session_state.game_state = "IDLE"
-            st.active_room_code = None
+            st.session_state.active_room_code = None
             st.query_params.clear()
             st.query_params["chat_id"] = current_chat_id
             st.rerun()
