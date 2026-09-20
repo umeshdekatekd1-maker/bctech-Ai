@@ -165,7 +165,6 @@ def save_room_store(rooms):
 if "papers_data" not in st.session_state:
     st.session_state.papers_data = load_papers_db()
 else:
-    # Safe auto-sync if session state is empty but file has data
     disk_papers = load_papers_db()
     if disk_papers and not st.session_state.papers_data:
         st.session_state.papers_data = disk_papers
@@ -180,7 +179,6 @@ if "active_room_code" not in st.session_state:
 if "player_role" not in st.session_state:
     st.session_state.player_role = None
 
-# Auto-Recovery check from query params if room code exists
 query_params = st.query_params
 if "room_code" in query_params and query_params["room_code"] and st.session_state.game_state == "IDLE":
     r_code = query_params["room_code"].strip().upper()
@@ -1450,19 +1448,27 @@ if query:
                     else:
                         client = Groq(api_key=st.secrets["GROQ_API_KEY"])
                         
+                        # --- REAL-TIME LIVE DATE & TIME INSTRUCTIONS ---
                         ist_zone = timezone(timedelta(hours=5, minutes=30))
                         current_ist_dt = datetime.now(ist_zone)
                         
-                        lang_name = "Gujarati" if lang == "GUJARATI" else ("Hindi" if lang == "HINDI" else "English")
+                        days_map_hi = {"Monday": "सोमवार", "Tuesday": "मंगलवार", "Wednesday": "बुधवार", "Thursday": "गुरुवार", "Friday": "शुक्रवार", "Saturday": "शनिवार", "Sunday": "रविवार"}
+                        months_map_hi = {1: "जनवरी", 2: "फरवरी", 3: "मार्च", 4: "अप्रैल", 5: "मई", 6: "जून", 7: "जुलाई", 8: "अगस्त", 9: "सितंबर", 10: "अक्टूबर", 11: "नवंबर", 12: "दिसंबर"}
+                        
+                        eng_day = current_ist_dt.strftime("%A")
+                        hi_day = days_map_hi.get(eng_day, eng_day)
+                        hi_month = months_map_hi.get(current_ist_dt.month, "")
+                        formatted_date_hi = f"{current_ist_dt.day} {hi_month} {current_ist_dt.year}, {hi_day}"
+                        formatted_date_en = current_ist_dt.strftime("%A, %B %d, %Y")
+                        formatted_time = current_ist_dt.strftime("%I:%M %p")
                         
                         system_prop = f"""
                         You are an expert, highly knowledgeable, and precise AI Assistant for BC Tech Computer Education, Surat, Gujarat, India.
                         
-                        CRITICAL LIVE DATE & TIME INSTRUCTIONS (ABSOLUTE TRUTH):
-                        - Current Live Exact Date and Time (IST): Wednesday, September 16, 2026.
-                        - Current Day: बुधवार (Wednesday).
-                        - Current Date: 16 सितंबर 2026 (September 16, 2026).
-                        - When a user asks "aaj kya hai" or about today, you MUST state the exact current live date and day precisely: "आज 16 सितंबर 2026, बुधवार है।"
+                        CRITICAL LIVE DATE & TIME INSTRUCTIONS (ABSOLUTE TRUTH - DYNAMIC):
+                        - Current Live Exact Date and Time (IST): {formatted_date_en} at {formatted_time}.
+                        - Today in Hindi: आज {formatted_date_hi} है, और समय {formatted_time} हो रहा है।
+                        - When a user asks "aaj kya hai" or about today's date/day/time, you MUST use this exact current live date and time dynamically without hardcoding any old date.
                         
                         CRITICAL SOFTWARE TUTORIAL & PRACTICAL INSTRUCTION RESTRICTION (STRICTEST RULE):
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software.
@@ -1937,7 +1943,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
         if st.button("🔄 दोबारा खेलें (Play Again)"):
             st.session_state.game_state = "IDLE"
-            st.session_state.active_room_code = None
+            st.active_room_code = None
             st.query_params.clear()
             st.query_params["chat_id"] = current_chat_id
             st.rerun()
