@@ -322,7 +322,7 @@ QUESTION_BANK = {
             {"q": "CorelDraw में 'Intersects' कमांड का क्या कार्य है?", "options": ["दो ऑब्जेक्ट्स के कॉमन हिस्से को निकालना", "जोड़ना", "काटना", "अलग करना"], "answer": "दो ऑब्जेक्ट्स के कॉमन हिस्से को निकालना"},
             {"q": "CorelDraw में ग्रिड (Grid) ऑन करने की शॉर्टकट की क्या है?", "options": ["Ctrl + Y", "Ctrl + G", "Ctrl + Shift + G", "F7"], "answer": "Ctrl + Y"},
             {"q": "CorelDraw में गाइडलाइन (Guideline) लाने के लिए कहाँ क्लिक करते हैं?", "options": ["Ruler से खींचकर", "View menu", "Edit menu", "File menu"], "answer": "Ruler से खींचकर"},
-            {"q": "CorelDraw में 'Artistic Text' की विशेषता क्या है?", "options": ["स्पेशल इफेक्ट्स और डिजाइनिंग में आसानी", "लंबा पैराग्राफ लिखना", "टेबल बनाना", "કलर करना"], "answer": "स्पेशल इफेक्ट्स और डिजाइनिंग में आसानी"},
+            {"q": "CorelDraw में 'Artistic Text' की विशेषता क्या है?", "options": ["स्पेशल इफेक्ट्स और डिजाइनिंग में आसानी", "लंबा पैराग्राफ लिखना", "टेबल बनाना", "कलर करना"], "answer": "स्पेशल इफेक्ट्स और डिजाइनिंग में आसानी"},
             {"q": "CorelDraw में 'Paragraph Text' किसके लिए उपयुक्त है?", "options": ["लंबे आर्टिकल और डॉक्यूमेंट", "लोगो", "सिंबल", "बटन"], "answer": "लंबे आर्टिकल और डॉक्यूमेंट"},
             {"q": "CorelDraw में 'Shape Tool' की शॉर्टकट की क्या है?", "options": ["F10", "F6", "F7", "F8"], "answer": "F10"},
             {"q": "CorelDraw में 'Pick Tool' की शॉर्टकट की क्या है?", "options": ["Spacebar", "F1", "F5", "F9"], "answer": "Spacebar"},
@@ -1416,7 +1416,7 @@ if query:
                                     full_reply += "પ્રૅક્ટિકલ ટેસ્ટ:\n"
                                     for pk, pv in valid_practical:
                                         full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
-                                    full_reply += f"- કુલ પ્રૅક્ટિકલ: {tot_prac}\n\n"
+                                    full_reply += f"- કુલ પ્રૅક્ટિકल: {tot_prac}\n\n"
                                 full_reply += f"કુલ ગુણ: {total_obtained} / {max_total}\n"
                                 full_reply += f"ટકાવારી: {percentage}%\n\n"
                                 full_reply += f"{motivational_tip}\n\n"
@@ -1448,7 +1448,7 @@ if query:
                                         full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
                                     full_reply += f"- Total Practical: {tot_prac}\n\n"
                                 full_reply += f"Total Marks: {total_obtained} / {max_total}\n"
-                                full_reply += f"Percentage: {percentage}%\n\n"
+                                full_reply: f"Percentage: {percentage}%\n\n"
                                 full_reply += f"{motivational_tip}\n\n"
 
                         st.markdown(full_reply.strip())
@@ -1482,7 +1482,7 @@ if query:
                         CRITICAL LIVE DATE & FESTIVAL ACCURACY INSTRUCTIONS:
                         - Current Live Exact Date and Time (IST): {formatted_date_en} at {formatted_time}.
                         - Today in Hindi: आज {formatted_date_hi} है, और समय {formatted_time} हो रहा है।
-                        - When a user asks about any festival, date, or tithi (e.g., Anant Chaturdashi, Ganesh Visarjan, Diwali, etc.), you must verify calculations precisely according to the Hindu Panchang or Gregorian calendar for the year {current_ist_dt.year}. Never give generic, outdated, or randomized incorrect dates. Provide clear, accurate, and perfectly structured details.
+                        - When a user asks about any festival, date, or tithi (e.g., Raksha Bandhan 2027, Anant Chaturdashi, etc.), you must verify calculations precisely according to the Hindu Panchang or Gregorian calendar for the target year. For instance, Raksha Bandhan in 2027 falls on August 17, 2027 (Tuesday). Never guess or provide random incorrect dates. Always double-check accurate calendar data.
                         
                         CRITICAL SOFTWARE TUTORIAL & PRACTICAL INSTRUCTION RESTRICTION (STRICTEST RULE):
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software.
@@ -1923,7 +1923,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
     elif st.session_state.game_state == "RESULT":
         rooms = load_room_store()
-        curr_code = st.session_state.active_room_code
+-       curr_code = st.session_state.active_room_code
         r_data = rooms.get(curr_code, {})
         
         st.balloons()
