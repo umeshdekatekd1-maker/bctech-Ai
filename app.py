@@ -475,7 +475,7 @@ QUESTION_BANK = {
             {"q": "Tally Prime में 'Switch To' फीचर की शॉर्टकट की क्या है?", "options": ["Ctrl + G", "Alt + G", "Alt + S", "Ctrl + S"], "answer": "Ctrl + G"},
             {"q": "Tally में 'Godown' या लोकेशन का फीचर किस उद्देश्य से होता है?", "options": ["गोदामवार स्टॉक प्रबंधन के लिए", "कैश प्रबंधन", "बैंक रिकॉन्सिलेशन", "जीएसटी फाइलिंग"], "answer": "गोदामवार स्टॉक प्रबंधन के लिए"},
             {"q": "Tally में 'Batch-wise Details' का उपयोग किसलिए होता है?", "options": ["मैन्युफैक्चरिंग और एक्सपायरी डेट ट्रैक करने के लिए", "कर्मचारियों के लिए", "सैलरी के लिए", "लोन के लिए"], "answer": "मैन्युफैक्चरिंग और एक्सपायरी डेट ट्रैक करने के लिए"},
-            {"q": "Tally में 'Price Levels' का क्या उपयोग है?", "options": ["विभिन्न ग्राहकों के लिए अलग मूल्य सूची तय करना", "डिस्काउंट देना", "टैक्स लगाना", "ब्याज जोड़ना"], "answer": "विभिन्न ग्राहकों के लिए अलग मूल्य सूची तय करना"},
+            {"q": "Tally में 'Price Levels' का क्या उपयोग है?", "options": ["विभिन्न ग्राहकों के लिए अलग मूल्य सूची तय करना", "डिस्ककाउंट देना", "टैक्स लगाना", "ब्याज जोड़ना"], "answer": "विभिन्न ग्राहकों के लिए अलग मूल्य सूची तय करना"},
             {"q": "Tally में 'Cost Centres' का उपयोग किसके लिए होता है?", "options": ["लागत और आय का हिसाब रखने के लिए", "स्टॉक गिनने के लिए", "बैंक खाता जोड़ने के लिए", "बैलेंस शीट देखने के लिए"], "answer": "लागत और आय का हिसाब रखने के लिए"},
             {"q": "Tally में 'Interest Calculation' का मुख्य कार्य क्या है?", "options": ["उधार पर ब्याज की गणना करना", "छूट देना", "कमीशन जोड़ना", "जीएसटी निकालना"], "answer": "उधार पर ब्याज की गणना करना"},
             {"q": "Tally में 'Payroll' फीचर किसके लिए होता है?", "options": ["कर्मचारी वेतन और उपस्थिति (Salary & Attendance)", "बैंक लेन-देन", "स्टॉक एंट्री", "जीएसटी रिपोर्ट"], "answer": "कर्मचारी वेतन और उपस्थिति (Salary & Attendance)"},
@@ -1462,7 +1462,7 @@ if query:
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software.
                         - If a user asks HOW to do something in software, politely inform them to contact our branch or visit our website:
                           - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं。\n\nवेबसाइट: {BRANCH_LINK}"
-                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્चનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાत લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
+                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્चનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
                           - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nWebsite: {BRANCH_LINK}"
                         
                         CRITICAL TIMINGS RULE:
@@ -1530,7 +1530,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (TURN-BASED TIMER ISOLATION)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STABLE MULTIPLAYER ARENA)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1777,16 +1777,14 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             st.markdown("---")
 
-            # =========================================================================
-            # TURN SEPARATION: WAITING PLAYER GETS NO TIMER DISPLAY, ACTIVE PLAYER GETS TIMER
-            # =========================================================================
+            # TURN ISOLATION: WAITING PLAYER GETS NO TIMER, ACTIVE PLAYER GETS TIMER
             if not is_my_turn:
                 st.info(f"🔵 **प्रतीक्षा करें (Waiting):** यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
                 time.sleep(1)
                 st.rerun()
                 st.stop()
             
-            # ACTIVE PLAYER VIEW ONLY (Green Theme with 30s Timer Display)
+            # ACTIVE PLAYER VIEW ONLY
             st.success(f"🟢 **आपकी बारी (Your Turn)!** शेष समय: **{remaining} सेकंड**")
             st.progress(remaining / 30.0)
 
