@@ -108,7 +108,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- PERSISTENT STORAGE DB MANAGER ---
+# --- PERSISTENT STORAGE DB MANAGER WITH FAIL-SAFE BACKUP ---
 DB_FILE = "bctech_chat_storage.json"
 PAPERS_META_FILE = "bctech_papers_store.json"
 GAME_ROOMS_FILE = "bctech_game_rooms.json"
@@ -130,13 +130,14 @@ def save_db(db):
         pass
 
 def load_papers_db():
+    data = {}
     if os.path.exists(PAPERS_META_FILE):
         try:
             with open(PAPERS_META_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
         except Exception:
-            return {}
-    return {}
+            data = {}
+    return data
 
 def save_papers_db(papers_db):
     try:
@@ -163,6 +164,11 @@ def save_room_store(rooms):
 
 if "papers_data" not in st.session_state:
     st.session_state.papers_data = load_papers_db()
+else:
+    # Safe auto-sync if session state is empty but file has data
+    disk_papers = load_papers_db()
+    if disk_papers and not st.session_state.papers_data:
+        st.session_state.papers_data = disk_papers
 
 # Initialize Quiz Game Session State
 if "game_state" not in st.session_state:
@@ -1462,7 +1468,7 @@ if query:
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software.
                         - If a user asks HOW to do something in software, politely inform them to contact our branch or visit our website:
                           - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं。\n\nवेबसाइट: {BRANCH_LINK}"
-                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્चનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
+                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્चનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાत લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
                           - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nWebsite: {BRANCH_LINK}"
                         
                         CRITICAL TIMINGS RULE:
@@ -1530,7 +1536,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STABLE MULTIPLAYER ARENA)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (FAIL-SAFE PERSISTENT ARENA)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
