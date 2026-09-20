@@ -132,7 +132,6 @@ def save_db(db):
 
 def load_papers_db():
     data = {}
-    # First check main papers file
     if os.path.exists(PAPERS_META_FILE):
         try:
             with open(PAPERS_META_FILE, "r", encoding="utf-8") as f:
@@ -140,12 +139,10 @@ def load_papers_db():
         except Exception:
             data = {}
     
-    # If empty, check bullet-proof backup file
     if not data and os.path.exists(BACKUP_PAPERS_FILE):
         try:
             with open(BACKUP_PAPERS_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            # Restore main file from backup
             with open(PAPERS_META_FILE, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception:
@@ -154,10 +151,8 @@ def load_papers_db():
 
 def save_papers_db(papers_db):
     try:
-        # Save to main file
         with open(PAPERS_META_FILE, "w", encoding="utf-8") as f:
             json.dump(papers_db, f, ensure_ascii=False, indent=2)
-        # Simultaneously save to fail-safe backup file
         with open(BACKUP_PAPERS_FILE, "w", encoding="utf-8") as f:
             json.dump(papers_db, f, ensure_ascii=False, indent=2)
     except Exception:
@@ -186,7 +181,6 @@ else:
     if disk_papers and not st.session_state.papers_data:
         st.session_state.papers_data = disk_papers
 
-# Initialize Quiz Game Session State
 if "game_state" not in st.session_state:
     st.session_state.game_state = "IDLE"
 
@@ -328,7 +322,7 @@ QUESTION_BANK = {
             {"q": "CorelDraw में 'Intersects' कमांड का क्या कार्य है?", "options": ["दो ऑब्जेक्ट्स के कॉमन हिस्से को निकालना", "जोड़ना", "काटना", "अलग करना"], "answer": "दो ऑब्जेक्ट्स के कॉमन हिस्से को निकालना"},
             {"q": "CorelDraw में ग्रिड (Grid) ऑन करने की शॉर्टकट की क्या है?", "options": ["Ctrl + Y", "Ctrl + G", "Ctrl + Shift + G", "F7"], "answer": "Ctrl + Y"},
             {"q": "CorelDraw में गाइडलाइन (Guideline) लाने के लिए कहाँ क्लिक करते हैं?", "options": ["Ruler से खींचकर", "View menu", "Edit menu", "File menu"], "answer": "Ruler से खींचकर"},
-            {"q": "CorelDraw में 'Artistic Text' की विशेषता क्या है?", "options": ["स्पेशल इफेक्ट्स और डिजाइनिंग में आसानी", "लंबा पैराग्राफ लिखना", "टेबल बनाना", "कलर करना"], "answer": "स्पेशल इफेक्ट्स और डिजाइनिंग में आसानी"},
+            {"q": "CorelDraw में 'Artistic Text' की विशेषता क्या है?", "options": ["स्पेशल इफेक्ट्स और डिजाइनिंग में आसानी", "लंबा पैराग्राफ लिखना", "टेबल बनाना", "કलर करना"], "answer": "स्पेशल इफेक्ट्स और डिजाइनिंग में आसानी"},
             {"q": "CorelDraw में 'Paragraph Text' किसके लिए उपयुक्त है?", "options": ["लंबे आर्टिकल और डॉक्यूमेंट", "लोगो", "सिंबल", "बटन"], "answer": "लंबे आर्टिकल और डॉक्यूमेंट"},
             {"q": "CorelDraw में 'Shape Tool' की शॉर्टकट की क्या है?", "options": ["F10", "F6", "F7", "F8"], "answer": "F10"},
             {"q": "CorelDraw में 'Pick Tool' की शॉर्टकट की क्या है?", "options": ["Spacebar", "F1", "F5", "F9"], "answer": "Spacebar"},
@@ -1465,7 +1459,7 @@ if query:
                     else:
                         client = Groq(api_key=st.secrets["GROQ_API_KEY"])
                         
-                        # --- REAL-TIME LIVE DATE & TIME INSTRUCTIONS ---
+                        # --- STRICT REAL-TIME LIVE DATE & FESTIVAL ACCURACY INSTRUCTIONS ---
                         ist_zone = timezone(timedelta(hours=5, minutes=30))
                         current_ist_dt = datetime.now(ist_zone)
                         
@@ -1480,12 +1474,15 @@ if query:
                         formatted_time = current_ist_dt.strftime("%I:%M %p")
                         
                         system_prop = f"""
-                        You are an expert, highly knowledgeable, and precise AI Assistant for BC Tech Computer Education, Surat, Gujarat, India.
+                        You are an expert, highly knowledgeable, fluent, and precise AI Assistant for BC Tech Computer Education, Surat, Gujarat, India.
                         
-                        CRITICAL LIVE DATE & TIME INSTRUCTIONS (ABSOLUTE TRUTH - DYNAMIC):
+                        CRITICAL LANGUAGE & GRAMMAR RULE:
+                        - Always respond in flawless, natural, and grammatically correct Hindi or Gujarati depending on the user's language. Never write broken or ungrammatical sentences (tuti-futi hindi). Ensure high linguistic quality.
+                        
+                        CRITICAL LIVE DATE & FESTIVAL ACCURACY INSTRUCTIONS:
                         - Current Live Exact Date and Time (IST): {formatted_date_en} at {formatted_time}.
                         - Today in Hindi: आज {formatted_date_hi} है, और समय {formatted_time} हो रहा है।
-                        - When a user asks "aaj kya hai" or about today's date/day/time, you MUST use this exact current live date and time dynamically.
+                        - When a user asks about any festival, date, or tithi (e.g., Anant Chaturdashi, Ganesh Visarjan, Diwali, etc.), you must verify calculations precisely according to the Hindu Panchang or Gregorian calendar for the year {current_ist_dt.year}. Never give generic, outdated, or randomized incorrect dates. Provide clear, accurate, and perfectly structured details.
                         
                         CRITICAL SOFTWARE TUTORIAL & PRACTICAL INSTRUCTION RESTRICTION (STRICTEST RULE):
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software.
