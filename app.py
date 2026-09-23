@@ -1555,7 +1555,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (REAL-TIME JS COUNTDOWN TIMER FIXED)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (CORRECTED TURN ISOLATION TIMER)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1808,16 +1808,22 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             st.markdown("---")
 
-            # TURN ISOLATION: WAITING PLAYER GETS NO TIMER, ACTIVE PLAYER GETS TIMER
+            # --- TURN ISOLATION: WAITING PLAYER GETS NO TIMER, ONLY WAITING MESSAGE ---
             if not is_my_turn:
                 st.info(f"🔵 **प्रतीक्षा करें (Waiting):** यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
-                time.sleep(1)
-                st.rerun()
+                
+                # Auto-refresh waiting player screen every 2 seconds to check if turn switched
+                waiting_refresh_js = """
+                <script>
+                    setTimeout(function() {
+                        window.location.reload();
+                    }, 2000);
+                </script>
+                """
+                components.html(waiting_refresh_js, height=0)
                 st.stop()
             
-            # --- PURE CLIENT-SIDE JAVASCRIPT LIVE COUNTDOWN TIMER (SMOOTH 30, 29, 28...) ---
-            timer_container = st.empty()
-            
+            # --- ACTIVE PLAYER VIEW WITH REAL-TIME LIVE COUNTDOWN (ONLY FOR WHOSE TURN IT IS) ---
             timer_html = f"""
             <div style="background-color: #e8f5e9; padding: 12px 16px; border-radius: 8px; border: 1px solid #c8e6c9; margin-bottom: 16px;">
                 <span style="font-size: 16px; font-weight: bold; color: #2e7d32;" id="timer_text">🟢 आपकी बारी (Your Turn)! शेष समय: <span id="sec_num">{remaining}</span> सेकंड</span>
