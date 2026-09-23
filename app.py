@@ -1306,7 +1306,7 @@ if query:
 
                 elif is_greeting(query):
                     if lang == "GUJARATI":
-                        reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                        reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                     elif lang == "HINDI":
                         reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                     else:
@@ -1760,7 +1760,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         max_q_limit = 5 if curr_lvl == 1 else 10
         is_my_turn = (st.session_state.player_role == active_role)
 
-        # --- TIMER & TIMEOUT CHECK WITH PROPER STATE RESET ---
+        # --- LIVE COUNTDOWN TIMER & TIMEOUT CHECK (30 SECONDS) ---
         elapsed = time.time() - q_start_time
         remaining = max(0, int(30 - elapsed))
 
@@ -1788,8 +1788,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             r_data["question_start_time"] = time.time()
             save_room_store(rooms)
-            st.warning("⏳ Time Out! Agle player ki baari par ja rahe hain...")
-            time.sleep(1)
             st.rerun()
 
         if q_idx < len(q_list) and q_idx < max_q_limit:
@@ -1804,7 +1802,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             st.markdown("---")
 
-            # TURN ISOLATION: WAITING PLAYER GETS NO TIMER, ACTIVE PLAYER GETS TIMER
+            # TURN ISOLATION: WAITING PLAYER GETS NO TIMER, ONLY WAITING MESSAGE & AUTO-SYNC
             if not is_my_turn:
                 st.info(f"🔵 **प्रतीक्षा करें (Waiting):** यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
                 
@@ -1820,7 +1818,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                 st.rerun()
                 st.stop()
             
-            # ACTIVE PLAYER VIEW WITH LIVE COUNTDOWN TIMER (30, 29, 28...)
+            # ACTIVE PLAYER VIEW WITH JS REAL-TIME COUNTDOWN TIMER (30, 29, 28...)
             timer_html = f"""
             <div style="background-color: #e8f5e9; padding: 12px 16px; border-radius: 8px; border: 1px solid #c8e6c9; margin-bottom: 16px;">
                 <span style="font-size: 16px; font-weight: bold; color: #2e7d32;" id="timer_text">🟢 आपकी बारी (Your Turn)! शेष समय: <span id="sec_num">{remaining}</span> सेकंड</span>
