@@ -235,7 +235,7 @@ QUESTION_BANK = {
             {"q": "ROM किस प्रकार की मेमोरी है?", "options": ["Non-Volatile", "Volatile", "Temporary", "Dynamic"], "answer": "Non-Volatile"},
             {"q": "कंप्यूटर की स्पीड किसमें मापी जाती है?", "options": ["Hertz (Hz)", "Bits", "Bytes", "Watts"], "answer": "Hertz (Hz)"},
             {"q": "इनमें से कौन सा इनपुट डिवाइस है?", "options": ["माउस", "प्रिंटर", "स्पीकर", "प्रोजेक्टर"], "answer": "माउस"},
-            {"q": "कंप्यूटर का कौन सा भाग गणना (calculation) करता है?", "options": ["ALU", "CU", "RAM", "ROM"], "answer": "ALU"},
+            {"q": "कंप्यूटर का कौन सा भाग गणना करता है?", "options": ["ALU", "CU", "RAM", "ROM"], "answer": "ALU"},
             {"q": "एक बाइट में कितने बिट होते हैं?", "options": ["8", "4", "16", "32"], "answer": "8"},
             {"q": "Linux क्या है?", "options": ["ऑपरेटिंग सिस्टम", "एप्लीकेशन सॉफ्टवेयर", "वेब ब्राउज़र", "वायरस"], "answer": "ऑपरेटिंग सिस्टम"},
             {"q": "USB का पूरा नाम क्या है?", "options": ["Universal Serial Bus", "United Serial Bus", "Universal System Bus", "Unicyclic Serial Bus"], "answer": "Universal Serial Bus"},
@@ -1555,7 +1555,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (CORRECTED TURN ISOLATION TIMER)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (STRICT TURN ISOLATION FIXED)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1769,7 +1769,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         elapsed = time.time() - q_start_time
         remaining = max(0, int(30 - elapsed))
 
-        if remaining == 0:
+        if remaining == 0 and is_my_turn:
             if q_idx < len(q_list):
                 r_data["history_log"].append({
                     "level": curr_lvl,
@@ -1808,16 +1808,16 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             st.markdown("---")
 
-            # --- TURN ISOLATION: WAITING PLAYER GETS NO TIMER, ONLY WAITING MESSAGE ---
+            # --- STRICT TURN ISOLATION: WAITING PLAYER GETS NO TIMER, ONLY WAITING MESSAGE ---
             if not is_my_turn:
                 st.info(f"🔵 **प्रतीक्षा करें (Waiting):** यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
                 
-                # Auto-refresh waiting player screen every 2 seconds to check if turn switched
+                # Auto-refresh waiting player screen every 1.5 seconds so they instantly see when turn switches back
                 waiting_refresh_js = """
                 <script>
                     setTimeout(function() {
                         window.location.reload();
-                    }, 2000);
+                    }, 1500);
                 </script>
                 """
                 components.html(waiting_refresh_js, height=0)
