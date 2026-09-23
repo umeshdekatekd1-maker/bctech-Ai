@@ -496,7 +496,7 @@ def clean_val_display(val):
     return str(val).strip()
 
 
-# Sidebar - Admin Panel with Safe Paper Handling & Microsoft Form Manager (Start/End Date & Timer Support)
+# Sidebar - Admin Panel with Safe Paper Handling & Microsoft Form Start/End Date & Time Manager
 with st.sidebar:
   st.markdown("### 🎓 BC Tech Ai Assistant")
   st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -585,7 +585,7 @@ with st.sidebar:
     elif admin_pass != "":
       st.error("Incorrect Password!")
 
-  # --- MS FORM LINK & SCHEDULE (START/END DATE & TIMER) MANAGER ---
+  # --- MS FORM LINK & START/END DATE & TIME SCHEDULER ---
   with st.expander("📝 Manage Microsoft Forms & Schedule", expanded=False):
     admin_ms_pass = st.text_input(
         "Admin Password for Forms", type="password", key="admin_ms_pass"
@@ -595,13 +595,24 @@ with st.sidebar:
       with st.form("add_ms_form"):
         form_title = st.text_input("Quiz / Form Title (jaise: Chapter 1 Test)")
         form_url = st.text_input("Microsoft Form URL (Link)")
-        start_date = st.date_input("Start Date (कब से चालू होगा)")
-        end_date = st.date_input("End Date (कब बंद होगा)")
-        form_duration = st.number_input(
-            "Timer / Duration (in Minutes)", min_value=1, value=10
-        )
+        
+        st.markdown("---")
+        st.markdown("**🕒 Start Date & Time (कब से चालू होगा)**")
+        col_sd, col_st = st.columns(2)
+        with col_sd:
+            start_date = st.date_input("Start Date", key="start_d")
+        with col_st:
+            start_time = st.time_input("Start Time", key="start_t")
+
+        st.markdown("**🕒 End Date & Time (कब बंद होगा)**")
+        col_ed, col_et = st.columns(2)
+        with col_ed:
+            end_date = st.date_input("End Date", key="end_d")
+        with col_et:
+            end_time = st.time_input("End Time", key="end_t")
+
         is_active = st.checkbox("Active / Open for Students", value=True)
-        add_form_btn = st.form_submit_button("Add Microsoft Form Link")
+        add_form_btn = st.form_submit_button("Save Quiz Schedule")
 
         if add_form_btn:
           if form_title and form_url:
@@ -610,27 +621,25 @@ with st.sidebar:
                 "title": form_title,
                 "url": form_url,
                 "start_date": str(start_date),
+                "start_time": str(start_time),
                 "end_date": str(end_date),
-                "duration": form_duration,
+                "end_time": str(end_time),
                 "is_active": is_active,
             })
             save_ms_forms(ms_forms)
-            st.success(
-                f"'{form_title}' successfully add ho gaya hai with Schedule &"
-                " Timer!"
-            )
+            st.success(f"'{form_title}' ka Start & End Schedule successfully save ho gaya hai!")
           else:
             st.error("Form Title aur URL bharna anivarya hai.")
 
       st.markdown("---")
-      st.subheader("📋 Saved Microsoft Form Links & Schedules")
+      st.subheader("📋 Saved Microsoft Form Schedules")
       ms_forms = load_ms_forms()
       if ms_forms:
         for idx, form in enumerate(ms_forms):
           st.write(
-              f"**{idx+1}. {form['title']}** | Start: {form.get('start_date','N/A')} |"
-              f" End: {form.get('end_date','N/A')} | Timer:"
-              f" {form['duration']}Mins"
+              f"**{idx+1}. {form['title']}**\n"
+              f"🟢 Start: {form.get('start_date','N/A')} {form.get('start_time','N/A')}\n"
+              f"🔴 End: {form.get('end_date','N/A')} {form.get('end_time','N/A')}"
           )
           st.text(form["url"])
           col_s, col_del = st.columns(2)
@@ -646,7 +655,7 @@ with st.sidebar:
               st.rerun()
         save_ms_forms(ms_forms)
       else:
-        st.info("Abhi koi Microsoft Form link added nahi hai.")
+        st.info("Abhi koi Microsoft Form schedule added nahi hai.")
     elif admin_ms_pass != "":
       st.error("Incorrect Password!")
 
