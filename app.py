@@ -1555,7 +1555,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (CORRECTED WAITING TURN & COUNTDOWN)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (FINAL WORKING TIMER & WAITING FIX)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1720,23 +1720,18 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             rooms = load_room_store()
             curr_code = st.session_state.active_room_code
             
-            pool_key = f"pool_{current_level}"
-            if pool_key in QUESTION_BANK[cat_choice]:
-                pool_qs = QUESTION_BANK[cat_choice][pool_key].copy()
-            else:
-                pool_qs = QUESTION_BANK[cat_choice]["pool_1"].copy()
-                
-            random.shuffle(pool_qs)
-            selected_qs = pool_qs[:5]
+            pool_1_qs = QUESTION_BANK[cat_choice]["pool_1"].copy()
+            random.shuffle(pool_1_qs)
+            selected_qs = pool_1_qs[:5]
             
             rooms[curr_code]["category"] = cat_choice
-            rooms[curr_code]["current_level"] = current_level
+            rooms[curr_code]["current_level"] = 1
             rooms[curr_code]["current_q_index"] = 0
-            rooms[curr_code]["p1_score"] = p1_score
-            rooms[curr_code]["p2_score"] = p2_score
-            rooms[curr_code]["turn"] = turn
+            rooms[curr_code]["p1_score"] = 0
+            rooms[curr_code]["p2_score"] = 0
+            rooms[curr_code]["turn"] = 1
             rooms[curr_code]["questions"] = selected_qs
-            rooms[curr_code]["history_log"] = history_log
+            rooms[curr_code]["history_log"] = []
             rooms[curr_code]["question_start_time"] = time.time()
             rooms[curr_code]["game_state"] = "PLAYING"
             save_room_store(rooms)
@@ -1762,7 +1757,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         active_player = p1_name if turn == 1 else p2_name
         active_role = "P1" if turn == 1 else "P2"
 
-        max_q_limit = len(q_list) if len(q_list) > 0 else 5
+        max_q_limit = 5 if curr_lvl == 1 else 10
         is_my_turn = (st.session_state.player_role == active_role)
 
         # --- SERVER TIMEOUT CHECK ---
@@ -1808,22 +1803,22 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             st.markdown("---")
 
-            # --- STRICT TURN ISOLATION: ONLY WAITING PLAYER GETS WAITING BOX (NO TIMER) ---
+            # --- WAITING PLAYER: NO TIMER, ONLY WAITING & AUTO SYNC ---
             if not is_my_turn:
                 st.info(f"🔵 **प्रतीक्षा करें (Waiting):** यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
                 
-                # Auto-refresh waiting player screen every 1.5 seconds so they instantly see when turn switches back
-                waiting_refresh_js = """
+                # Auto-refresh waiting player every 1.5 seconds to detect turn change immediately
+                waiting_sync_js = """
                 <script>
                     setTimeout(function() {
                         window.location.reload();
                     }, 1500);
                 </script>
                 """
-                components.html(waiting_refresh_js, height=0)
+                components.html(waiting_sync_js, height=0)
                 st.stop()
             
-            # --- ACTIVE PLAYER VIEW ONLY (WITH LIVE COUNTDOWN TIMER) ---
+            # --- ACTIVE PLAYER (YOUR TURN): SHOW LIVE COUNTDOWN TIMER ---
             timer_html = f"""
             <div style="background-color: #e8f5e9; padding: 12px 16px; border-radius: 8px; border: 1px solid #c8e6c9; margin-bottom: 16px;">
                 <span style="font-size: 16px; font-weight: bold; color: #2e7d32;" id="timer_text">🟢 आपकी बारी (Your Turn)! शेष समय: <span id="sec_num">{remaining}</span> सेकंड</span>
