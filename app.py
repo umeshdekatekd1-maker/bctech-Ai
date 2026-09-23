@@ -496,7 +496,7 @@ def clean_val_display(val):
     return str(val).strip()
 
 
-# Sidebar - Admin Panel with Safe Paper Handling & Microsoft Form Manager
+# Sidebar - Admin Panel with Safe Paper Handling & Microsoft Form Manager (Date & Timer Support)
 with st.sidebar:
   st.markdown("### 🎓 BC Tech Ai Assistant")
   st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -585,8 +585,8 @@ with st.sidebar:
     elif admin_pass != "":
       st.error("Incorrect Password!")
 
-  # --- NEW: Microsoft Form Link & Timer Manager inside Admin Panel ---
-  with st.expander("📝 Manage Microsoft Forms & Timers", expanded=False):
+  # --- MS FORM LINK & DATE/TIMER MANAGER ---
+  with st.expander("📝 Manage Microsoft Forms, Dates & Timer", expanded=False):
     admin_ms_pass = st.text_input(
         "Admin Password for Forms", type="password", key="admin_ms_pass"
     )
@@ -595,6 +595,7 @@ with st.sidebar:
       with st.form("add_ms_form"):
         form_title = st.text_input("Quiz / Form Title (jaise: Chapter 1 Test)")
         form_url = st.text_input("Microsoft Form URL (Link)")
+        form_date = st.date_input("Test Date (तारीख)")
         form_duration = st.number_input(
             "Timer / Duration (in Minutes)", min_value=1, value=10
         )
@@ -607,21 +608,25 @@ with st.sidebar:
             ms_forms.append({
                 "title": form_title,
                 "url": form_url,
+                "date": str(form_date),
                 "duration": form_duration,
                 "is_active": is_active,
             })
             save_ms_forms(ms_forms)
-            st.success(f"'{form_title}' successfully add ho gaya hai!")
+            st.success(
+                f"'{form_title}' successfully add ho gaya hai with Date & Timer!"
+            )
           else:
             st.error("Form Title aur URL bharna anivarya hai.")
 
       st.markdown("---")
-      st.subheader("📋 Saved Microsoft Form Links")
+      st.subheader("📋 Saved Microsoft Form Links & Schedules")
       ms_forms = load_ms_forms()
       if ms_forms:
         for idx, form in enumerate(ms_forms):
           st.write(
-              f"**{idx+1}. {form['title']}** (Duration: {form['duration']} Mins)"
+              f"**{idx+1}. {form['title']}** | Date: {form.get('date', 'N/A')} |"
+              f" Timer: {form['duration']} Mins"
           )
           st.text(form["url"])
           col_s, col_del = st.columns(2)
@@ -1113,14 +1118,17 @@ About Bctech Computer Education:
   - Regular/Other Batches: 10:00 AM to 8:30 PM (Each batch is 1.5 hours / 1 hour 30 minutes long).
 """
 
-# --- NEW: Display Available Microsoft Form Quizzes on Dashboard/Home ---
+# --- DISPLAY ACTIVE MICROSOFT FORM QUIZZES ON HOMEPAGE ---
 ms_forms_list = load_ms_forms()
 if ms_forms_list:
   st.subheader("📌 Available Microsoft Form Quizzes & Tests")
   for idx, form in enumerate(ms_forms_list):
     if form.get("is_active", True):
       st.markdown(f"### {idx+1}. {form.get('title', 'Quiz')}")
-      st.write(f"⏱️ **Timer/Duration:** {form.get('duration', 'N/A')} Minutes")
+      st.write(
+          f"📅 **Test Date:** {form.get('date', 'N/A')} | ⏱️ **Timer/Duration:"
+          f"** {form.get('duration', 'N/A')} Minutes"
+      )
       st.markdown(
           f"🔗 [Click Here to Open Microsoft Form Test]({form.get('url')})",
           unsafe_allow_html=True,
@@ -1634,7 +1642,6 @@ if query:
                 lang_code,
             )
           else:
-            # Fallback to Groq API if needed
             st.markdown(
                 "क्षमा करें, आपका यह रिकॉर्ड शीट में नहीं मिला। कृपया अपना"
                 " पूरा नाम सही से लिखें।"
