@@ -235,7 +235,7 @@ QUESTION_BANK = {
             {"q": "ROM किस प्रकार की मेमोरी है?", "options": ["Non-Volatile", "Volatile", "Temporary", "Dynamic"], "answer": "Non-Volatile"},
             {"q": "कंप्यूटर की स्पीड किसमें मापी जाती है?", "options": ["Hertz (Hz)", "Bits", "Bytes", "Watts"], "answer": "Hertz (Hz)"},
             {"q": "इनमें से कौन सा इनपुट डिवाइस है?", "options": ["माउस", "प्रिंटर", "स्पीकर", "प्रोजेक्टर"], "answer": "माउस"},
-            {"q": "कंप्यूटर का कौन सा भाग गणना करता है?", "options": ["ALU", "CU", "RAM", "ROM"], "answer": "ALU"},
+            {"q": "कंप्यूटर का कौन सा भाग गणना (calculation) करता है?", "options": ["ALU", "CU", "RAM", "ROM"], "answer": "ALU"},
             {"q": "एक बाइट में कितने बिट होते हैं?", "options": ["8", "4", "16", "32"], "answer": "8"},
             {"q": "Linux क्या है?", "options": ["ऑपरेटिंग सिस्टम", "एप्लीकेशन सॉफ्टवेयर", "वेब ब्राउज़र", "वायरस"], "answer": "ऑपरेटिंग सिस्टम"},
             {"q": "USB का पूरा नाम क्या है?", "options": ["Universal Serial Bus", "United Serial Bus", "Universal System Bus", "Unicyclic Serial Bus"], "answer": "Universal Serial Bus"},
@@ -1555,7 +1555,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (REAL-TIME JS COUNTDOWN TIMER)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (REAL-TIME JS COUNTDOWN TIMER FIXED)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1815,30 +1815,37 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                 st.rerun()
                 st.stop()
             
-            # --- TRUE REAL-TIME CLIENT-SIDE JAVASCRIPT COUNTDOWN TIMER (NO FLICKER / SMOOTH 30, 29, 28...) ---
+            # --- PURE CLIENT-SIDE JAVASCRIPT LIVE COUNTDOWN TIMER (SMOOTH 30, 29, 28...) ---
+            timer_container = st.empty()
+            
             timer_html = f"""
             <div style="background-color: #e8f5e9; padding: 12px 16px; border-radius: 8px; border: 1px solid #c8e6c9; margin-bottom: 16px;">
-                <span style="font-size: 16px; font-weight: bold; color: #2e7d32;" id="timer_text">🟢 आपकी बारी (Your Turn)! शेष समय: {remaining} सेकंड</span>
+                <span style="font-size: 16px; font-weight: bold; color: #2e7d32;" id="timer_text">🟢 आपकी बारी (Your Turn)! शेष समय: <span id="sec_num">{remaining}</span> सेकंड</span>
                 <div style="width: 100%; background-color: #ddd; border-radius: 4px; margin-top: 8px; height: 8px;">
-                    <div id="timer_bar" style="width: {(remaining/30.0)*100}%; background-color: #4CAF50; height: 8px; border-radius: 4px; transition: width 1s linear;"></div>
+                    <div id="timer_bar" style="width: {(remaining/30.0)*100}%; background-color: #4CAF50; height: 8px; border-radius: 4px;"></div>
                 </div>
             </div>
             <script>
-                let timeLeft = {remaining};
-                const timerText = document.getElementById('timer_text');
-                const timerBar = document.getElementById('timer_bar');
-                
-                const countdown = setInterval(function() {
-                    timeLeft--;
-                    if (timeLeft >= 0) {{
-                        timerText.innerHTML = "🟢 आपकी बारी (Your Turn)! शेष समय: " + timeLeft + " सेकंड";
-                        timerBar.style.width = (timeLeft / 30.0) * 100 + "%";
+                (function() {{
+                    let timeLeft = {remaining};
+                    const secNum = document.getElementById('sec_num');
+                    const timerBar = document.getElementById('timer_bar');
+                    
+                    if (window.activeCountdown) {{
+                        clearInterval(window.activeCountdown);
                     }}
-                    if (timeLeft <= 0) {{
-                        clearInterval(countdown);
-                        window.location.reload();
-                    }}
-                }, 1000);
+                    
+                    window.activeCountdown = setInterval(function() {{
+                        timeLeft--;
+                        if (secNum) secNum.innerText = timeLeft;
+                        if (timerBar) timerBar.style.width = (timeLeft / 30.0) * 100 + "%";
+                        
+                        if (timeLeft <= 0) {{
+                            clearInterval(window.activeCountdown);
+                            window.location.reload();
+                        }}
+                    }}, 1000);
+                }})();
             </script>
             """
             components.html(timer_html, height=85)
