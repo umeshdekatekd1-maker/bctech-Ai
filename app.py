@@ -1,3 +1,6 @@
+import json
+import os
+from datetime import datetime, timezone, timedelta
 import streamlit as st
 import streamlit.components.v1 as components
 from groq import Groq
@@ -5,13 +8,10 @@ import pandas as pd
 import requests
 import io
 import re
-import json
-import os
 import uuid
 import random
 import time
 import base64
-from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
     page_title="BC Tech Ai Assistant", 
@@ -200,7 +200,7 @@ if "room_code" in query_params and query_params["room_code"] and st.session_stat
         if "role" in query_params:
             st.session_state.player_role = query_params["role"]
 
-# EXPANDED 75 QUESTIONS PER CATEGORY QUESTION BANK (3 pools of 25 each for Level 1, 2, 3)
+# EXPANDED 5 CATEGORIES QUESTION BANK (FULL 75+ QUESTIONS)
 QUESTION_BANK = {
     "Basic Computer & Internet": {
         "pool_1": [
@@ -1306,7 +1306,7 @@ if query:
 
                 elif is_greeting(query):
                     if lang == "GUJARATI":
-                        reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                        reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                     elif lang == "HINDI":
                         reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                     else:
@@ -1416,7 +1416,7 @@ if query:
                                     full_reply += "પ્રૅક્ટિકલ ટેસ્ટ:\n"
                                     for pk, pv in valid_practical:
                                         full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
-                                    full_reply += f"- કુલ પ્રૅક્ટિકલ: {tot_prac}\n\n"
+                                    full_reply += f"- કુલ પ્રૅક્ટિકल: {tot_prac}\n\n"
                                 full_reply += f"કુલ ગુણ: {total_obtained} / {max_total}\n"
                                 full_reply += f"ટકાવારી: {percentage}%\n\n"
                                 full_reply += f"{motivational_tip}\n\n"
@@ -1555,7 +1555,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (FAIL-SAFE PERSISTENT ARENA)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (ORIGINAL FLOW WITH LIVE COUNTDOWN)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1802,11 +1802,11 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             st.markdown("---")
 
-            # TURN ISOLATION: WAITING PLAYER GETS NO TIMER, ACTIVE PLAYER GETS TIMER
+            # --- ORIGINAL WORKING TURN ISOLATION & AUTO-SYNC FOR WAITING PLAYER ---
             if not is_my_turn:
                 st.info(f"🔵 **प्रतीक्षा करें (Waiting):** यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
                 
-                # Auto-refresh waiting player screen every 1.5 seconds to sync instantly when turn changes
+                # Auto-refresh waiting player so they see questions immediately when turn returns
                 waiting_sync_js = """
                 <script>
                     setTimeout(function() {
@@ -1815,12 +1815,14 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                 </script>
                 """
                 components.html(waiting_sync_js, height=0)
+                time.sleep(1.5)
+                st.rerun()
                 st.stop()
             
-            # ACTIVE PLAYER VIEW WITH LIVE COUNTDOWN TIMER (30, 29, 28...)
+            # --- ACTIVE PLAYER VIEW WITH SMOOTH LIVE COUNTDOWN TIMER (30, 29, 28...) ---
             timer_html = f"""
             <div style="background-color: #e8f5e9; padding: 12px 16px; border-radius: 8px; border: 1px solid #c8e6c9; margin-bottom: 16px;">
-                <span style="font-size: 16px; font-weight: bold; color: #2e7d32;" id="timer_text">🟢 आपकी बारी (Your Turn)! शेष समय: <span id="sec_num">{remaining}</span> सेकंड</span>
+                <span style="font-size: 16px; font-weight: bold; color: #2e7d32;">🟢 आपकी बारी (Your Turn)! शेष समय: <span id="sec_num">{remaining}</span> सेकंड</span>
                 <div style="width: 100%; background-color: #ddd; border-radius: 4px; margin-top: 8px; height: 8px;">
                     <div id="timer_bar" style="width: {(remaining/30.0)*100}%; background-color: #4CAF50; height: 8px; border-radius: 4px;"></div>
                 </div>
