@@ -200,7 +200,7 @@ if "room_code" in query_params and query_params["room_code"] and st.session_stat
         if "role" in query_params:
             st.session_state.player_role = query_params["role"]
 
-# EXPANDED 5 CATEGORIES QUESTION BANK (FULL 75+ QUESTIONS)
+# EXPANDED 75 QUESTIONS PER CATEGORY QUESTION BANK (3 pools of 25 each for Level 1, 2, 3)
 QUESTION_BANK = {
     "Basic Computer & Internet": {
         "pool_1": [
@@ -342,7 +342,7 @@ QUESTION_BANK = {
         ],
         "pool_3": [
             {"q": "CorelDraw में 'Contour Tool' का क्या काम है?", "options": ["ऑब्जेक्ट के चारों ओर शेड या लेयर बनाना", "काटना", "वेल्ड करना", "डिलीट करना"], "answer": "ऑब्जेक्ट के चारों ओर शेड या लेयर बनाना"},
-            {"q": "CorelDraw में 'Blend Tool' का उपयोग किस लिए होता है?", "options": ["दो आकृतियों को आपस में मिलाना / ट्रांजिशन बनाना", "कट करना", "रंग उड़ना", "सेव करना"], "answer": "दो आकृतियों को आपस में मिलाना / ट्रांजिशन बनाना"},
+            {"q": "CorelDraw में 'Blend Tool' का उपयोग किस लिए होता है?", "options": ["दो आकृतियों को आपस में मिलाना / ट्रांजिशन बनाना", "कट करना", "રंग उड़ना", "सेव करना"], "answer": "दो आकृतियों को आपस में मिलाना / ट्रांजिशन बनाना"},
             {"q": "CorelDraw में 'Distort Tool' क्या करता है?", "options": ["शेप को विकृत या डिस्टॉर्ट करना", "सीधा करना", "कलर भरना", "लॉक करना"], "answer": "शेप को विकृत या डिस्टॉर्ट करना"},
             {"q": "CorelDraw में 'Envelope Tool' का क्या कार्य है?", "options": ["टेक्स्ट या शेप के नोड्स को फ्रेम अनुसार मोड़ना", "बंद करना", "प्रिंट करना", "बॉर्डर देना"], "answer": "टेक्स्ट या शेप के नोड्स को फ्रेम अनुसार मोड़ना"},
             {"q": "CorelDraw में 'Extrude Tool' से क्या बनता है?", "options": ["3D इफेक्ट", "2D इफेक्ट", "ट्रांसपेरेंसी", "शैडो"], "answer": "3D इफेक्ट"},
@@ -1306,7 +1306,7 @@ if query:
 
                 elif is_greeting(query):
                     if lang == "GUJARATI":
-                        reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                        reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                     elif lang == "HINDI":
                         reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                     else:
@@ -1555,7 +1555,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (ORIGINAL PROVEN TURN FLOW)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (FAIL-SAFE PERSISTENT ARENA)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1760,7 +1760,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         max_q_limit = 5 if curr_lvl == 1 else 10
         is_my_turn = (st.session_state.player_role == active_role)
 
-        # --- TIMER & TIMEOUT LOGIC ---
+        # --- SERVER TIMEOUT CHECK (30 SECONds) ---
         elapsed = time.time() - q_start_time
         remaining = max(0, int(30 - elapsed))
 
@@ -1768,9 +1768,9 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             r_data["history_log"].append({
                 "level": curr_lvl,
                 "player": active_player,
-                "question": q_list[q_idx]['q'],
+                "question": q_list[q_idx]['q'] if q_idx < len(q_list) else "",
                 "chosen": "समय समाप्त (Timeout)",
-                "correct": q_list[q_idx]["answer"],
+                "correct": q_list[q_idx]["answer"] if q_idx < len(q_list) else "",
                 "status": "Timeout (0 अंक)"
             })
             
@@ -1802,25 +1802,55 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             st.markdown("---")
 
-            # --- ORIGINAL WORKING TURN ISOLATION: WAITING PLAYER GETS WAITING MESSAGE & REFRESHES ---
+            # --- TURN ISOLATION WITH AUTO-SYNC FOR WAITING PLAYER ---
             if not is_my_turn:
                 st.info(f"🔵 **प्रतीक्षा करें (Waiting):** यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
                 
-                auto_sync_js = """
+                # Auto-sync waiting player smoothly every 1 second
+                waiting_sync_js = """
                 <script>
                     setTimeout(function() {
                         window.location.reload();
                     }, 1000);
                 </script>
                 """
-                components.html(auto_sync_js, height=0)
+                components.html(waiting_sync_js, height=0)
                 time.sleep(1)
                 st.rerun()
                 st.stop()
             
-            # --- ACTIVE PLAYER VIEW WITH ORIGINAL STATIC COUNTDOWN TIMER ---
-            st.success(f"🟢 **आपकी बारी (Your Turn)!** शेष समय: **{remaining} सेकंड**")
-            st.progress(remaining / 30.0)
+            # --- ACTIVE PLAYER VIEW WITH LIVE COUNTDOWN TICKING (30, 29, 28...) ---
+            timer_html = f"""
+            <div style="background-color: #e8f5e9; padding: 12px 16px; border-radius: 8px; border: 1px solid #c8e6c9; margin-bottom: 16px;">
+                <span style="font-size: 16px; font-weight: bold; color: #2e7d32;">🟢 आपकी बारी (Your Turn)! शेष समय: <span id="sec_num">{remaining}</span> सेकंड</span>
+                <div style="width: 100%; background-color: #ddd; border-radius: 4px; margin-top: 8px; height: 8px;">
+                    <div id="timer_bar" style="width: {(remaining/30.0)*100}%; background-color: #4CAF50; height: 8px; border-radius: 4px;"></div>
+                </div>
+            </div>
+            <script>
+                (function() {{
+                    let timeLeft = {remaining};
+                    const secNum = document.getElementById('sec_num');
+                    const timerBar = document.getElementById('timer_bar');
+                    
+                    if (window.activeCountdown) {{
+                        clearInterval(window.activeCountdown);
+                    }}
+                    
+                    window.activeCountdown = setInterval(function() {{
+                        timeLeft--;
+                        if (secNum) secNum.innerText = timeLeft;
+                        if (timerBar) timerBar.style.width = (timeLeft / 30.0) * 100 + "%";
+                        
+                        if (timeLeft <= 0) {{
+                            clearInterval(window.activeCountdown);
+                            window.location.reload();
+                        }}
+                    }}, 1000);
+                }})();
+            </script>
+            """
+            components.html(timer_html, height=85)
 
             st.markdown(f"### ❓ {current_q_data['q']}")
             options = current_q_data["options"]
