@@ -1,6 +1,3 @@
-import json
-import os
-from datetime import datetime, timezone, timedelta
 import streamlit as st
 import streamlit.components.v1 as components
 from groq import Groq
@@ -8,10 +5,13 @@ import pandas as pd
 import requests
 import io
 import re
+import json
+import os
 import uuid
 import random
 import time
 import base64
+from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
     page_title="BC Tech Ai Assistant", 
@@ -200,7 +200,7 @@ if "room_code" in query_params and query_params["room_code"] and st.session_stat
         if "role" in query_params:
             st.session_state.player_role = query_params["role"]
 
-# QUESTION BANK
+# EXPANDED 75 QUESTIONS PER CATEGORY QUESTION BANK (3 pools of 25 each for Level 1, 2, 3)
 QUESTION_BANK = {
     "Basic Computer & Internet": {
         "pool_1": [
@@ -208,7 +208,413 @@ QUESTION_BANK = {
             {"q": "WWW का पूरा नाम क्या है?", "options": ["World Wide Web", "World Web Wide", "Web World Wide", "Wide World Web"], "answer": "World Wide Web"},
             {"q": "इनमें से कौन सा एक आउटपुट डिवाइस है?", "options": ["कीबोर्ड", "माउस", "मॉनिटर", "स्कैनर"], "answer": "मॉनिटर"},
             {"q": "कंप्यूटर का दिमाग किसे कहा जाता है?", "options": ["RAM", "CPU", "Hard Disk", "Monitor"], "answer": "CPU"},
-            {"q": "इंटरनेट का जनक किसे कहा जाता है?", "options": ["विंट सर्फ", "बिल गेट्स", "स्टीव जॉब्स", "मार्क जुकरबर्ग"], "answer": "विंट सर्फ"}
+            {"q": "इंटरनेट का जनक किसे कहा जाता है?", "options": ["विंट सर्फ", "बिल गेट्स", "स्टीव जॉब्स", "मार्क जुकरबर्ग"], "answer": "विंट सर्फ"},
+            {"q": "ईमेल भेजने के लिए किस प्रोटोकॉल का उपयोग किया जाता है?", "options": ["FTP", "SMTP", "HTTP", "TCP"], "answer": "SMTP"},
+            {"q": "एक गीगाबाइट में कितने मेगाबाइट होते हैं?", "options": ["1024 KB", "1024 MB", "512 MB", "2048 MB"], "answer": "1024 MB"},
+            {"q": "कंप्यूटर में रीसायकल बिन का क्या काम है?", "options": ["फाइल डिलीट करना", "डिलीट की गई फाइलें स्टोर करना", "वायरस स्कैन करना", "इंटरनेट चलाना"], "answer": "डिलीट की गई फाइलें स्टोर करना"},
+            {"q": "विंडोज किस प्रकार का सॉफ्टवेयर है?", "options": ["ऑपरेटिंग सिस्टम", "वर्ड प्रोसेसर", "एंटीवायरस", "वेब ब्राउज़र"], "answer": "ऑपरेटिंग सिस्टम"},
+            {"q": "कंप्यूटर की मुख्य मेमोरी कौन सी होती है?", "options": ["CD-ROM", "Hard Disk", "RAM", "Pen Drive"], "answer": "RAM"},
+            {"q": "कीबोर्ड किस प्रकार का डिवाइस है?", "options": ["इनपुट", "आउटपुट", "स्टोरेज", "प्रोसेसिंग"], "answer": "इनपुट"},
+            {"q": "MS Word किस प्रकार का सॉफ्टवेयर है?", "options": ["वर्ड प्रोसेसर", "स्प्रेडशीट", "डेटाबेस", "ऑपरेटिंग सिस्टम"], "answer": "वर्ड प्रोसेसर"},
+            {"q": "पहला इलेक्ट्रॉनिक कंप्यूटर कौन सा था?", "options": ["ENIAC", "UNIVAC", "ABACUS", "PARAM"], "answer": "ENIAC"},
+            {"q": "पेन ड्राइव को अन्य किस नाम से जाना जाता है?", "options": ["फ्लैश ड्राइव", "हार्ड डिस्क", "फ्लॉपी डिस्क", "सीडी"], "answer": "फ्लैश ड्राइव"},
+            {"q": "Google क्या है?", "options": ["सर्च इंजन", "वेब ब्राउज़र", "ऑपरेटिंग सिस्टम", "वायरस"], "answer": "सर्च इंजन"},
+            {"q": "LAN का पूरा नाम क्या है?", "options": ["Local Area Network", "Large Area Network", "Local Array Net", "Linked Access Network"], "answer": "Local Area Network"},
+            {"q": "IP Address कितने बिट का होता है (IPv4)?", "options": ["32 bit", "64 bit", "128 bit", "16 bit"], "answer": "32 bit"},
+            {"q": "कंप्यूटर बूटिंग का क्या अर्थ है?", "options": ["स्टार्ट करना", "बंद करना", "रिस्टार्ट करना", "फॉर्मेट करना"], "answer": "स्टार्ट करना"},
+            {"q": "MS Excel में रो और कॉलम के मिलने से क्या बनता है?", "options": ["सेल (Cell)", "टेबल", "फार्मूला", "शीट"], "answer": "सेल (Cell)"},
+            {"q": "शॉर्टकट की Ctrl + V का उपयोग किसके लिए होता है?", "options": ["पेस्ट करने के लिए", "कॉपी करने के लिए", "कट करने के लिए", "सेव करने के लिए"], "answer": "पेस्ट करने के लिए"},
+            {"q": "कंप्यूटर का आविष्कार किसने किया था?", "options": ["चार्ल्स बैबेज", "बिल गेट्स", "एलन ट्यूरिंग", "ब्लेस पास्कल"], "answer": "चार्ल्स बैबेज"},
+            {"q": "वेबसाइट का मुख्य पेज क्या कहलाता है?", "options": ["होम पेज", "मास्टर पेज", "फर्स्ट पेज", "वेब पेज"], "answer": "होम पेज"},
+            {"q": "PDF का पूरा नाम क्या है?", "options": ["Portable Document Format", "Public Document File", "Print Data Format", "Published Doc File"], "answer": "Portable Document Format"},
+            {"q": "कीबोर्ड में कुल कितने फंक्शन की होती हैं?", "options": ["10", "12", "14", "16"], "answer": "12"},
+            {"q": "कंप्यूटर की सबसे छोटी इकाई क्या है?", "options": ["बिट (Bit)", "बाइट (Byte)", "किलोबाईट", "मेगाबाईट"], "answer": "बिट (Bit)"}
+        ],
+        "pool_2": [
+            {"q": "RAM का पूरा नाम क्या है?", "options": ["Random Access Memory", "Read Access Memory", "Run Active Memory", "Rapid Access Memory"], "answer": "Random Access Memory"},
+            {"q": "ROM किस प्रकार की मेमोरी है?", "options": ["Non-Volatile", "Volatile", "Temporary", "Dynamic"], "answer": "Non-Volatile"},
+            {"q": "कंप्यूटर की स्पीड किसमें मापी जाती है?", "options": ["Hertz (Hz)", "Bits", "Bytes", "Watts"], "answer": "Hertz (Hz)"},
+            {"q": "इनमें से कौन सा इनपुट डिवाइस है?", "options": ["माउस", "प्रिंटर", "स्पीकर", "प्रोजेक्टर"], "answer": "माउस"},
+            {"q": "कंप्यूटर का कौन सा भाग गणना (calculation) करता है?", "options": ["ALU", "CU", "RAM", "ROM"], "answer": "ALU"},
+            {"q": "एक बाइट में कितने बिट होते हैं?", "options": ["8", "4", "16", "32"], "answer": "8"},
+            {"q": "Linux क्या है?", "options": ["ऑपरेटिंग सिस्टम", "एप्लीकेशन सॉफ्टवेयर", "वेब ब्राउज़र", "वायरस"], "answer": "ऑपरेटिंग सिस्टम"},
+            {"q": "USB का पूरा नाम क्या है?", "options": ["Universal Serial Bus", "United Serial Bus", "Universal System Bus", "Unicyclic Serial Bus"], "answer": "Universal Serial Bus"},
+            {"q": "फाइल सेव करने की शॉर्टकट की क्या है?", "options": ["Ctrl + S", "Ctrl + P", "Ctrl + C", "Ctrl + O"], "answer": "Ctrl + S"},
+            {"q": "MS PowerPoint का उपयोग किसके लिए होता है?", "options": ["प्रस्तुतीकरण (Presentation)", "डेटाबेस", "स्प्रेडशीट", "वर्ड प्रोसेसिंग"], "answer": "प्रस्तुतीकरण (Presentation)"},
+            {"q": "इंटरनेट पर डेटा ट्रांसफर के लिए कौन सा प्रोटोकॉल मुख्य है?", "options": ["TCP/IP", "FTP", "SMTP", "HTTP"], "answer": "TCP/IP"},
+            {"q": "वाइफाइ (WiFi) का पूरा नाम क्या है?", "options": ["Wireless Fidelity", "Wired Fidelity", "Wireless Field", "Wide Fidelity"], "answer": "Wireless Fidelity"},
+            {"q": "कंप्यूटर स्क्रीन पर दिखने वाली छोटी तस्वीर क्या कहलाती है?", "options": ["आइकन (Icon)", "पिक्स", "पिक्सेल", "विंडो"], "answer": "आइकन (Icon)"},
+            {"q": "टास्क मैनेजर खोलने की शॉर्टकट की क्या है?", "options": ["Ctrl + Shift + Esc", "Alt + F4", "Ctrl + Alt + Delete", "Ctrl + Esc"], "answer": "Ctrl + Shift + Esc"},
+            {"q": "कम्प्यूटर में वायरस क्या होता है?", "options": ["एक हानिकारक प्रोग्राम", "हार्डवेयर खराबी", "फैन की समस्या", "इंटरनेट स्लो होना"], "answer": "एक हानिकारक प्रोग्राम"},
+            {"q": "ब्लूटूथ (Bluetooth) किस तकनीक पर काम करता है?", "options": ["Radio Waves", "Infrared", "Laser", "Sound Waves"], "answer": "Radio Waves"},
+            {"q": "कर्सर की बाईं ओर के अक्षर को मिटाने के लिए किस की का प्रयोग होता है?", "options": ["Backspace", "Delete", "Spacebar", "Enter"], "answer": "Backspace"},
+            {"q": "कर्सर की दाईं ओर के अक्षर को मिटाने के लिए किस की का प्रयोग होता है?", "options": ["Delete", "Backspace", "Shift", "Esc"], "answer": "Delete"},
+            {"q": "फायरवॉल (Firewall) का उपयोग किसके लिए किया जाता है?", "options": ["सुरक्षा (Security)", "स्पीड बढ़ाना", "कूलिंग", "चार्जिंग"], "answer": "सुरक्षा (Security)"},
+            {"q": "किसी फोल्डर का नाम बदलने के लिए कौन सी की दबाई जाती है?", "options": ["F2", "F5", "F1", "F12"], "answer": "F2"},
+            {"q": "ऑल सेलेक्ट करने की शॉर्टकट की क्या है?", "options": ["Ctrl + A", "Ctrl + S", "Ctrl + F", "Ctrl + P"], "answer": "Ctrl + A"},
+            {"q": "कंप्यूटर सिस्टम को रीस्टार्ट करने की शॉर्टकट की क्या है?", "options": ["Ctrl + Alt + Del", "Ctrl + F4", "Alt + Tab", "Ctrl + R"], "answer": "Ctrl + Alt + Del"},
+            {"q": "स्पैम (Spam) किससे संबंधित है?", "options": ["अवांछित ईमेल", "वायरस", "हार्डवेयर", "गेमिंग"], "answer": "अवांछित ईमेल"},
+            {"q": "डब्ल्यूडब्ल्यूडब्ल्यू (WWW) के आविष्कारक कौन हैं?", "options": ["टिम बर्नर्स-ली", "बिल गेट्स", "स्टेव जॉब्स", "मार्क जुकरबर्ग"], "answer": "टिम बर्नर्स-ली"},
+            {"q": "पहला वेब ब्राउज़र कौन सा था?", "options": ["WorldWideWeb", "Mosaic", "Internet Explorer", "Netscape"], "answer": "WorldWideWeb"}
+        ],
+        "pool_3": [
+            {"q": "कंप्यूटर की भौतिक बनावट क्या कहलाती है?", "options": ["हार्डवेयर", "सॉफ्टवेयर", "फर्मवेयर", "ह्यूमनवेयर"], "answer": "हार्डवेयर"},
+            {"q": "वेबसाइट के एड्रेस को क्या कहते हैं?", "options": ["URL", "IP", "HTML", "HTTP"], "answer": "URL"},
+            {"q": "बायोस (BIOS) कहाँ स्टोर होता है?", "options": ["ROM", "RAM", "Hard Disk", "Cache"], "answer": "ROM"},
+            {"q": "डेटाबेस को मैनेज करने वाले सॉफ्टवेयर को क्या कहते हैं?", "options": ["DBMS", "OS", "Compiler", "Assembler"], "answer": "DBMS"},
+            {"q": "कैश मेमोरी (Cache Memory) कहाँ होती है?", "options": ["CPU और RAM के बीच", "Hard Disk में", "Monitor में", "Keyboard में"], "answer": "CPU और RAM के बीच"},
+            {"q": "एक टेराबाइट (TB) कितने जीबी के बराबर होता है?", "options": ["1024 GB", "512 GB", "2048 GB", "100 GB"], "answer": "1024 GB"},
+            {"q": "कंप्यूटर में बैकअप का क्या अर्थ है?", "options": ["डेटा की कॉपी सुरक्षित रखना", "सिस्टम बंद करना", "वायरस हटाना", "फॉर्मेट करना"], "answer": "डेटा की कॉपी सुरक्षित रखना"},
+            {"q": "इंटरनेट ब्राउज़र में नई टैब खोलने की शॉर्टकट की क्या है?", "options": ["Ctrl + T", "Ctrl + N", "Ctrl + W", "Ctrl + Shift + N"], "answer": "Ctrl + T"},
+            {"q": "प्रिंट प्रीव्यू देखने की शॉर्टकट की क्या है?", "options": ["Ctrl + F2", "Ctrl + P", "Ctrl + Shift + P", "F12"], "answer": "Ctrl + F2"},
+            {"q": "फाइंड (Find) करने की शॉर्टकट की क्या है?", "options": ["Ctrl + F", "Ctrl + H", "Ctrl + S", "Ctrl + R"], "answer": "Ctrl + F"},
+            {"q": "रिप्लेस (Replace) करने की शॉर्टकट की क्या है?", "options": ["Ctrl + H", "Ctrl + F", "Ctrl + R", "Ctrl + G"], "answer": "Ctrl + H"},
+            {"q": "डेटा को व्यवस्थित (Sort) करने की प्रक्रिया क्या कहलाती है?", "options": ["सॉर्टिंग", "सर्चिंग", "मर्जिंग", "फिल्टरिंग"], "answer": "सॉर्टिंग"},
+            {"q": "माइक्रoprocessor किस पीढ़ी (Generation) का है?", "options": ["चौथी पीढ़ी", "पहली पीढ़ी", "दूसरी पीढ़ी", "तीसरी पीढ़ी"], "answer": "चौथी पीढ़ी"},
+            {"q": "प्रथम गणना यंत्र (Calculating Machine) कौन सा था?", "options": ["अबेकस (Abacus)", "कैलकुलेटर", "नेपियर बोन", "पास्कलाइन"], "answer": "अबेकस (Abacus)"},
+            {"q": "कंप्यूटर बूटिंग के दौरान कौन सा प्रोग्राम चलता है?", "options": ["POST", "BIOS", "DOS", "OS"], "answer": "POST"},
+            {"q": "किस मेमोरी को रीफ्रेश करने की आवश्यकता होती है?", "options": ["DRAM", "SRAM", "ROM", "Cache"], "answer": "DRAM"},
+            {"q": "डॉट मैट्रिक्स किसका एक प्रकार है?", "options": ["प्रिंटर", "माउस", "स्कैनर", "कीबोर्ड"], "answer": "प्रिंटर"},
+            {"q": "ऑप्टिकल डिस्क का उदाहरण कौन सा है?", "options": ["CD-ROM", "Hard Disk", "Floppy Disk", "RAM"], "answer": "CD-ROM"},
+            {"q": "कंप्यूटर नेटवर्क में 'Hub' क्या है?", "options": ["नेटवर्किंग डिवाइस", "सॉफ्टवेयर", "वायरस", "केबल"], "answer": "नेटवर्किंग डिवाइस"},
+            {"q": "किस पोर्ट को माउस और कीबोर्ड के लिए पारंपरिक रूप से उपयोग किया जाता था?", "options": ["PS/2 Port", "USB Port", "HDMI Port", "VGA Port"], "answer": "PS/2 Port"},
+            {"q": "वेब पेज किस भाषा में लिखे जाते हैं?", "options": ["HTML", "C++", "Python", "Java"], "answer": "HTML"},
+            {"q": "कंप्यूटर बन्द करने की प्रक्रिया को क्या कहते हैं?", "options": ["शट डाउन (Shut Down)", "लॉग आउट", "रीस्टार्ट", "स्लीप"], "answer": "शट डाउन (Shut Down)"},
+            {"q": "जीयूआई (GUI) का पूर्ण रूप क्या है?", "options": ["Graphical User Interface", "General User Interaction", "Global User Internet", "Graphical Unified Interaction"], "answer": "Graphical User Interface"},
+            {"q": "सीडी (CD) की स्टोरेज क्षमता सामान्यतः कितनी होती है?", "options": ["700 MB", "4.7 GB", "1.44 MB", "10 GB"], "answer": "700 MB"},
+            {"q": "डीवीडी (DVD) की स्टोरेज क्षमता सामान्यतः कितनी होती है?", "options": ["4.7 GB", "700 MB", "500 MB", "1 TB"], "answer": "4.7 GB"}
+        ]
+    },
+    "Graphic Designing: CorelDraw": {
+        "pool_1": [
+            {"q": "CorelDraw में किसी ऑब्जेक्ट को ग्रुप करने के लिए कौन सी शॉर्टकट की है?", "options": ["Ctrl + G", "Ctrl + U", "Ctrl + D", "Ctrl + F4"], "answer": "Ctrl + G"},
+            {"q": "CorelDraw किस प्रकार का सॉफ्टवेयर है?", "options": ["वेक्टर ग्राफिक सॉफ्टवेयर", "रास्टर ग्राफिक सॉफ्टवेयर", "वर्ड प्रोसेसिंग", "स्प्रेडशीट"], "answer": "वेक्टर ग्राफिक सॉफ्टवेयर"},
+            {"q": "CorelDraw फाइल का डिफॉल्ट एक्सटेंशन क्या होता है?", "options": [".cdr", ".psd", ".ai", ".doc"], "answer": ".cdr"},
+            {"q": "किसी ऑब्जेक्ट की डुप्लीकेट कॉपी बनाने की शॉर्टकट की क्या है?", "options": ["Ctrl + C", "Ctrl + D", "Ctrl + V", "Ctrl + B"], "answer": "Ctrl + D"},
+            {"q": "CorelDraw में टेक्स्ट को आर्टिस्टिक से पैराग्राफ में बदलने के लिए क्या शॉर्टकट है?", "options": ["Ctrl + F2", "Ctrl + F8", "Ctrl + F9", "Ctrl + F11"], "answer": "Ctrl + F8"},
+            {"q": "दो ऑब्जेक्ट्स को वेल्ड करने का मुख्य कार्य क्या होता है?", "options": ["अलग करना", "जोड़ना", "काटना", "डिलीट करना"], "answer": "जोड़ना"},
+            {"q": "CorelDraw में ज़ूम इन करने के लिए कौन सी शॉर्टकट की होती है?", "options": ["F2", "F3", "F4", "F9"], "answer": "F2"},
+            {"q": "पूरे पेज को स्क्रीन पर फिट करने के लिए कौन सी की दबाई जाती है?", "options": ["F3", "F4", "F8", "F12"], "answer": "F4"},
+            {"q": "CorelDraw में कलर पैलेट को ऑन या ऑफ करने के लिए कहाँ जाते हैं?", "options": ["View > Color Palette", "File > Open", "Edit > Copy", "Effects > Lens"], "answer": "View > Color Palette"},
+            {"q": "पॉलीगन टूल से न्यूनतम कितनी भुजाओं का शेप बना सकते हैं?", "options": ["2", "3", "4", "5"], "answer": "3"},
+            {"q": "CorelDraw में सेव करने की शॉर्टकट की क्या है?", "options": ["Ctrl + S", "Ctrl + N", "Ctrl + O", "Ctrl + P"], "answer": "Ctrl + S"},
+            {"q": "इम्पोर्ट करने की शॉर्टकट की क्या है?", "options": ["Ctrl + I", "Ctrl + E", "Ctrl + C", "Ctrl + V"], "answer": "Ctrl + I"},
+            {"q": "एक्सपोर्ट करने की शॉर्टकट की क्या है?", "options": ["Ctrl + E", "Ctrl + I", "Ctrl + S", "Ctrl + X"], "answer": "Ctrl + E"},
+            {"q": "रेक्टेंगल ड्रा करने के लिए कौन सा शॉर्टकट की है?", "options": ["F6", "F7", "F8", "M"], "answer": "F6"},
+            {"q": "सर्कल टूल की शॉर्टकट की क्या है?", "options": ["F7", "F6", "C", "E"], "answer": "F7"},
+            {"q": "कर्व में बदलने की शॉर्टकट की क्या है?", "options": ["Ctrl + Q", "Ctrl + W", "Ctrl + E", "Ctrl + R"], "answer": "Ctrl + Q"},
+            {"q": "ऑब्जेक्ट को अनग्रुप करने की शॉर्टकट की क्या है?", "options": ["Ctrl + U", "Ctrl + G", "Ctrl + K", "Ctrl + B"], "answer": "Ctrl + U"},
+            {"q": "कंबाइन करने की शॉर्टकट की क्या है?", "options": ["Ctrl + L", "Ctrl + K", "Ctrl + G", "Ctrl + U"], "answer": "Ctrl + L"},
+            {"q": "फुल स्क्रीन प्रीव्यू देखने के लिए कौन सी की दबाई जाती है?", "options": ["F9", "F3", "F4", "F2"], "answer": "F9"},
+            {"q": "पेज सेटअप या ऑप्शन विंडो खोलने की शॉर्टकट की क्या है?", "options": ["Ctrl + J", "Ctrl + P", "Ctrl + T", "Ctrl + M"], "answer": "Ctrl + J"},
+            {"q": "पिन्ट करने की शॉर्टकट की क्या है?", "options": ["Ctrl + P", "Ctrl + S", "Ctrl + N", "Ctrl + O"], "answer": "Ctrl + P"},
+            {"q": "CorelDraw में किसी ऑब्जेक्ट को लॉक करने के लिए क्या किया जाता है?", "options": ["Right Click > Lock Object", "Ctrl + L", "Ctrl + K", "Alt + L"], "answer": "Right Click > Lock Object"},
+            {"q": "फ्रीहैंड टूल का उपयोग किस लिए होता है?", "options": ["फ्री हैंड ड्राइंग के लिए", "सर्कल बनाने के लिए", "कलर भरने के लिए", "टेक्स्ट लिखने के लिए"], "answer": "फ्री हैंड ड्राइंग के लिए"},
+            {"q": "CorelDraw में पेज ओरिएंटेशन कितने प्रकार के होते हैं?", "options": ["2 (Portrait & Landscape)", "3", "4", "1"], "answer": "2 (Portrait & Landscape)"},
+            {"q": "किसी ऑब्जेक्ट को डिलीट करने की शॉर्टकट की क्या है?", "options": ["Delete", "Backspace", "Ctrl + D", "Alt + D"], "answer": "Delete"}
+        ],
+        "pool_2": [
+            {"q": "CorelDraw में F12 की का उपयोग किस लिए होता है?", "options": ["Outline Pen Dialog", "Fill Dialog", "Zoom", "Grid Setup"], "answer": "Outline Pen Dialog"},
+            {"q": "Shift + Page Down का उपयोग CorelDraw में क्या है?", "options": ["Send Object to Back", "Bring to Front", "Delete Object", "Group Object"], "answer": "Send Object to Back"},
+            {"q": "Shift + Page Up का उपयोग CorelDraw में क्या है?", "options": ["Bring to Front", "Send to Back", "Group", "Ungroup"], "answer": "Bring to Front"},
+            {"q": "CorelDraw में 'Bezier Tool' का मुख्य उपयोग क्या है?", "options": ["कस्टम वेक्टर पाथ और शेप बनाना", "कलर भरना", "टेक्स्ट लिखना", "इमेज क्रॉप करना"], "answer": "कस्टम वेक्टर पाथ और शेप बनाना"},
+            {"q": "CorelDraw में 'PowerClip' का उपयोग किस लिए होता है?", "options": ["किसी ऑब्जेक्ट को दूसरे शेप के अंदर फिट करना", "छोटा करना", "कॉपी करना", "डिलीट करना"], "answer": "किसी ऑब्जेक्ट को दूसरे शेप के अंदर फिट करना"},
+            {"q": "CorelDraw में 'Intersects' कमांड का क्या कार्य है?", "options": ["दो ऑब्जेक्ट्स के कॉमन हिस्से को निकालना", "जोड़ना", "काटना", "अलग करना"], "answer": "दो ऑब्जेक्ट्स के कॉमन हिस्से को निकालना"},
+            {"q": "CorelDraw में ग्रिड (Grid) ऑन करने की शॉर्टकट की क्या है?", "options": ["Ctrl + Y", "Ctrl + G", "Ctrl + Shift + G", "F7"], "answer": "Ctrl + Y"},
+            {"q": "CorelDraw में गाइडलाइन (Guideline) लाने के लिए कहाँ क्लिक करते हैं?", "options": ["Ruler से खींचकर", "View menu", "Edit menu", "File menu"], "answer": "Ruler से खींचकर"},
+            {"q": "CorelDraw में 'Artistic Text' की विशेषता क्या है?", "options": ["स्पेशल इफेक्ट्स और डिजाइनिंग में आसानी", "लंबा पैराग्राफ लिखना", "टेबल बनाना", "कलर करना"], "answer": "स्पेशल इफेक्ट्स और डिजाइनिंग में आसानी"},
+            {"q": "CorelDraw में 'Paragraph Text' किसके लिए उपयुक्त है?", "options": ["लंबे आर्टिकल और डॉक्यूमेंट", "लोगो", "सिंबल", "बटन"], "answer": "लंबे आर्टिकल और डॉक्यूमेंट"},
+            {"q": "CorelDraw में 'Shape Tool' की शॉर्टकट की क्या है?", "options": ["F10", "F6", "F7", "F8"], "answer": "F10"},
+            {"q": "CorelDraw में 'Pick Tool' की शॉर्टकट की क्या है?", "options": ["Spacebar", "F1", "F5", "F9"], "answer": "Spacebar"},
+            {"q": "CorelDraw में 'Eraser Tool' की शॉर्टकट की क्या है?", "options": ["X", "E", "Z", "C"], "answer": "X"},
+            {"q": "CorelDraw में 'Knife Tool' किस काम आता है?", "options": ["ऑब्जेक्ट को काटने के लिए", "जोड़ने के लिए", "घुमाने के लिए", "रंग भरने के लिए"], "answer": "ऑब्जेक्ट को काटने के लिए"},
+            {"q": "CorelDraw में 'Zoom Tool' की शॉर्टकट की क्या है?", "options": ["Z", "F2", "F3", "H"], "answer": "Z"},
+            {"q": "CorelDraw में 'Pan (Hand) Tool' की शॉर्टकट की क्या है?", "options": ["H", "Z", "P", "M"], "answer": "H"},
+            {"q": "CorelDraw में किसी शेप को रोटेट करने के लिए क्या करते हैं?", "options": ["दो बार क्लिक करके हैंडल घुमाना", "डबल क्लिक", "राइट क्लिक", "ड्रैग करना"], "answer": "दो बार क्लिक करके हैंडल घुमाना"},
+            {"q": "CorelDraw में 'Mirror Horizontally' का क्या असर होता है?", "options": ["ऑब्जेक्ट क्षैतिज पलटना", "ऊपर-नीچے पलटना", "बड़ा करना", "छोटा करना"], "answer": "ऑब्जेक्ट क्षैतिज पलटना"},
+            {"q": "CorelDraw में 'Mirror Vertically' का क्या असर होता है?", "options": ["ऑब्जेक्ट लंबवत पलटना", "बाएं-दाएं पलटना", "घुमाना", "मिटाना"], "answer": "ऑब्जेक्ट लंबवत पलटना"},
+            {"q": "CorelDraw में 'F11' की दबाने पर क्या खुलता है?", "options": ["Fountain Fill Dialog", "Outline Dialog", "Print Dialog", "Options"], "answer": "Fountain Fill Dialog"},
+            {"q": "CorelDraw में 'F12' से क्या होता है?", "options": ["Outline Pen Dialog", "Fill Dialog", "Grid Setup", "Save"], "answer": "Outline Pen Dialog"},
+            {"q": "CorelDraw में 'Shift + F2' का उपयोग किसके लिए होता है?", "options": ["Selected objects पर ज़ूम करना", "पूरा पेज देखना", "आउट करना", "इन करना"], "answer": "Selected objects पर ज़ूम करना"},
+            {"q": "CorelDraw में 'F4' का उपयोग किसके लिए होता है?", "options": ["सभी ऑब्जेक्ट्स को स्क्रीन पर फिट करना", "ज़ूम इन", "ज़ूम आउट", "सेव"], "answer": "सभी ऑब्जेक्ट्स को स्क्रीन पर फिट करना"},
+            {"q": "CorelDraw में 'F3' का उपयोग किसके लिए होता है?", "options": ["Zoom Out", "Zoom In", "Full Screen", "Exit"], "answer": "Zoom Out"},
+            {"q": "CorelDraw में डिफ़ॉल्ट यूनिट क्या होती है?", "options": ["इंच (Inches)", "मिलीमीटर", "पिक्सल्स", "सेंटीमीटर"], "answer": "इंच (Inches)"}
+        ],
+        "pool_3": [
+            {"q": "CorelDraw में 'Contour Tool' का क्या काम है?", "options": ["ऑब्जेक्ट के चारों ओर शेड या लेयर बनाना", "काटना", "वेल्ड करना", "डिलीट करना"], "answer": "ऑब्जेक्ट के चारों ओर शेड या लेयर बनाना"},
+            {"q": "CorelDraw में 'Blend Tool' का उपयोग किस लिए होता है?", "options": ["दो आकृतियों को आपस में मिलाना / ट्रांजिशन बनाना", "कट करना", "रंग उड़ना", "सेव करना"], "answer": "दो आकृतियों को आपस में मिलाना / ट्रांजिशन बनाना"},
+            {"q": "CorelDraw में 'Distort Tool' क्या करता है?", "options": ["शेप को विकृत या डिस्टॉर्ट करना", "सीधा करना", "कलर भरना", "लॉक करना"], "answer": "शेप को विकृत या डिस्टॉर्ट करना"},
+            {"q": "CorelDraw में 'Envelope Tool' का क्या कार्य है?", "options": ["टेक्स्ट या शेप के नोड्स को फ्रेम अनुसार मोड़ना", "बंद करना", "प्रिंट करना", "बॉर्डर देना"], "answer": "टेक्स्ट या शेप के नोड्स को फ्रेम अनुसार मोड़ना"},
+            {"q": "CorelDraw में 'Extrude Tool' से क्या बनता है?", "options": ["3D इफेक्ट", "2D इफेक्ट", "ट्रांसपेरेंसी", "शैडो"], "answer": "3D इफेक्ट"},
+            {"q": "CorelDraw में 'Drop Shadow Tool' किस लिए है?", "options": ["छाया (Shadow) देने के लिए", "उजाला करने के लिए", "कटिंग", "ग्रुपिंग"], "answer": "छाया (Shadow) देने के लिए"},
+            {"q": "CorelDraw में 'Transparency Tool' का क्या अर्थ है?", "options": ["पारदर्शिता (Transparency) देना", "रंग गाढ़ा करना", "साइज बढ़ाना", "रोटेट करना"], "answer": "पारदर्शिता (Transparency) देना"},
+            {"q": "CorelDraw में 'Eyedropper Tool' से क्या करते हैं?", "options": ["कलर सैंपल कॉपी करना", "ज़ूम", "क्रॉप", "लाइन खींचना"], "answer": "कलर सैंपल कॉपी करना"},
+            {"q": "CorelDraw में 'Paintbucket Tool' का क्या काम है?", "options": ["कलर फिल करना", "पेंट करना", "इरेज़ करना", "सेलेक्ट करना"], "answer": "कलर फिल करना"},
+            {"q": "CorelDraw में 'Interactive Fill Tool' की शॉर्टकट की क्या है?", "options": ["G", "F", "I", "M"], "answer": "G"},
+            {"q": "CorelDraw में 'Mesh Fill Tool' की शॉर्टकट की क्या है?", "options": ["M", "F", "G", "N"], "answer": "M"},
+            {"q": "CorelDraw में 'Smart Fill Tool' क्या करता है?", "options": ["बंद एरिया में नया रंग भरा ऑब्जेक्ट बनाना", "डिलीट करना", "लॉक करना", "ग्रुप करना"], "answer": "बंद एरिया में नया रंग भरा ऑब्जेक्ट बनाना"},
+            {"q": "CorelDraw में 'Ruler' लाने की शॉर्टकट की क्या होती है?", "options": ["Ctrl + Shift + R (या View से)", "Alt + R", "F1", "F2"], "answer": "Ctrl + Shift + R (या View से)"},
+            {"q": "CorelDraw में 'Dockers' पैनल खोलने के लिए शॉर्टकट क्या है?", "options": ["Ctrl + F7", "Ctrl + F3", "Ctrl + F8", "Ctrl + F2"], "answer": "Ctrl + F3"},
+            {"q": "CorelDraw में 'Object Manager' डॉकर की शॉर्टकट की क्या है?", "options": ["Ctrl + F7", "Ctrl + F2", "Ctrl + F5", "Ctrl + F9"], "answer": "Ctrl + F7"},
+            {"q": "CorelDraw में 'Symbol Manager' की शॉर्टकट की क्या है?", "options": ["Ctrl + F3", "Ctrl + F11", "Ctrl + F9", "Ctrl + F6"], "answer": "Ctrl + F11"},
+            {"q": "CorelDraw में 'Transformation' डॉकर की शॉर्टकट की क्या है?", "options": ["Alt + F7", "Ctrl + F7", "Alt + F9", "Ctrl + F5"], "answer": "Alt + F7"},
+            {"q": "CorelDraw में 'Align and Distribute' विंडो की शॉर्टकट की क्या है?", "options": ["Ctrl + E", "Ctrl + A", "Ctrl + L", "Ctrl + C"], "answer": "Ctrl + E"},
+            {"q": "CorelDraw में किसी ऑब्जेक्ट को लेफ्ट एलाइन करने की शॉर्टकट की क्या है?", "options": ["L", "R", "T", "B"], "answer": "L"},
+            {"q": "CorelDraw में किसी ऑब्जेक्ट को राइट एलाइन करने की शॉर्टकट की क्या है?", "options": ["R", "L", "C", "E"], "answer": "R"},
+            {"q": "CorelDraw में टॉप एलाइन करने के लिए कौन सी की दबाते हैं?", "options": ["T", "B", "L", "R"], "answer": "T"},
+            {"q": "CorelDraw में बॉटम एलाइन करने के लिए कौन सी की दबाते हैं?", "options": ["B", "T", "C", "E"], "answer": "B"},
+            {"q": "CorelDraw में सेंटर हॉरिजॉन्टली एलाइन करने की शॉर्टकट की क्या है?", "options": ["C", "E", "L", "R"], "answer": "C"},
+            {"q": "CorelDraw में सेंटर वर्टिकली एलाइन करने की शॉर्टकट की क्या है?", "options": ["E", "C", "T", "B"], "answer": "E"},
+            {"q": "CorelDraw में पेज के सेंटर में ऑब्जेक्ट लाने के लिए कौन सी की प्रेस करते हैं?", "options": ["P", "C", "E", "Z"], "answer": "P"}
+        ]
+    },
+    "Graphic Designing: Photoshop": {
+        "pool_1": [
+            {"q": "Adobe Photoshop किस प्रकार का सॉफ्टवेयर है?", "options": ["रास्टर / पिक्सेल बेस्ड एडिटिंग", "वेक्टर ग्राफिक्स", "डेटाबेस", "प्रेजेंटेशन"], "answer": "रास्टर / पिक्सेल बेस्ड एडिटिंग"},
+            {"q": "Photoshop फाइल का डिफ़ॉल्ट एक्सटेंशन क्या होता है?", "options": [".psd", ".cdr", ".png", ".jpg"], "answer": ".psd"},
+            {"q": "नया डॉक्यूमेंट बनाने की शॉर्टकट की क्या है?", "options": ["Ctrl + N", "Ctrl + O", "Ctrl + S", "Ctrl + P"], "answer": "Ctrl + N"},
+            {"q": "किसी लेयर को फ्री ट्रांसफॉर्म करने की शॉर्टकट की क्या है?", "options": ["Ctrl + T", "Ctrl + F", "Ctrl + L", "Ctrl + Shift + N"], "answer": "Ctrl + T"},
+            {"q": "Photoshop में मैजिक वैंड टूल का उपयोग किसके लिए होता है?", "options": ["कलर सिलेक्शन के लिए", "ब्रश चलाने के लिए", "क्रॉप करने के लिए", "टेक्स्ट लिखने के लिए"], "answer": "कलर सिलेक्शन के लिए"},
+            {"q": "इमेज को क्रॉप करने के लिए कीबोर्ड शॉर्टकट क्या है?", "options": ["C key", "M key", "V key", "B key"], "answer": "C key"},
+            {"q": "सिलेक्शन को डी-सेलेक्ट करने की शॉर्टकट की क्या है?", "options": ["Ctrl + D", "Ctrl + A", "Ctrl + Shift + D", "Ctrl + Alt + S"], "answer": "Ctrl + D"},
+            {"q": "फ़ोटोशॉप में ब्रश टूल की शॉर्टकट की क्या होती है?", "options": ["B", "P", "S", "E"], "answer": "B"},
+            {"q": "आईड्रॉपर टूल का मुख्य कार्य क्या है?", "options": ["कलर सैंपल पिक करना", "ज़ूम करना", "इमेज घुमाना", "ब्रश का साइज बढ़ाना"], "answer": "कलर सैंपल पिक करना"},
+            {"q": "क्विक हीलिंग ब्रश टूल की शॉर्टकट की क्या है?", "options": ["J", "H", "K", "L"], "answer": "J"},
+            {"q": "नई लेयर बनाने की शॉर्टकट की क्या है?", "options": ["Ctrl + Shift + N", "Ctrl + N", "Ctrl + L", "Ctrl + Alt + N"], "answer": "Ctrl + Shift + N"},
+            {"q": "लेयर को मर्ज करने की शॉर्टकट की क्या है?", "options": ["Ctrl + E", "Ctrl + M", "Ctrl + G", "Ctrl + Shift + E"], "answer": "Ctrl + E"},
+            {"q": "फॉरग्राउंड और बैकग्राउंड कलर रीसेट करने की शॉर्टकट की क्या है?", "options": ["D", "X", "C", "S"], "answer": "D"},
+            {"q": "कलर इनवर्ट करने की शॉर्टकट की क्या है?", "options": ["Ctrl + I", "Ctrl + Shift + I", "Ctrl + U", "Ctrl + B"], "answer": "Ctrl + I"},
+            {"q": "लेवल विंडो खोलने की शॉर्टकट की क्या है?", "options": ["Ctrl + L", "Ctrl + M", "Ctrl + B", "Ctrl + T"], "answer": "Ctrl + L"},
+            {"q": "कर्व्स विंडो खोलने की शॉर्टकट की क्या है?", "options": ["Ctrl + M", "Ctrl + L", "Ctrl + C", "Ctrl + V"], "answer": "Ctrl + M"},
+            {"q": "मूव टूल की शॉर्टकट की क्या है?", "options": ["V", "M", "C", "H"], "answer": "V"},
+            {"q": "लेस्सो टूल की शॉर्टकट की क्या है?", "options": ["L", "M", "W", "V"], "answer": "L"},
+            {"q": "इरेज़र टूल की शॉर्टकट की क्या है?", "options": ["E", "B", "R", "S"], "answer": "E"},
+            {"q": "टेक्स्ट टूल की शॉर्टकट की क्या है?", "options": ["T", "M", "V", "P"], "answer": "T"},
+            {"q": "हैंड टूल की शॉर्टकट की क्या है?", "options": ["H", "Z", "V", "C"], "answer": "H"},
+            {"q": "फ़ोटोशॉप में ज़ूम इन करने की शॉर्टकट की क्या है?", "options": ["Ctrl + Plus (+)", "Ctrl + Minus (-)", "Ctrl + 0", "Ctrl + T"], "answer": "Ctrl + Plus (+)"},
+            {"q": "किसी लेयर की डुप्लीकेट बनाने की शॉर्टकट की क्या है?", "options": ["Ctrl + J", "Ctrl + C", "Ctrl + D", "Ctrl + V"], "answer": "Ctrl + J"},
+            {"q": "हिस्टोरियल ब्रश टूल का उपयोग किस लिए होता है?", "options": ["पुराने स्टेट पर रिस्टोर करने के लिए", "कलर भरने के लिए", "क्रॉप करने के लिए", "डिलीट करने के लिए"], "answer": "पुराने स्टेट पर रिस्टोर करने के लिए"},
+            {"q": "Photoshop में 'Opacity' का क्या अर्थ है?", "options": ["पारदर्शिता (Transparency)", "ब्राइटनेस", "कलर", "साइज"], "answer": "पारदर्शिता (Transparency)"}
+        ],
+        "pool_2": [
+            {"q": "Photoshop में 'Hue/Saturation' की शॉर्टकट की क्या है?", "options": ["Ctrl + U", "Ctrl + M", "Ctrl + L", "Ctrl + B"], "answer": "Ctrl + U"},
+            {"q": "Photoshop में 'Color Balance' की शॉर्टकट की क्या है?", "options": ["Ctrl + B", "Ctrl + U", "Ctrl + M", "Ctrl + I"], "answer": "Ctrl + B"},
+            {"q": "Photoshop में 'Desaturate' (ब्लैक एंड व्हाइट करना) की शॉर्टकट की क्या है?", "options": ["Ctrl + Shift + U", "Ctrl + U", "Ctrl + Alt + U", "Ctrl + Shift + B"], "answer": "Ctrl + Shift + U"},
+            {"q": "Photoshop में 'Quick Selection Tool' की शॉर्टकट की क्या है?", "options": ["W", "M", "L", "V"], "answer": "W"},
+            {"q": "Photoshop में 'Gradient Tool' की शॉर्टकट की क्या है?", "options": ["G", "B", "P", "K"], "answer": "G"},
+            {"q": "Photoshop में 'Pen Tool' की शॉर्टकट की क्या है?", "options": ["P", "B", "T", "M"], "answer": "P"},
+            {"q": "Photoshop में 'Rectangle Tool' की शॉर्टकट की क्या है?", "options": ["U", "R", "M", "P"], "answer": "U"},
+            {"q": "Photoshop में 'Blur Tool' का क्या काम है?", "options": ["इमेज के हिस्से को धुंधला करना", "साफ करना", "ब्राइट करना", "डार्क करना"], "answer": "इमेज के हिस्से को धुंधला करना"},
+            {"q": "Photoshop में 'Sharpen Tool' क्या करता है?", "options": ["इमेज को शार्प और क्लियर करता है", "ब्लर करता है", "डिलीट करता है", "रोटेट करता है"], "answer": "इमेज को शार्प और क्लियर करता है"},
+            {"q": "Photoshop में 'Smudge Tool' का क्या कार्य है?", "options": ["रंगों को आपस में रगड़ना या फैलाना", "काटना", "भरना", "मिटाना"], "answer": "रंगों को आपस में रगड़ना या फैलाना"},
+            {"q": "Photoshop में 'Dodge Tool' से क्या होता है?", "options": ["इमेज का हिस्सा ब्राइट (उजला) होता है", "डार्क होता है", "ब्लर होता है", "क्रॉप होता है"], "answer": "इमेज का हिस्सा ब्राइट (उजला) होता है"},
+            {"q": "Photoshop में 'Burn Tool' से क्या होता है?", "options": ["इमेज का हिस्सा डार्क (अंधेरा) होता है", "ब्राइट होता है", "बड़ा होता है", "छोटा होता है"], "answer": "इमेज का हिस्सा डार्क (अंधेरा) होता है"},
+            {"q": "Photoshop में 'Sponge Tool' का क्या कार्य है?", "options": ["सैचुरेशन बढ़ाना या घटाना", "क्रॉप करना", "सेव करना", "प्रिंट करना"], "answer": "सैचुरेशन बढ़ाना या घटाना"},
+            {"q": "Photoshop में 'History Panel' का क्या उपयोग है?", "options": ["पिछले किए गए स्टेप्स पर वापस जाना (Undo actions)", "सेव करना", "कलर देखना", "साइज देखना"], "answer": "पिछले किए गए स्टेप्स पर वापस जाना (Undo actions)"},
+            {"q": "Photoshop में 'Actions Panel' किस लिए होता है?", "options": ["ऑटोमेटेड टास्क रिकॉर्ड और प्ले करने के लिए", "ड्राइंग के लिए", "कटिंग के लिए", "प्रिंटिंग के लिए"], "answer": "ऑटोमेटेड टास्क रिकॉर्ड और प्ले करने के लिए"},
+            {"q": "Photoshop में 'Layer Mask' का मुख्य लाभ क्या है?", "options": ["नुकसान पहुँचाए बिना (Non-destructively) पिक्सल्स छिपाना", "लेयर डिलीट करना", "कलर बदलना", "साइज बढ़ाना"], "answer": "नुकसान पहुँचाए बिना (Non-destructively) पिक्सल्स छिपाना"},
+            {"q": "Photoshop में 'Smart Object' की क्या खूबी है?", "options": ["ओरिजिनल क्वालिटी सुरक्षित रखना", "फाइल बड़ी करना", "कलर उड़ाना", "लॉक करना"], "answer": "ओरिजिनल क्वालिटी सुरक्षित रखना"},
+            {"q": "Photoshop में 'Blending Modes' का उपयोग कहाँ होता है?", "options": ["लेयर्स को अलग-अलग तरीकों से मिलाने के लिए", "सेव करने के लिए", "क्रॉप करने के लिए", "ब्रश चलाने के लिए"], "answer": "लेयर्स को अलग-अलग तरीकों से मिलाने के लिए"},
+            {"q": "Photoshop में 'Content-Aware Fill' क्या करता है?", "options": ["आसपास के पिक्सल्स के हिसाब से ऑब्जेक्ट गायब करना", "कलर भरना", "ब्राइट करना", "क्रॉप करना"], "answer": "आसपास के पिक्सल्स के हिसाब से ऑब्जेक्ट गायब करना"},
+            {"q": "Photoshop में 'Spot Healing Brush' की शॉर्टकट की क्या है?", "options": ["J", "B", "S", "E"], "answer": "J"},
+            {"q": "Photoshop में 'Clone Stamp Tool' की शॉर्टकट की क्या है?", "options": ["S", "C", "B", "P"], "answer": "S"},
+            {"q": "Photoshop में 'Pattern Stamp Tool' किस काम आता है?", "options": ["पैटर्न पेंट करने के लिए", "सॉलिड कलर भरने के लिए", "क्रॉप करने के लिए", "इरेज़ करने के लिए"], "answer": "पैटर्न पेंट करने के लिए"},
+            {"q": "Photoshop में 'Magic Eraser Tool' क्या करता है?", "options": ["एक जैसे रंग वाले पिक्सल्स को एक क्लिक में मिटाना", "पूरा पेज मिटाना", "ब्रश चलाना", "क्रॉप करना"], "answer": "एक जैसे रंग वाले पिक्सल्स को एक क्लिक में मिटाना"},
+            {"q": "Photoshop में 'Background Eraser Tool' का क्या उपयोग है?", "options": ["बैकग्राउंड इरेज़ करना", "फॉरग्राउंड मिटाना", "टेक्स्ट लिखना", "सेव करना"], "answer": "बैकग्राउंड इरेज़ करना"},
+            {"q": "Photoshop में 'Art History Brush' क्या करता है?", "options": ["हिस्टोरिकल स्टेट को आर्टिस्टिक स्ट्रोक से पेंट करना", "डिलीट करना", "क्रॉप", "सेव"], "answer": "हिस्टोरियल स्टेट को आर्टिस्टिक स्ट्रोक से पेंट करना"}
+        ],
+        "pool_3": [
+            {"q": "Photoshop में 'Path Selection Tool' की शॉर्टकट की क्या है?", "options": ["A", "P", "V", "M"], "answer": "A"},
+            {"q": "Photoshop में 'Direct Selection Tool' की शॉर्टकट की क्या है?", "options": ["A", "P", "S", "D"], "answer": "A"},
+            {"q": "Photoshop में 'Line Tool' किस कैटेगरी में आता है?", "options": ["Shape Tools", "Brush Tools", "Selection Tools", "Crop Tools"], "answer": "Shape Tools"},
+            {"q": "Photoshop में 'Custom Shape Tool' से क्या बना सकते हैं?", "options": ["प्री-मेड शेप्स और सिम्बल्स", "केवल सर्कल", "केवल लाइन", "टेक्स्ट"], "answer": "प्री-मेड शेप्स और सिम्बल्स"},
+            {"q": "Photoshop में '3D Material Drop Tool' किस लिए होता है?", "options": ["3D मेटेरियल अप्लाई करना", "2D पेंटिंग", "क्रॉप", "ज़ूम"], "answer": "3D मेटेरियल अप्लाई करना"},
+            {"q": "Photoshop में 'Rotate View Tool' की शॉर्टकट की क्या है?", "options": ["R", "V", "H", "Z"], "answer": "R"},
+            {"q": "Photoshop में 'Slice Tool' का उपयोग कहाँ होता है?", "options": ["वेब डिज़ाइन के लिए इमेज काटने में", "प्रिंटिंग में", "वीडियो एडिटिंग में", "ऑडियो में"], "answer": "वेब डिज़ाइन के लिए इमेज काटने में"},
+            {"q": "Photoshop में 'Slice Select Tool' किस काम आता है?", "options": ["कटे हुए स्लाइस को सेलेक्ट करने के लिए", "डिलीट करने के लिए", "कलर बदलने के लिए", "सेव करने के लिए"], "answer": "कटे हुए स्लाइस को सेलेक्ट करने के लिए"},
+            {"q": "Photoshop में 'Notes Tool' का क्या कार्य है?", "options": ["इमेज पर नोट्स या कमेंट जोड़ना", "म्यूजिक जोड़ना", "प्रिंट करना", "शेयर करना"], "answer": "इमेज पर नोट्स या कमेंट जोड़ना"},
+            {"q": "Photoshop में 'Count Tool' किस लिए होता है?", "options": ["इमेज में ऑब्जेक्ट्स की गिनती करने के लिए", "साइज मापने के लिए", "कलर गिनने के लिए", "लेयर गिनने के लिए"], "answer": "इमेज में ऑब्जेक्ट्स की गिनती करने के लिए"},
+            {"q": "Photoshop में 'Rulers' ऑन/ऑफ करने की शॉर्टकट की क्या है?", "options": ["Ctrl + R", "Ctrl + U", "Ctrl + T", "Ctrl + P"], "answer": "Ctrl + R"},
+            {"q": "Photoshop में 'Show/Hide Extras' की शॉर्टकट की क्या है?", "options": ["Ctrl + H", "Ctrl + F", "Ctrl + D", "Ctrl + B"], "answer": "Ctrl + H"},
+            {"q": "Photoshop में 'Snap' ऑन/ऑफ करने की शॉर्टकट की क्या है?", "options": ["Ctrl + ;", "Ctrl + '", "Ctrl + R", "Ctrl + Shift + S"], "answer": "Ctrl + ;"},
+            {"q": "Photoshop में 'Lock Guides' की शॉर्टकट की क्या है?", "options": ["Ctrl + Alt + ;", "Ctrl + ;", "Ctrl + L", "Ctrl + Shift + L"], "answer": "Ctrl + Alt + ;"},
+            {"q": "Photoshop में 'Invert Selection' की शॉर्टकट की क्या है?", "options": ["Ctrl + Shift + I", "Ctrl + I", "Ctrl + Alt + I", "Ctrl + D"], "answer": "Ctrl + Shift + I"},
+            {"q": "Photoshop में 'Feather Selection' की शॉर्टकट की क्या है?", "options": ["Shift + F6", "Ctrl + F6", "Alt + F6", "F6"], "answer": "Shift + F6"},
+            {"q": "Photoshop में 'Color Range' कमांड कहाँ मिलती है?", "options": ["Select > Color Range", "Edit > Color", "View > Range", "Filter > Color"], "answer": "Select > Color Range"},
+            {"q": "Photoshop में 'Refine Edge / Select and Mask' का उपयोग क्यों होता है?", "options": ["बालों और बारीक किनारों के सिलेक्शन को सुधारने के लिए", "कलर भरने के लिए", "इमेज बड़ी करने के लिए", "क्रॉप करने के लिए"], "answer": "बालों और बारीक किनारों के सिलेक्शन को सुधारने के लिए"},
+            {"q": "Photoshop में 'Liquify Filter' किस काम आता है?", "options": ["इमेज के अंगों को मोड़ने, खींचने या पतला करने के लिए", "ब्लर करने के लिए", "शार्प करने के लिए", "डार्क करने के लिए"], "answer": "इमेज के अंगों को मोड़ने, खींचने या पतला करने के लिए"},
+            {"q": "Photoshop में 'Vanishing Point Filter' का क्या कार्य है?", "options": ["परस्पेक्टिव प्लेन पर पेंट या क्लोन करना", "इमेज घुमाना", "क्रॉप करना", "सेव करना"], "answer": "परस्पेक्टिव प्लेन पर पेंट या क्लोन करना"},
+            {"q": "Photoshop में 'Adaptive Wide Angle' फिल्टर क्या करता है?", "options": ["वाइड-एंगल लेंस की डिस्टॉर्शन ठीक करना", "क्रॉप करना", "रोटेट करना", "ब्राइट करना"], "answer": "वाइड-एंगल लेंस की डिस्टॉर्शन ठीक करना"},
+            {"q": "Photoshop में 'Camera Raw Filter' का उपयोग किसके लिए होता है?", "options": ["प्रोफेशनल फोटोग्राफिक कलर करेक्शन और एडिटिंग", "टेक्स्ट लिखने के लिए", "ब्रश चलाने के लिए", "इरेज़ करने के लिए"], "answer": "प्रोफेशनल फोटोग्राफिक कलर करेक्शन और एडिटिंग"},
+            {"q": "Photoshop में 'Lens Correction' फिल्टर का क्या कार्य है?", "options": ["लेंस की कमियों और विरूपण को ठीक करना", "साइज बढ़ाना", "कलर बढ़ाना", "क्रॉप करना"], "answer": "लेंस की कमियों और विरूपण को ठीक करना"},
+            {"q": "Photoshop में 'Smart Sharpen' फिल्टर क्या करता है?", "options": ["बेहतर और कंट्रोलड शार्पटेनिंग देना", "ब्लर करना", "डिलीट करना", "लॉक करना"], "answer": "बेहतर और कंट्रोलड शार्पटेनिंग देना"},
+            {"q": "Photoshop में 'Blur Gallery' में किस तरह के ब्लर मिलते हैं?", "options": ["Iris, Tilt-Shift, Field Blur", "केवल Gaussian", "केवल Motion", "केवल Radial"], "answer": "Iris, Tilt-Shift, Field Blur"}
+        ]
+    },
+    "Accounting & Tally Prime": {
+        "pool_1": [
+            {"q": "Tally Prime में कंट्रा वाउचर की शॉर्टकट की क्या है?", "options": ["F4", "F5", "F6", "F7"], "answer": "F4"},
+            {"q": "भुगतान वाउचर के लिए कौन सी फंक्शन की का उपयोग होता है?", "options": ["F4", "F5", "F6", "F7"], "answer": "F5"},
+            {"q": "प्राप्ति वाउचर की शॉर्टकट की क्या है?", "options": ["F4", "F5", "F6", "F8"], "answer": "F6"},
+            {"q": "Tally में कंपनी को बंद करने की शॉर्टकट की क्या है?", "options": ["Alt + F1", "Ctrl + F1", "Alt + F3", "Ctrl + Alt + C"], "answer": "Alt + F1"},
+            {"q": "Tally Prime में लेजर बनाने के लिए किस शॉर्टकट का उपयोग किया जाता है?", "options": ["Gateway of Tally > Create > Ledger", "Accounts Info > Ledger", "Inventory Info > Ledger", "Display > Ledger"], "answer": "Gateway of Tally > Create > Ledger"},
+            {"q": "बिक्री वाउचर की शॉर्टकट की क्या है?", "options": ["F7", "F8", "F9", "F5"], "answer": "F8"},
+            {"q": "खरीद वाउचर की शॉर्टकट की क्या है?", "options": ["F7", "F8", "F9", "F4"], "answer": "F9"},
+            {"q": "जर्नल वाउचर की शॉर्टकट की क्या है?", "options": ["F5", "F6", "F7", "F8"], "answer": "F7"},
+            {"q": "Tally में Trial Balance देखने के लिए शॉर्टकट क्या है?", "options": ["Gateway of Tally > Balance Sheet", "Gateway of Tally > Display More Reports > Trial Balance", "F11", "F12"], "answer": "Gateway of Tally > Balance Sheet"},
+            {"q": "क्रेडिट नोट की शॉर्टकट की क्या होती है?", "options": ["Alt + F6", "Ctrl + F6", "Alt + F8", "Ctrl + F8"], "answer": "Alt + F6"},
+            {"q": "डेबिट नोट की शॉर्टकट की क्या होती है?", "options": ["Alt + F5", "Ctrl + F5", "Alt + F7", "Ctrl + F7"], "answer": "Alt + F5"},
+            {"q": "Tally में कंपनी अल्टर करने के लिए कहाँ जाते हैं?", "options": ["Gateway of Tally > Alter", "Gateway of Tally > Company > Alter", "F3", "Alt + C"], "answer": "Gateway of Tally > Company > Alter"},
+            {"q": "स्टॉक समरी देखने के लिए मुख्य मेनू में क्या चुनते हैं?", "options": ["Stock Summary", "Balance Sheet", "Profit & Loss", "Display"], "answer": "Stock Summary"},
+            {"q": "Tally में फीचर्स खोलने की शॉर्टकट की क्या है?", "options": ["F11", "F12", "Alt + F1", "Ctrl + F11"], "answer": "F11"},
+            {"q": "Tally में कॉन्फ़िगरेशन की शॉर्टकट की क्या है?", "options": ["F12", "F11", "Ctrl + F12", "Alt + F12"], "answer": "F12"},
+            {"q": "प्रॉफिट एंड लॉस अकाउंट देखने के लिए शॉर्टकट क्या है?", "options": ["Gateway of Tally > Profit & Loss A/c", "Balance Sheet", "Trial Balance", "Display"], "answer": "Gateway of Tally > Profit & Loss A/c"},
+            {"q": "नया लेजर बनाते समय ग्रुप सिलेक्ट करने के लिए लिस्ट कहाँ से आती है?", "options": ["List of Groups", "Ledger Accounts", "Primary Groups", "Inventory Info"], "answer": "List of Groups"},
+            {"q": "Tally में बैंक रिकॉन्सिलेशन की शॉर्टकट की क्या है?", "options": ["F5 से बैंक रिपोर्ट में जाकर", "Alt + R", "Ctrl + R", "F12"], "answer": "F5 से बैंक रिपोर्ट में जाकर"},
+            {"q": "क्विकली लेजर या वाउचर डिलीट करने की शॉर्टकट की क्या है?", "options": ["Alt + D", "Ctrl + D", "Shift + Delete", "Del"], "answer": "Alt + D"},
+            {"q": "Tally Prime से बाहर आने के लिए कौन सी की दबाते हैं?", "options": ["Esc", "Alt + F4", "Ctrl + Q", "Enter"], "answer": "Esc"},
+            {"q": "कैश और प्रॉफिट/लॉस अकाउंट Tally द्वारा डिफ़ॉल्ट रूप से कितने बने होते हैं?", "options": ["2", "1", "3", "4"], "answer": "2"},
+            {"q": "Tally में GST रिपोर्ट देखने के लिए मुख्य रूप से कहाँ जाते हैं?", "options": ["Gateway of Tally > Display More Reports > GST Reports", "Balance Sheet", "Profit & Loss", "Accounts Info"], "answer": "Gateway of Tally > Display More Reports > GST Reports"},
+            {"q": "Tally में बैकअप लेने का विकल्प कहाँ होता है?", "options": ["Gateway of Tally > Company > Back up", "F11", "F12", "Tools"], "answer": "Gateway of Tally > Company > Back up"},
+            {"q": "Tally में किसी रिपोर्ट को प्रिंट करने की शॉर्टकट की क्या है?", "options": ["Alt + P", "Ctrl + P", "F12", "Ctrl + S"], "answer": "Alt + P"},
+            {"q": "Tally में कंपनी रीस्टोर करने के लिए क्या चुनते हैं?", "options": ["Restore", "Backup", "Select", "Create"], "answer": "Restore"}
+        ],
+        "pool_2": [
+            {"q": "Tally Prime में किसी वाउचर को डुप्लीकेट करने की शॉर्टकट की क्या है?", "options": ["Alt + 2", "Alt + D", "Alt + C", "Ctrl + D"], "answer": "Alt + 2"},
+            {"q": "Tally Prime में किसी वाउचर को कैंसिल करने की शॉर्टकट की क्या है?", "options": ["Alt + X", "Alt + C", "Alt + V", "Ctrl + C"], "answer": "Alt + X"},
+            {"q": "Tally Prime में वाउचर की प्रविष्टि के दौरान नई लेजर बनाने की शॉर्टकट की क्या है?", "options": ["Alt + C", "Ctrl + C", "Alt + N", "F3"], "answer": "Alt + C"},
+            {"q": "Tally में 'Day Book' देखने के लिए शॉर्टकट क्या है?", "options": ["Display More Reports > Day Book", "Balance Sheet", "Trial Balance", "Accounts Info"], "answer": "Display More Reports > Day Book"},
+            {"q": "Tally में 'Ratio Analysis' रिपोर्ट कहाँ मिलती है?", "options": ["Gateway of Tally > Ratio Analysis", "Balance Sheet", "Profit & Loss", "Display"], "answer": "Gateway of Tally > Ratio Analysis"},
+            {"q": "Tally में 'Bill-wise Details' किसके लिए उपयोग होती है?", "options": ["उधार लेन-देन और बिल ट्रैकिंग (Sundry Debtors/Creditors)", "नकद बिक्री", "स्टॉक", "सैलरी"], "answer": "उधार लेन-देन और बिल ट्रैकिंग (Sundry Debtors/Creditors)"},
+            {"q": "Tally Prime में 'Go To' फीचर की शॉर्टकट की क्या है?", "options": ["Alt + G", "Ctrl + G", "F12", "Alt + F1"], "answer": "Alt + G"},
+            {"q": "Tally Prime में 'Switch To' फीचर की शॉर्टकट की क्या है?", "options": ["Ctrl + G", "Alt + G", "Alt + S", "Ctrl + S"], "answer": "Ctrl + G"},
+            {"q": "Tally में 'Godown' या लोकेशन का फीचर किस उद्देश्य से होता है?", "options": ["गोदामवार स्टॉक प्रबंधन के लिए", "कैश प्रबंधन", "बैंक रिकॉन्सिलेशन", "जीएसटी फाइलिंग"], "answer": "गोदामवार स्टॉक प्रबंधन के लिए"},
+            {"q": "Tally में 'Batch-wise Details' का उपयोग किसलिए होता है?", "options": ["मैन्युफैक्चरिंग और एक्सपायरी डेट ट्रैक करने के लिए", "कर्मचारियों के लिए", "सैलरी के लिए", "लोन के लिए"], "answer": "मैन्युफैक्चरिंग और एक्सपायरी डेट ट्रैक करने के लिए"},
+            {"q": "Tally में 'Price Levels' का क्या उपयोग है?", "options": ["विभिन्न ग्राहकों के लिए अलग मूल्य सूची तय करना", "डिस्ककाउंट देना", "टैक्स लगाना", "ब्याज जोड़ना"], "answer": "विभिन्न ग्राहकों के लिए अलग मूल्य सूची तय करना"},
+            {"q": "Tally में 'Cost Centres' का उपयोग किसके लिए होता है?", "options": ["लागत और आय का हिसाब रखने के लिए", "स्टॉक गिनने के लिए", "बैंक खाता जोड़ने के लिए", "बैलेंस शीट देखने के लिए"], "answer": "लागत और आय का हिसाब रखने के लिए"},
+            {"q": "Tally में 'Interest Calculation' का मुख्य कार्य क्या है?", "options": ["उधार पर ब्याज की गणना करना", "छूट देना", "कमीशन जोड़ना", "जीएसटी निकालना"], "answer": "उधार पर ब्याज की गणना करना"},
+            {"q": "Tally में 'Payroll' फीचर किसके लिए होता है?", "options": ["कर्मचारी वेतन और उपस्थिति (Salary & Attendance)", "बैंक लेन-देन", "स्टॉक एंट्री", "जीएसटी रिपोर्ट"], "answer": "कर्मचारी वेतन और उपस्थिति (Salary & Attendance)"},
+            {"q": "Tally में 'Budgets' का क्या उपयोग है?", "options": ["वित्तीय नियंत्रण और योजना बनाने के लिए", "बिल बनाने के लिए", "टैक्स चुकाने के लिए", "खाता बंद करने के लिए"], "answer": "वित्तीय नियंत्रण और योजना बनाने के लिए"},
+            {"q": "Tally में 'Order Processing' में कौन से ऑर्डर शामिल हैं?", "options": ["Purchase & Sales Order", "Receipt & Payment", "Contra & Journal", "Debit & Credit Note"], "answer": "Purchase & Sales Order"},
+            {"q": "Tally में 'Debit Note' वाउचर का उपयोग कब होता है?", "options": ["खरीद वापस करने पर (Purchase Return)", "बिक्री वापसी", "नकद प्राप्ति", "भुगतान"], "answer": "खरीद वापस करने पर (Purchase Return)"},
+            {"q": "Tally में 'Credit Note' वाउचर का उपयोग कब होता है?", "options": ["बिका हुआ माल वापस मिलने पर (Sales Return)", "खरीद वापसी", "खर्च", "आय"], "answer": "बिका हुआ माल वापस मिलने पर (Sales Return)"},
+            {"q": "Tally में 'Memorandum Voucher' किस प्रकार का वाउचर है?", "options": ["नॉन-अकाउंटिंग वाउचर (याददाश्त के लिए)", "ओरिजिनल अकाउंटिंग", "कैश वाउचर", "बैंक वाउचर"], "answer": "नॉन-अकाउंटिंग वाउचर (याददाश्त के लिए)"},
+            {"q": "Tally में 'Reversing Journal' वाउचर का उपयोग किसके लिए होता है?", "options": ["एंटीसिपेटेड एन्ट्रीज और एडजस्टमेंट के लिए", "दैनिक बिक्री", "स्टॉक एंट्री", "सैलरी"], "answer": "एंटीसिपेटेड एन्ट्रीज और एडजस्टमेंट के लिए"},
+            {"q": "Tally Prime में कंपनी का डेटा किस फोल्डर में मुख्य रूप से स्टोर होता है?", "options": ["Data Folder", "System 32", "Program Files", "Temp Folder"], "answer": "Data Folder"},
+            {"q": "Tally में 'OD A/c' या 'Bank Overdraft' किस ग्रुप में आता है?", "options": ["Loans (Liability)", "Current Assets", "Capital A/c", "Direct Expenses"], "answer": "Loans (Liability)"},
+            {"q": "Tally में 'Outstanding' रिपोर्ट क्या दर्शाती है?", "options": ["बकाया लेन-देन (लेनदार और देनदार)", "कुल संपत्ति", "शुद्ध लाभ", "स्टॉक मूल्य"], "answer": "बकाया लेन-देन (लेनदार और देनदार)"},
+            {"q": "Tally में 'Cash Flow' स्टेटमेंट क्या दिखाता है?", "options": ["नकद का आना और जाना", "केवल लाभ", "केवल हानि", "स्टॉक की स्थिति"], "answer": "नकद का आना और जाना"},
+            {"q": "Tally में 'Fund Flow' स्टेटमेंट क्या दर्शाता है?", "options": ["फंड के स्त्रोत और उपयोग", "केवल बैंक बैलेंस", "सैलरी का विवरण", "जीएसटी"], "answer": "फंड के स्त्रोत और उपयोग"}
+        ],
+        "pool_3": [
+            {"q": "Tally Prime में 'Company Features' (F11) में मुख्य रूप से क्या सेट करते हैं?", "options": ["Accounting, Inventory & Taxation features", "Windows settings", "Printer settings", "User password"], "answer": "Accounting, Inventory & Taxation features"},
+            {"q": "Tally Prime में 'Security Control' का उपयोग क्यों किया जाता है?", "options": ["पासवर्ड और यूजर एक्सेस सुरक्षित करने के लिए", "डेटा डिलीट करने के लिए", "स्पीड बढ़ाने के लिए", "बैकअप लेने के लिए"], "answer": "पासवर्ड और यूजर एक्सेस सुरक्षित करने के लिए"},
+            {"q": "Tally में 'Tally Vault Password' क्या सुरक्षा देता है?", "options": ["डेटा एंक्रिप्शन और उच्च सुरक्षा", "केवल व्यू", "केवल प्रिंट", "कुछ नहीं"], "answer": "डेटा एंक्रिप्शन और उच्च सुरक्षा"},
+            {"q": "Tally Prime में 'Export' करने की शॉर्टकट की क्या है?", "options": ["Alt + E", "Alt + P", "Ctrl + E", "Ctrl + P"], "answer": "Alt + E"},
+            {"q": "Tally Prime में 'Import' करने का विकल्प कहाँ होता है?", "options": ["Alt + O (Import)", "Alt + I", "Ctrl + I", "F12"], "answer": "Alt + O (Import)"},
+            {"q": "Tally Prime में 'E-Way Bill' जनरेट करने की सुविधा किसके साथ जुड़ी है?", "options": ["GST Compliance", "TDS", "Payroll", "Bank Reconciliation"], "answer": "GST Compliance"},
+            {"q": "Tally में TDS (Tax Deducted at Source) का संबंध किससे है?", "options": ["स्रोत पर कर कटौती", "जीएसटी", "बिक्री कर", "आयात शुल्क"], "answer": "स्रोत पर कर कटौती"},
+            {"q": "Tally में TCS (Tax Collected at Source) का संबंध किससे है?", "options": ["संग्रह पर कर", "वेतन", "स्टॉक", "लोन"], "answer": "संग्रह पर कर"},
+            {"q": "Tally में 'GST Return' रिपोर्ट मुख्य रूप से किस फॉर्म में देखी जाती है?", "options": ["GSTR-1, GSTR-3B", "Form 16", "ITR-1", "Balance Sheet"], "answer": "GSTR-1, GSTR-3B"},
+            {"q": "Tally में 'Stock Category' और 'Stock Group' में क्या अंतर है?", "options": ["Category वर्गीकरण का अतिरिक्त स्तर है", "दोनों एक हैं", "कोई अंतर नहीं", "ग्रुप केवल नाम है"], "answer": "Category वर्गीकरण का अतिरिक्त स्तर है"},
+            {"q": "Tally में 'Units of Measurement' (जैसे Pcs, Kg) क्यों बनाए जाते हैं?", "options": ["स्टॉक मापने के लिए", "कैश गिनने के लिए", "लेजर के लिए", "वाउचर के लिए"], "answer": "स्टॉक मापने के लिए"},
+            {"q": "Tally में 'Godown Summary' से क्या पता चलता है?", "options": ["किस गोदाम में कितना स्टॉक है", "किस बैंक में कितना पैसा है", "किस ग्राहक से कितना लेना है", "कितना प्रॉफिट है"], "answer": "किस गोदाम में कितना स्टॉक है"},
+            {"q": "Tally में 'Cost Category' और 'Cost Centre' में क्या संबंध है?", "options": ["Cost Category के अंदर Cost Centre बनाए जाते हैं", "दोनों अलग सॉफ्टवेयर हैं", "कोई संबंध नहीं", "केवल नाम हैं"], "answer": "Cost Category के अंदर Cost Centre बनाए जाते हैं"},
+            {"q": "Tally Prime में रिपोर्ट देखते समय किसी विशेष अवधि (Period) बदलने की शॉर्टकट की क्या है?", "options": ["Alt + F2", "F2", "Alt + F1", "Ctrl + F2"], "answer": "Alt + F2"},
+            {"q": "Tally Prime में करंट डेट बदलने की शॉर्टकट की क्या है?", "options": ["F2", "Alt + F2", "F5", "F6"], "answer": "F2"},
+            {"q": "Tally Prime में वाउचर की तारीख बदलने की शॉर्टकट की क्या है?", "options": ["F2", "F3", "F4", "F7"], "answer": "F2"},
+            {"q": "Tally में 'Multi-Currency' का क्या उपयोग है?", "options": ["विदेशी मुद्राओं (Foreign Currency) में लेन-देन", "केवल भारतीय रुपए", "गोल्ड ट्रेडिंग", "लोन"], "answer": "विदेशी मुद्राओं (Foreign Currency) में लेन-देन"},
+            {"q": "Tally में 'Check Printing' का कॉन्फ़िगरेशन कहाँ से सेट होता है?", "options": ["लेजर या वाउचर प्रिंटिंग से", "कंट्रा वाउचर", "बैलेंस शीट", "डे बुक"], "answer": "लेजर या वाउचर प्रिंटिंग से"},
+            {"q": "Tally में 'Post-dated Voucher' (PDC) का क्या अर्थ है?", "options": ["भविष्य की तारीख का वाउचर", "बीता हुआ वाउचर", "रद्द वाउचर", "कैश वाउचर"], "answer": "भविष्य की तारीख का वाउचर"},
+            {"q": "Tally में 'Optional Voucher' किस श्रेणी में आता है?", "options": ["मेमोरेंडम की तरह नॉन-इफेक्टिव वाउचर", "ओरिजिनल", "कैश", "बैंक"], "answer": "मेमोरेंडम की तरह नॉन-इफेक्टिव वाउचर"},
+            {"q": "Tally में 'Columnar Report' का क्या अर्थ है?", "options": ["स्तंभों (Columns) के रूप में तुलनात्मक रिपोर्ट", "साधारण रिपोर्ट", "ग्राफ", "चार्ट"], "answer": "स्तंभों (Columns) के रूप में तुलनात्मक रिपोर्ट"},
+            {"q": "Tally Prime का इंटरफेस पुराने Tally.ERP 9 से कैसा है?", "options": ["अधिक आधुनिक और सरल (Modern & Simplified)", "कठिन", "समान", "धीमा"], "answer": "अधिक आधुनिक और सरल (Modern & Simplified)"},
+            {"q": "Tally Prime में किसी रिपोर्ट को रीफ्रेश या पुनः लोड करने के लिए क्या करते हैं?", "options": ["ऑटोमेटिक अपडेट होता है / F5", "रिस्टार्ट", "डिलीट", "कुछ नहीं"], "answer": "ऑटोमेटिक अपडेट होता है / F5"},
+            {"q": "Tally में 'Statistics' रिपोर्ट क्या दिखाती है?", "options": ["कुल वाउचर और लेजर की संख्या", "प्रॉफिट", "लॉस", "स्टॉक"], "answer": "कुल वाउचर और लेजर की संख्या"},
+            {"q": "Tally में 'Trial Balance' किन खातों का योग होता है?", "options": ["सभी लेजर खातों के डेबिट और क्रेडिट शेष", "केवल कैश", "केवल बैंक", "केवल सेल्स"], "answer": "सभी लेजर खातों के डेबिट और क्रेडिट शेष"}
+        ]
+    },
+    "Web Development & Programming": {
+        "pool_1": [
+            {"q": "वेब पेज पर सबसे बड़ी हेडिंग दिखाने के लिए कौन सा HTML टैग उपयोग होता है?", "options": ["<h1>", "<h6>", "<head>", "<heading>"], "answer": "<h1>"},
+            {"q": "CSS का पूरा नाम क्या है?", "options": ["Cascading Style Sheets", "Computer Style Sheets", "Creative Style System", "Colorful Style Sheet"], "answer": "Cascading Style Sheets"},
+            {"q": "HTML दस्तावेज में लिंक बनाने के लिए किस टैग का उपयोग होता है?", "options": ["<a>", "<link>", "<href>", "<url>"], "answer": "<a>"},
+            {"q": "इनमें से कौन सी एक प्रोग्रामिंग भाषा है?", "options": ["HTML", "CSS", "Python", "XML"], "answer": "Python"},
+            {"q": "वेब पेज पर इमेज दिखाने के लिए किस टैग का इस्तेमाल होता है?", "options": ["<img>", "<image>", "<pic>", "<src>"], "answer": "<img>"},
+            {"q": "JavaScript में किसी वेरिएबल को घोषित करने के लिए कौन सा कीवर्ड प्रयोग होता है?", "options": ["var", "let", "const", "उपरोक्त सभी (All of these)"], "answer": "उपरोक्त सभी (All of these)"},
+            {"q": "HTML का नवीनतम संस्करण कौन सा है?", "options": ["HTML4", "HTML5", "HTML X", "HTML 2.0"], "answer": "HTML5"},
+            {"q": "CSS में टेक्स्ट का कलर बदलने के लिए किस प्रॉपर्टी का उपयोग होता है?", "options": ["color", "text-color", "font-color", "background-color"], "answer": "color"},
+            {"q": "वेबसाइट का मुख्य पृष्ठ क्या कहलाता है?", "options": ["होम पेज (Home Page)", "मास्टर पेज", "फर्स्ट पेज", "वेब पेज"], "answer": "होम पेज (Home Page)"},
+            {"q": "लाइन ब्रेक देने के लिए HTML में कौन सा टैग उपयोग होता है?", "options": ["<br>", "<lb>", "<break>", "<hr>"], "answer": "<br>"},
+            {"q": "HTML का पूर्ण रूप क्या है?", "options": ["Hyper Text Markup Language", "High Text Machine Language", "Hyperlinks and Text Markup", "Home Tool Markup Language"], "answer": "Hyper Text Markup Language"},
+            {"q": "JavaScript किस प्रकार की भाषा है?", "options": ["स्क्रिप्टिंग भाषा (Scripting Language)", "मशीन भाषा", "असेम्बली भाषा", "डेटाबेस भाषा"], "answer": "स्क्रिप्टिंग भाषा (Scripting Language)"},
+            {"q": "CSS का उपयोग किस लिए होता है?", "options": ["वेबपेज को डिज़ाइन और स्टाइल करने के लिए", "डेटा स्टोर करने के लिए", "लॉजिक लिखने के लिए", "सर्वर चलाने के लिए"], "answer": "वेबपेज को डिज़ाइन और स्टाइल करने के लिए"},
+            {"q": "Python में कमेंट लिखने के लिए किस चिन्ह का उपयोग होता है?", "options": ["#", "//", "/*", "<!--"], "answer": "#"},
+            {"q": "इनमें से कौन सा टैग HTML में टेबल बनाने के लिए उपयोग होता है?", "options": ["<table>", "<tab>", "<tr>", "<td>"], "answer": "<table>"},
+            {"q": "वेब पेज पर बैकग्राउंड कलर बदलने के लिए CSS में किस प्रॉपर्टी का उपयोग होता है?", "options": ["background-color", "color", "bg-color", "image-color"], "answer": "background-color"},
+            {"q": "Python भाषा का विकास किसने किया था?", "options": ["Guido van Rossum", "Dennis Ritchie", "James Gosling", "Bjarne Stroustrup"], "answer": "Guido van Rossum"},
+            {"q": "HTML में अनऑर्डर्ड लिस्ट के लिए कौन सा टैग होता है?", "options": ["<ul>", "<ol>", "<li>", "<list>"], "answer": "<ul>"},
+            {"q": "किसी एलिमेंट की आईडी को CSS में दर्शाने के लिए किस चिन्ह का प्रयोग करते हैं?", "options": ["#", ".", "*", "$"], "answer": "#"},
+            {"q": "CSS क्लास को दर्शाने के लिए किस चिन्ह का प्रयोग होता है?", "options": [".", "#", "@", "&"], "answer": "."},
+            {"q": "वेब ब्राउज़र का मुख्य कार्य क्या है?", "options": ["वेबपेज रेंडर और दिखाना", "कोडिंग लिखना", "वायरस बनाना", "डेटा स्टोर करना"], "answer": "वेब ब्राउज़र का मुख्य कार्य क्या है?"},
+            {"q": "JavaScript में कंसोल पर प्रिंट करने के लिए क्या लिखते हैं?", "options": ["console.log()", "print()", "echo()", "printf()"], "answer": "console.log()"},
+            {"q": "HTML में पैराग्राफ लिखने के लिए कौन सा टैग उपयोग होता है?", "options": ["<p>", "<para>", "<pg>", "<text>"], "answer": "<p>"},
+            {"q": "CSS में बॉर्डर रेडियस का उपयोग किस लिए होता है?", "options": ["कोनों को गोल करने के लिए", "बॉर्डर का रंग बदलने के लिए", "साइज बढ़ाने के लिए", "शेडो देने के लिए"], "answer": "कोनों को गोल करने के लिए"},
+            {"q": "Python में लिस्ट (List) को किस कोष्ठक से दर्शाया जाता है?", "options": ["ब्रेसिज़ { }", "ब्रैकेट्स [ ]", "पैंथेसिस ( )", "एंगेल ब्रैकेट्स < >"], "answer": "ब्रैकेट्स [ ]"}
+        ],
+        "pool_2": [
+            {"q": "HTML में फॉर्म (Form) बनाने के लिए किस टैग का उपयोग होता है?", "options": ["<form>", "<input>", "<button>", "<fieldset>"], "answer": "<form>"},
+            {"q": "HTML में इनपुट फील्ड का प्रकार तय करने के लिए किस एट्रिब्यूट का उपयोग होता है?", "options": ["type", "name", "value", "id"], "answer": "type"},
+            {"q": "CSS में किसी एलिमेंट का फॉन्ट साइज बदलने की प्रॉपर्टी क्या है?", "options": ["font-size", "text-size", "size", "font-style"], "answer": "font-size"},
+            {"q": "CSS में मार्जिन (Margin) और पैडिंग (Padding) में मुख्य अंतर क्या है?", "options": ["मार्जिन बाहर की जगह छोड़ता है, पैडिंग अंदर की", "दोनों अंदर की जगह छोड़ते हैं", "कोई अंतर नहीं", "पैडिंग बाहर की जगह छोड़ती है"], "answer": "मार्जिन बाहर की जगह छोड़ता है, पैडिंग अंदर की"},
+            {"q": "JavaScript में ऐरे (Array) को किस कोष्ठक में लिखा जाता है?", "options": ["Square brackets [ ]", "Curly braces { }", "Parentheses ( )", "Angle brackets < >"], "answer": "Square brackets [ ]"},
+            {"q": "JavaScript में ऑब्जेक्ट (Object) को किस कोष्ठक में लिखा जाता है?", "options": ["Curly braces { }", "Square brackets [ ]", "Parentheses ( )", "Angle brackets < >"], "answer": "Curly braces { }"},
+            {"q": "Python में फंक्शन परिभाषित (Define) करने के लिए किस कीवर्ड का उपयोग होता है?", "options": ["def", "function", "fun", "define"], "answer": "def"},
+            {"q": "Python में लूप चलाने के लिए कौन सा कीवर्ड उपयोग होता है?", "options": ["for और while", "loop और repeat", "do और until", "iterate"], "answer": "for और while"},
+            {"q": "HTML5 में वीडियो जोड़ने के लिए किस टैग का उपयोग होता है?", "options": ["<video>", "<media>", "<movie>", "<play>"], "answer": "<video>"},
+            {"q": "HTML5 में ऑडियो जोड़ने के लिए किस टैग का उपयोग होता है?", "options": ["<audio>", "<sound>", "<music>", "<mp3>"], "answer": "<audio>"},
+            {"q": "CSS Flexbox का मुख्य उपयोग किसके लिए होता है?", "options": ["एक आयामी (1D) रेस्पॉन्सिव लेआउट बनाने के लिए", "टेक्स्ट कलर बदलने के लिए", "एनिमेशन के लिए", "डेटाबेस कनेक्ट करने के लिए"], "answer": "एक आयामी (1D) रेस्पॉन्सिव लेआउट बनाने के लिए"},
+            {"q": "CSS Grid का मुख्य उपयोग किसके लिए होता है?", "options": ["द्वि-आयामी (2D) लेआउट ग्रिड बनाने के लिए", "फॉन्ट बदलने के लिए", "बॉर्डर गोल करने के लिए", "लिंक बनाने के लिए"], "answer": "द्वि-आयामी (2D) लेआउट ग्रिड बनाने के लिए"},
+            {"q": "JavaScript में किसी स्ट्रिंग की लंबाई (Length) निकालने के लिए किस प्रॉपर्टी का उपयोग होता है?", "options": [".length", ".size", ".count", ".index"], "answer": ".length"},
+            {"q": "JavaScript में प्रॉम्प्ट (Prompt) बॉक्स क्या काम करता है?", "options": ["यूज़र से इनपुट लेने के लिए", "अलर्ट दिखाने के लिए", "कंसोल प्रिंट करने के लिए", "एरर दिखाने के लिए"], "answer": "यूज़र से इनपुट लेने के लिए"},
+            {"q": "Python में स्ट्रिंग को लोअरकेस में बदलने के लिए किस मेथड का उपयोग होता है?", "options": [".lower()", ".lowercase()", ".down()", ".small()"], "answer": ".lower()"},
+            {"q": "Python में स्ट्रिंग को अपरकेस में बदलने के लिए किस मेथड का उपयोग होता है?", "options": [".upper()", ".uppercase()", ".up()", ".big()"], "answer": ".upper()"},
+            {"q": "HTML में कमेंट लिखने का सही तरीका क्या है?", "options": ["<!-- comment -->", "// comment", "/* comment */", "# comment"], "answer": "<!-- comment -->"},
+            {"q": "CSS में कमेंट लिखने का सही तरीका क्या है?", "options": ["/* comment */", "// comment", "<!-- comment -->", "# comment"], "answer": "/* comment */"},
+            {"q": "JavaScript में सिंगल लाइन कमेंट के लिए क्या उपयोग होता है?", "options": ["// comment", "/* comment */", "<!-- comment -->", "# comment"], "answer": "// comment"},
+            {"q": "Python में डिक्शनरी (Dictionary) किस फॉर्मेट में डेटा स्टोर करती है?", "options": ["Key-Value pair", "Index number", "Only values", "Only keys"], "answer": "Key-Value pair"},
+            {"q": "HTML में किसी इमेज का अल्टरनेटिव टेक्स्ट दिखाने के लिए कौन सा एट्रिब्यूट होता है?", "options": ["alt", "title", "src", "href"], "answer": "alt"},
+            {"q": "CSS में डिस्प्ले प्रॉपर्टी की कौन सी वैल्यू एलिमेंट को पूरी तरह छुपा देती है?", "options": ["display: none;", "visibility: hidden;", "opacity: 0;", "display: block;"], "answer": "display: none;"},
+            {"q": "JavaScript में 'NaN' का क्या अर्थ है?", "options": ["Not a Number", "Not a Name", "Null and None", "Network and Node"], "answer": "Not a Number"},
+            {"q": "Python में कंडीशनल स्टेटमेंट के लिए कौन से कीवर्ड्स उपयोग होते हैं?", "options": ["if, elif, else", "switch, case", "when, then", "check, otherwise"], "answer": "if, elif, else"},
+            {"q": "वेब डेवलपमेंट में DOM का पूर्ण रूप क्या है?", "options": ["Document Object Model", "Data Oriented Model", "Digital Online Method", "Display Object Management"], "answer": "Document Object Model"}
+        ],
+        "pool_3": [
+            {"q": "JavaScript में 'Strict Mode' लागू करने के लिए क्या लिखा जाता है?", "options": ["'use strict';", "'strict mode';", "use strict = true;", "enable strict;"], "answer": "'use strict';"},
+            {"q": "JavaScript में एयरो फंक्शन (Arrow Function) का सिंटैक्स कैसा होता है?", "options": ["() => {}", "function() -> {}", "-> {}", "f() {}"], "answer": "() => {}"},
+            {"q": "Python में किसी फाइल को पढ़ने (Read) के लिए किस मोड का उपयोग होता है?", "options": ["'r'", "'w'", "'a'", "'x'"], "answer": "'r'"},
+            {"q": "Python में किसी फाइल में डेटा लिखने (Write) के लिए किस मोड का उपयोग होता है?", "options": ["'w'", "'r'", "'d'", "'read'"], "answer": "'w'"},
+            {"q": "HTML5 में लोकल स्टोरेज (Local Storage) की क्या विशेषता है?", "options": ["ब्राउज़र बंद होने के बाद भी डेटा सेव रहता है", "पेज रिफ्रेश पर उड़ जाता है", "सर्वर पर सेव होता है", "केवल 1 सेकंड रहता है"], "answer": "ब्राउज़र बंद होने के बाद भी डेटा सेव रहता है"},
+            {"q": "CSS में 'z-index' प्रॉपर्टी का उपयोग किसके लिए होता है?", "options": ["एलिमेंट की स्टैकिंग ऑर्डर (आगे या पीछे दिखाना) तय करने के लिए", "जूम करने के लिए", "रोटेट करने के लिए", "कलर बदलने के लिए"], "answer": "एलिमेंट की स्टैकिंग ऑर्डर (आगे या पीछे दिखाना) तय करने के लिए"},
+            {"q": "JavaScript में 'JSON.stringify()' का क्या कार्य है?", "options": ["JavaScript ऑब्जेक्ट को JSON स्ट्रिंग में बदलना", "JSON को ऑब्जेक्ट में बदलना", "कंसोल प्रिंट करना", "एरर दूर करना"], "answer": "JavaScript ऑब्जेक्ट को JSON स्ट्रिंग में बदलना"},
+            {"q": "JavaScript में 'JSON.parse()' का क्या कार्य है?", "options": ["JSON स्ट्रिंग को JavaScript ऑब्जेक्ट में बदलना", "ऑब्जेक्ट को स्ट्रिंग में बदलना", "पर्स्ड करना", "डिलीट करना"], "answer": "JSON स्ट्रिंग को JavaScript ऑब्जेक्ट में बदलना"},
+            {"q": "Python में 'lambda' फंक्शन क्या कहलाता है?", "options": ["गुमनाम या एनोनिमस (Anonymous) फंक्शन", "बड़ा फंक्शन", "इम्पोर्ट फंक्शन", "क्लास"], "answer": "गुमनाम या एनोनिमस (Anonymous) फंक्शन"},
+            {"q": "HTML में 'Viewport' मेटा टैग का उपयोग किस लिए होता है?", "options": ["मोबाइल और विभिन्न स्क्रीन साइज के लिए रेस्पॉन्सिव बनाने हेतु", "कलर बदलने हेतु", "फास्ट लोड करने हेतु", "लिंक हेतु"], "answer": "मोबाइल और विभिन्न स्क्रीन साइज के लिए रेस्पॉन्सिव बनाने हेतु"},
+            {"q": "CSS में 'Media Queries' का उपयोग किसके लिए होता है?", "options": ["अलग-अलग स्क्रीन साइज के हिसाब से डिजाइन बदलने (Responsive Design) के लिए", "वीडियो चलाने के लिए", "ऑडियो के लिए", "प्रिन्ट के लिए"], "answer": "अलग-अलग स्क्रीन साइज के हिसाब से डिजाइन बदलने (Responsive Design) के लिए"},
+            {"q": "JavaScript में asynchronous operations के लिए मुख्य रूप से क्या उपयोग होता है?", "options": ["Promises और Async/Await", "Loops", "Variables", "Arrays"], "answer": "Promises और Async/Await"},
+            {"q": "Python में एक्सेप्शन हैंडलिंग (Error Handling) के लिए कौन से ब्लॉक होते हैं?", "options": ["try, except, finally", "catch, throw", "error, fix", "bug, debug"], "answer": "try, except, finally"},
+            {"q": "HTML में ड्रॉप-डाउन लिस्ट बनाने के लिए किस टैग का उपयोग होता है?", "options": ["<select> और <option>", "<dropdown>", "<list>", "<input type='list'>"], "answer": "<select> और <option>"},
+            {"q": "CSS में 'Position: fixed;' का क्या प्रभाव होता है?", "options": ["पेज स्क्रॉल होने पर भी एलिमेंट अपनी जगह स्थिर रहता है", "गायब हो जाता है", "मूव करता है", "बड़ा होता है"], "answer": "पेज स्क्रॉल होने पर भी एलिमेंट अपनी जगह स्थिर रहता है"},
+            {"q": "JavaScript में किसी एलिमेंट की क्लास जोड़ने के लिए क्या उपयोग होता है?", "options": ["element.classList.add()", "element.class.append()", "element.addClass()", "element.push()"], "answer": "element.classList.add()"},
+            {"q": "Python में किसी मॉड्यूल या लाइब्रेरी को जोड़ने के लिए किस कीवर्ड का उपयोग होता है?", "options": ["import", "include", "require", "using"], "answer": "import"},
+            {"q": "HTML5 में 'Semantic' टैग्स के उदाहरण कौन से हैं?", "options": ["<header>, <footer>, <article>", "<div>, <span>", "<b>, <i>", "<center>, <font>"], "answer": "<header>, <footer>, <article>"},
+            {"q": "CSS में 'Transition' का उपयोग किस लिए होता है?", "options": ["प्रॉपर्टी बदलने पर स्मूथ एनिमेशन या प्रभाव देने के लिए", "पेज पलटने के लिए", "साइज फिक्स करने के लिए", "कलर उड़ाने के लिए"], "answer": "प्रॉपर्टी बदलने पर स्मूथ एनिमेशन या प्रभाव देने के लिए"},
+            {"q": "JavaScript में 'setTimeout()' फंक्शन का क्या काम है?", "options": ["निर्धारित समय बाद किसी कार्य को एक बार निष्पादित करना", "लगातार लوب चलाना", "रोकना", "रिफ्रेश करना"], "answer": "निर्धारित समय बाद किसी कार्य को एक बार निष्पादित करना"},
+            {"q": "Python में टुपल (Tuple) और लिस्ट (List) में मुख्य अंतर क्या है?", "options": ["टुपल बदला नहीं जा सकता (Immutable), लिस्ट बदली जा सकती है", "कोई अंतर नहीं", "लिस्ट बड़ी होती है", "टुपल में नंबर नहीं होते"], "answer": "टुपल बदला नहीं जा सकता (Immutable), लिस्ट बदली जा सकती है"},
+            {"q": "HTML में किसी टेक्स्ट को बोल्ड करने के लिए <b> के अलावा कौन सा आधुनिक टैग प्रयुक्त होता है?", "options": ["<strong>", "<bld>", "<emp>", "<big>"], "answer": "<strong>"},
+            {"q": "CSS में 'Rem' यूनिट किस पर आधारित होती है?", "options": ["रूट (Root/HTML) एलिमेंट के फॉन्ट साइज पर", "पेरेंट एलिमेंट पर", "स्क्रीन विड्थ पर", "पिक्सल्स पर"], "answer": "रूट (Root/HTML) एलिमेंट के फॉन्ट साइज पर"},
+            {"q": "JavaScript में 'Event Listener' क्या सुनता है?", "options": ["यूज़र के एक्शंस (जैसे click, hover, keypress)", "म्यूजिक", "सर्वर की आवाज", "एरर"], "answer": "यूज़र के एक्शंस (जैसे click, hover, keypress)"},
+            {"q": "Python में 'self' कीवर्ड का उपयोग कहाँ होता है?", "options": ["क्लास के इंस्टेंस (Object) को संदर्भित करने के लिए", "फंक्शन रोकने के लिए", "इम्पोर्ट के लिए", "लूप के लिए"], "answer": "क्लास के इंस्टेंस (Object) को संदर्भित करने के लिए"}
         ]
     }
 }
@@ -250,7 +656,11 @@ def persist_current_state():
     save_db(db)
 
 def remove_emojis(text):
-    return re.sub(r'[\U00010000-\U0010ffff]|[\u2600-\u27BF]|[\uD800-\uDBFF][\uDC00-\uDFFF]|[\U0001f300-\U0001f5ff]|[\U0001f600-\U0001f64f]|[\U0001f680-\U0001f6ff]|[\u2600-\u26ff]|[\u2700-\u27bf]|[\U0001f900-\U0001f9ff]|[\U0001fa70-\U0001faff]|[\u231a-\u231b]|[\u23e9-\u23ec]|[\u23f0]|[\u23f3]|[\u25aa-\u25ab]|[\u25b6]|[\u25c0]|[\u25fb-\u25fe]|[\u2600-\u27ef]|[\u2b50]|[\u2b55]|[\u3030]|[\u303d]|[\u3297]|[\u3299]', '', text)
+    return re.sub(
+        r'[\U00010000-\U0010ffff]|[\u2600-\u27BF]|[\uD800-\uDBFF][\uDC00-\uDFFF]|[\U0001f300-\U0001f5ff]|[\U0001f600-\U0001f64f]|[\U0001f680-\U0001f6ff]|[\u2600-\u26ff]|[\u2700-\u27bf]|[\U0001f900-\U0001f9ff]|[\U0001fa70-\U0001faff]|[\u231a-\u231b]|[\u23e9-\u23ec]|[\u23f0]|[\u23f3]|[\u25aa-\u25ab]|[\u25b6]|[\u25c0]|[\u25fb-\u25fe]|[\u2600-\u27ef]|[\u2b50]|[\u2b55]|[\u3030]|[\u303d]|[\u3297]|[\u3299]',
+        '',
+        text
+    )
 
 def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="hi-IN"):
     clean_speech_text = remove_emojis(text_to_speak)
@@ -385,6 +795,38 @@ def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="hi-IN"):
 
 def run_aerial_celebration():
     st.balloons()
+    anim_js = """
+    <script>
+    const parentDoc = window.parent.document;
+    for(let i = 0; i < 45; i++) {
+        let el = parentDoc.createElement('div');
+        el.innerText = ['🎆', '✨', '🏮', '🚀', '⭐', '🎉'][Math.floor(Math.random() * 6)];
+        el.style.position = 'fixed';
+        el.style.left = Math.random() * 95 + 'vw';
+        el.style.bottom = '-50px';
+        el.style.fontSize = (Math.random() * 24 + 20) + 'px';
+        el.style.zIndex = '999999';
+        el.style.transition = 'all ' + (Math.random() * 1.8 + 1.2) + 's cubic-bezier(0.25, 1, 0.5, 1)';
+        el.style.opacity = '1';
+        el.style.pointerEvents = 'none';
+        parentDoc.body.appendChild(el);
+
+        setTimeout(() => {
+            el.style.bottom = (Math.random() * 55 + 40) + 'vh';
+            el.style.transform = 'scale(' + (Math.random() * 1.5 + 1) + ') rotate(' + (Math.random() * 360) + 'deg)';
+        }, 30);
+
+        setTimeout(() => {
+            el.style.opacity = '0';
+        }, 2200);
+
+        setTimeout(() => {
+            el.remove();
+        }, 3200);
+    }
+    </script>
+    """
+    components.html(anim_js, height=0)
 
 def on_new_chat_clicked():
     if st.session_state.messages:
@@ -693,7 +1135,7 @@ About Bctech Computer Education:
 - Institute: Bctech Computer Education
 - Official Branch & Location Info Link: {BRANCH_LINK}
 - Main Offerings: Professional computer training, practical learning, ISO certified courses, job assistance.
-- Popular Courses:
+- Popular Courses (Strict Rule: NEVER mention duration in months or course fees/prices):
   1. बेसिक कंप्यूटर (Basic Computer) - Topics: Windows, MS Office, इंटरनेट
   2. ग्राफिक डिज़ाइन (Graphic Designing: CorelDraw, Photoshop, Illustrator) - Topics: लोगो डिज़ाइन, बैनर, फोटो एडिटिंग
   3. एकाउंटिंग & टैली प्राइम (Accounting & Tally Prime) - Topics: बुनियादी लेखा, टैली में लेन-देन
@@ -1017,6 +1459,7 @@ if query:
                     else:
                         client = Groq(api_key=st.secrets["GROQ_API_KEY"])
                         
+                        # --- STRICT REAL-TIME LIVE DATE & FESTIVAL ACCURACY INSTRUCTIONS ---
                         ist_zone = timezone(timedelta(hours=5, minutes=30))
                         current_ist_dt = datetime.now(ist_zone)
                         
@@ -1059,7 +1502,7 @@ if query:
                         Official Website & Info: {BRANCH_LINK}
                         Courses Data: {KNOWLEDGE_BASE}
                         """
-                        
+
                         with st.spinner("Thinking..."):
                             try:
                                 models_resp = client.models.list()
@@ -1074,15 +1517,15 @@ if query:
                                 ]
                                 preferred = ["llama-3.1-8b-instant", "llama3-8b-8192", "gemma2-9b-it"]
                                 models_to_try = [m for m in preferred if m in active_ids] + [m for m in active_ids if m not in preferred]
-                                
+
                                 answer = None
                                 last_api_err = None
-                                
+
                                 api_messages = [{"role": "system", "content": system_prop}]
                                 for m in st.session_state.messages[:-1]:
                                     api_messages.append({"role": m["role"], "content": m["content"]})
                                 api_messages.append({"role": "user", "content": query})
-                                
+
                                 for m_name in models_to_try:
                                     try:
                                         chat_completion = client.chat.completions.create(
@@ -1098,9 +1541,9 @@ if query:
                                     except Exception as ex:
                                         last_api_err = str(ex)
                                         continue
-                                        
-                                answer = answer.replace("{BRANCH_Link}", BRANCH_LINK)
                                 
+                                answer = answer.replace("{BRANCH_Link}", BRANCH_LINK)
+
                                 if answer:
                                     st.markdown(answer)
                                     st.session_state.messages.append({"role": "assistant", "content": answer})
@@ -1113,14 +1556,14 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (FAIL-SAFE PERSISTENT ARENA)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
     
     rooms = load_room_store()
     curr_room_code = st.session_state.active_room_code
-    my_role = st.session_state.player_role
+    my_role = st.session_state.player_role  # "P1" or "P2"
 
     if curr_room_code and curr_room_code in rooms:
         room_info = rooms[curr_room_code]
@@ -1194,7 +1637,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         if k.upper() == clean_input_code:
                             matched_key = k
                             break
-                            
+
                     if matched_key:
                         rooms[matched_key]["p2_name"] = p2_name_input
                         rooms[matched_key]["game_state"] = "CATEGORY"
@@ -1241,7 +1684,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                     if k.upper() == clean_input_code:
                         matched_key = k
                         break
-                        
+
                 if matched_key:
                     rooms[matched_key]["p2_name"] = p2_wait_name
                     rooms[matched_key]["game_state"] = "CATEGORY"
@@ -1318,6 +1761,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         max_q_limit = 5 if curr_lvl == 1 else 10
         is_my_turn = (st.session_state.player_role == active_role)
 
+        # --- TIMER & TIMEOUT LOGIC ---
         elapsed = time.time() - q_start_time
         remaining = max(0, int(30 - elapsed))
 
@@ -1350,6 +1794,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         if q_idx < len(q_list) and q_idx < max_q_limit:
             current_q_data = q_list[q_idx]
 
+            # HEADER SECTION
             col_a, col_b = st.columns([3, 1])
             with col_a:
                 st.subheader(f"🧠 BC Tech Brain Battle - लेवल {curr_lvl} | सवाल {q_idx + 1} / {max_q_limit}")
@@ -1358,12 +1803,14 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             st.markdown("---")
 
+            # TURN ISOLATION: WAITING PLAYER GETS NO TIMER, ACTIVE PLAYER GETS TIMER
             if not is_my_turn:
                 st.info(f"🔵 **प्रतीक्षा करें (Waiting):** यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
                 time.sleep(1)
                 st.rerun()
                 st.stop()
             
+            # ACTIVE PLAYER VIEW ONLY
             st.success(f"🟢 **आपकी बारी (Your Turn)!** शेष समय: **{remaining} सेकंड**")
             st.progress(remaining / 30.0)
 
@@ -1499,7 +1946,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         else:
             st.info("🤝 कुल मुकाबला **टाई (Tie)** रहा! दोनों खिलाड़ियों ने अद्भुत खेल दिखाया।")
             
-        with st.expander("📜 सभी लेवल्स के विस्तृत जवाब देखें (Full Game Review)", expanded=True):
+        with st.expander("📜 सभी लेवल्स के विस्तृत जवाब देखें (Full Game Review - Who got what right/wrong)", expanded=True):
             for idx, log in enumerate(r_data.get("history_log", []), 1):
                 st.markdown(f"""
                 **[लेवल {log['level']}] {idx}. {log['question']}**  
