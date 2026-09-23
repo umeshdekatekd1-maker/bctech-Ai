@@ -1555,7 +1555,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (FAIL-SAFE PERSISTENT ARENA)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (REAL-TIME JS COUNTDOWN TIMER)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1765,7 +1765,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         max_q_limit = len(q_list) if len(q_list) > 0 else 5
         is_my_turn = (st.session_state.player_role == active_role)
 
-        # --- LIVE COUNTDOWN TIMER LOGIC ---
+        # --- SERVER TIMEOUT CHECK ---
         elapsed = time.time() - q_start_time
         remaining = max(0, int(30 - elapsed))
 
@@ -1815,19 +1815,33 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                 st.rerun()
                 st.stop()
             
-            # ACTIVE PLAYER VIEW WITH REAL-TIME LIVE COUNTDOWN (AUTO-REFRESH EVERY 1s)
-            st.success(f"🟢 **आपकी बारी (Your Turn)!** शेष समय: **{remaining} सेकंड**")
-            st.progress(remaining / 30.0)
-
-            # JavaScript to auto-rerun the Streamlit app every 1 second for live countdown effect
-            live_countdown_js = """
+            # --- TRUE REAL-TIME CLIENT-SIDE JAVASCRIPT COUNTDOWN TIMER (NO FLICKER / SMOOTH 30, 29, 28...) ---
+            timer_html = f"""
+            <div style="background-color: #e8f5e9; padding: 12px 16px; border-radius: 8px; border: 1px solid #c8e6c9; margin-bottom: 16px;">
+                <span style="font-size: 16px; font-weight: bold; color: #2e7d32;" id="timer_text">🟢 आपकी बारी (Your Turn)! शेष समय: {remaining} सेकंड</span>
+                <div style="width: 100%; background-color: #ddd; border-radius: 4px; margin-top: 8px; height: 8px;">
+                    <div id="timer_bar" style="width: {(remaining/30.0)*100}%; background-color: #4CAF50; height: 8px; border-radius: 4px; transition: width 1s linear;"></div>
+                </div>
+            </div>
             <script>
-                setTimeout(function() {
-                    window.location.reload();
+                let timeLeft = {remaining};
+                const timerText = document.getElementById('timer_text');
+                const timerBar = document.getElementById('timer_bar');
+                
+                const countdown = setInterval(function() {
+                    timeLeft--;
+                    if (timeLeft >= 0) {{
+                        timerText.innerHTML = "🟢 आपकी बारी (Your Turn)! शेष समय: " + timeLeft + " सेकंड";
+                        timerBar.style.width = (timeLeft / 30.0) * 100 + "%";
+                    }}
+                    if (timeLeft <= 0) {{
+                        clearInterval(countdown);
+                        window.location.reload();
+                    }}
                 }, 1000);
             </script>
             """
-            components.html(live_countdown_js, height=0)
+            components.html(timer_html, height=85)
 
             st.markdown(f"### ❓ {current_q_data['q']}")
             options = current_q_data["options"]
