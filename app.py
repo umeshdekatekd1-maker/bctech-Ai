@@ -1,6 +1,3 @@
-import json
-import os
-from datetime import datetime, timezone, timedelta
 import streamlit as st
 import streamlit.components.v1 as components
 from groq import Groq
@@ -8,10 +5,13 @@ import pandas as pd
 import requests
 import io
 import re
+import json
+import os
 import uuid
 import random
 import time
 import base64
+from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
     page_title="BC Tech Ai Assistant", 
@@ -1306,7 +1306,7 @@ if query:
 
                 elif is_greeting(query):
                     if lang == "GUJARATI":
-                        reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                        reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                     elif lang == "HINDI":
                         reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                     else:
@@ -1416,7 +1416,7 @@ if query:
                                     full_reply += "પ્રૅક્ટિકલ ટેસ્ટ:\n"
                                     for pk, pv in valid_practical:
                                         full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
-                                    full_reply += f"- કુલ પ્રૅક્ટિકल: {tot_prac}\n\n"
+                                    full_reply += f"- કુલ પ્રૅક્ટિકલ: {tot_prac}\n\n"
                                 full_reply += f"કુલ ગુણ: {total_obtained} / {max_total}\n"
                                 full_reply += f"ટકાવારી: {percentage}%\n\n"
                                 full_reply += f"{motivational_tip}\n\n"
@@ -1555,7 +1555,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (ORIGINAL FLOW WITH LIVE COUNTDOWN)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (ORIGINAL PROVEN TURN FLOW)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1802,55 +1802,25 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             st.markdown("---")
 
-            # --- ORIGINAL WORKING TURN ISOLATION & AUTO-SYNC FOR WAITING PLAYER ---
+            # --- ORIGINAL WORKING TURN ISOLATION: WAITING PLAYER GETS WAITING MESSAGE & REFRESHES ---
             if not is_my_turn:
                 st.info(f"🔵 **प्रतीक्षा करें (Waiting):** यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
                 
-                # Auto-refresh waiting player so they see questions immediately when turn returns
-                waiting_sync_js = """
+                auto_sync_js = """
                 <script>
                     setTimeout(function() {
                         window.location.reload();
-                    }, 1500);
+                    }, 1000);
                 </script>
                 """
-                components.html(waiting_sync_js, height=0)
-                time.sleep(1.5)
+                components.html(auto_sync_js, height=0)
+                time.sleep(1)
                 st.rerun()
                 st.stop()
             
-            # --- ACTIVE PLAYER VIEW WITH SMOOTH LIVE COUNTDOWN TIMER (30, 29, 28...) ---
-            timer_html = f"""
-            <div style="background-color: #e8f5e9; padding: 12px 16px; border-radius: 8px; border: 1px solid #c8e6c9; margin-bottom: 16px;">
-                <span style="font-size: 16px; font-weight: bold; color: #2e7d32;">🟢 आपकी बारी (Your Turn)! शेष समय: <span id="sec_num">{remaining}</span> सेकंड</span>
-                <div style="width: 100%; background-color: #ddd; border-radius: 4px; margin-top: 8px; height: 8px;">
-                    <div id="timer_bar" style="width: {(remaining/30.0)*100}%; background-color: #4CAF50; height: 8px; border-radius: 4px;"></div>
-                </div>
-            </div>
-            <script>
-                (function() {{
-                    let timeLeft = {remaining};
-                    const secNum = document.getElementById('sec_num');
-                    const timerBar = document.getElementById('timer_bar');
-                    
-                    if (window.activeCountdown) {{
-                        clearInterval(window.activeCountdown);
-                    }}
-                    
-                    window.activeCountdown = setInterval(function() {{
-                        timeLeft--;
-                        if (secNum) secNum.innerText = timeLeft;
-                        if (timerBar) timerBar.style.width = (timeLeft / 30.0) * 100 + "%";
-                        
-                        if (timeLeft <= 0) {{
-                            clearInterval(window.activeCountdown);
-                            window.location.reload();
-                        }}
-                    }}, 1000);
-                }})();
-            </script>
-            """
-            components.html(timer_html, height=85)
+            # --- ACTIVE PLAYER VIEW WITH ORIGINAL STATIC COUNTDOWN TIMER ---
+            st.success(f"🟢 **आपकी बारी (Your Turn)!** शेष समय: **{remaining} सेकंड**")
+            st.progress(remaining / 30.0)
 
             st.markdown(f"### ❓ {current_q_data['q']}")
             options = current_q_data["options"]
