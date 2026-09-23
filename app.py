@@ -1306,7 +1306,7 @@ if query:
 
                 elif is_greeting(query):
                     if lang == "GUJARATI":
-                        reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                        reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                     elif lang == "HINDI":
                         reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                     else:
@@ -1555,7 +1555,7 @@ if query:
         persist_current_state()
 
 # ---------------------------------------------------------
-# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (FIXED TIMEOUT & TURN PROGRESSION)
+# 🧠 BC Tech Brain Battle - BATTLE ZONE ARENA (FAIL-SAFE PERSISTENT ARENA)
 # ---------------------------------------------------------
 if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING", "LEVEL_TRANSITION", "RESULT"]:
     st.markdown("---")
@@ -1760,20 +1760,19 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         max_q_limit = 5 if curr_lvl == 1 else 10
         is_my_turn = (st.session_state.player_role == active_role)
 
-        # --- PRECISE 30-SECOND TIMEOUT CHECK WITH PROPER TURN/QUESTION ADVANCEMENT ---
+        # --- TIMER & TIMEOUT CHECK WITH PROPER STATE RESET ---
         elapsed = time.time() - q_start_time
         remaining = max(0, int(30 - elapsed))
 
         if remaining == 0:
-            if q_idx < len(q_list):
-                r_data["history_log"].append({
-                    "level": curr_lvl,
-                    "player": active_player,
-                    "question": q_list[q_idx]['q'],
-                    "chosen": "समय समाप्त (Timeout)",
-                    "correct": q_list[q_idx]["answer"],
-                    "status": "Timeout (0 अंक)"
-                })
+            r_data["history_log"].append({
+                "level": curr_lvl,
+                "player": active_player,
+                "question": q_list[q_idx]['q'] if q_idx < len(q_list) else "",
+                "chosen": "समय समाप्त (Timeout)",
+                "correct": q_list[q_idx]["answer"] if q_idx < len(q_list) else "",
+                "status": "Timeout (0 अंक)"
+            })
             
             if turn == 1:
                 r_data["turn"] = 2
@@ -1789,7 +1788,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             r_data["question_start_time"] = time.time()
             save_room_store(rooms)
-            st.warning("⏳ समय समाप्त (Time Out)! अगला सवाल या अगली बारी पर जा रहे हैं...")
+            st.warning("⏳ Time Out! Agle player ki baari par ja rahe hain...")
             time.sleep(1)
             st.rerun()
 
@@ -1805,7 +1804,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             st.markdown("---")
 
-            # TURN ISOLATION: WAITING PLAYER GETS NO TIMER, ONLY WAITING MESSAGE & AUTO-SYNC
+            # TURN ISOLATION: WAITING PLAYER GETS NO TIMER, ACTIVE PLAYER GETS TIMER
             if not is_my_turn:
                 st.info(f"🔵 **प्रतीक्षा करें (Waiting):** यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
                 
@@ -1822,8 +1821,37 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                 st.stop()
             
             # ACTIVE PLAYER VIEW WITH LIVE COUNTDOWN TIMER (30, 29, 28...)
-            st.success(f"🟢 **आपकी बारी (Your Turn)!** शेष समय: **{remaining} सेकंड**")
-            st.progress(remaining / 30.0)
+            timer_html = f"""
+            <div style="background-color: #e8f5e9; padding: 12px 16px; border-radius: 8px; border: 1px solid #c8e6c9; margin-bottom: 16px;">
+                <span style="font-size: 16px; font-weight: bold; color: #2e7d32;" id="timer_text">🟢 आपकी बारी (Your Turn)! शेष समय: <span id="sec_num">{remaining}</span> सेकंड</span>
+                <div style="width: 100%; background-color: #ddd; border-radius: 4px; margin-top: 8px; height: 8px;">
+                    <div id="timer_bar" style="width: {(remaining/30.0)*100}%; background-color: #4CAF50; height: 8px; border-radius: 4px;"></div>
+                </div>
+            </div>
+            <script>
+                (function() {{
+                    let timeLeft = {remaining};
+                    const secNum = document.getElementById('sec_num');
+                    const timerBar = document.getElementById('timer_bar');
+                    
+                    if (window.activeCountdown) {{
+                        clearInterval(window.activeCountdown);
+                    }}
+                    
+                    window.activeCountdown = setInterval(function() {{
+                        timeLeft--;
+                        if (secNum) secNum.innerText = timeLeft;
+                        if (timerBar) timerBar.style.width = (timeLeft / 30.0) * 100 + "%";
+                        
+                        if (timeLeft <= 0) {{
+                            clearInterval(window.activeCountdown);
+                            window.location.reload();
+                        }}
+                    }}, 1000);
+                }})();
+            </script>
+            """
+            components.html(timer_html, height=85)
 
             st.markdown(f"### ❓ {current_q_data['q']}")
             options = current_q_data["options"]
