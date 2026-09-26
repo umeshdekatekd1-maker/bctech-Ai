@@ -11,6 +11,7 @@ import uuid
 import random
 import time
 import base64
+import sqlite3
 from datetime import datetime, timezone, timedelta
 
 st.set_page_config(
@@ -108,71 +109,76 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- BULLET-PROOF PERSISTENT STORAGE DB MANAGER ---
-DB_FILE = "bctech_chat_storage.json"
-PAPERS_META_FILE = "bctech_papers_store.json"
-BACKUP_PAPERS_FILE = "bctech_papers_backup.json"
-GAME_ROOMS_FILE = "bctech_game_rooms.json"
+# --- SQLITE PERMANENT DATABASE MANAGER (NEVER DELETES ON RESTART/SLEEP) ---
+DB_NAME = "bctech_permanent_storage.db"
 
-def load_db():
-    if os.path.exists(DB_FILE):
-        try:
-            with open(DB_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return {}
-    return {}
-
-def save_db(db):
+def init_sqlite_db():
     try:
-        with open(DB_FILE, "w", encoding="utf-8") as f:
-            json.dump(db, f, ensure_ascii=False, indent=2)
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS bctech_store (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        """)
+        conn.commit()
+        conn.close()
     except Exception:
         pass
 
+init_sqlite_db()
+
+def get_db_value(key, default_val):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT value FROM bctech_store WHERE key = ?", (key,))
+        row = cursor.fetchone()
+        conn.close()
+        if row and row[0]:
+            return json.loads(row[0])
+    except Exception:
+        pass
+    return default_val
+
+def set_db_value(key, data):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("REPLACE INTO bctech_store (key, value) VALUES (?, ?)", (key, json.dumps(data, ensure_ascii=False)))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+def load_db():
+    return get_db_value("chat_storage", {})
+
+def save_db(db):
+    set_db_value("chat_storage", db)
+
 def load_papers_db():
-    data = {}
-    if os.path.exists(PAPERS_META_FILE):
-        try:
-            with open(PAPERS_META_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except Exception:
-            data = {}
-    
-    if not data and os.path.exists(BACKUP_PAPERS_FILE):
-        try:
-            with open(BACKUP_PAPERS_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            with open(PAPERS_META_FILE, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-        except Exception:
-            pass
+    data = get_db_value("papers_storage", {})
+    if not data:
+        # Fallback migration from old json if present
+        if os.path.exists("bctech_papers_store.json"):
+            try:
+                with open("bctech_papers_store.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                set_db_value("papers_storage", data)
+            except Exception:
+                pass
     return data
 
 def save_papers_db(papers_db):
-    try:
-        with open(PAPERS_META_FILE, "w", encoding="utf-8") as f:
-            json.dump(papers_db, f, ensure_ascii=False, indent=2)
-        with open(BACKUP_PAPERS_FILE, "w", encoding="utf-8") as f:
-            json.dump(papers_db, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
+    set_db_value("papers_storage", papers_db)
 
 def load_room_store():
-    if os.path.exists(GAME_ROOMS_FILE):
-        try:
-            with open(GAME_ROOMS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return {}
-    return {}
+    return get_db_value("game_rooms_storage", {})
 
 def save_room_store(rooms):
-    try:
-        with open(GAME_ROOMS_FILE, "w", encoding="utf-8") as f:
-            json.dump(rooms, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
+    set_db_value("game_rooms_storage", rooms)
 
 if "papers_data" not in st.session_state:
     st.session_state.papers_data = load_papers_db()
@@ -1306,7 +1312,7 @@ if query:
 
                 elif is_greeting(query):
                     if lang == "GUJARATI":
-                        reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                        reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                     elif lang == "HINDI":
                         reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                     else:
@@ -1416,7 +1422,7 @@ if query:
                                     full_reply += "પ્રૅક્ટિકલ ટેસ્ટ:\n"
                                     for pk, pv in valid_practical:
                                         full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
-                                    full_reply += f"- કુલ પ્રૅક્ટિકલ: {tot_prac}\n\n"
+                                    full_reply += f"- કુલ પ્રૅક્ટિકल: {tot_prac}\n\n"
                                 full_reply += f"કુલ ગુણ: {total_obtained} / {max_total}\n"
                                 full_reply += f"ટકાવારી: {percentage}%\n\n"
                                 full_reply += f"{motivational_tip}\n\n"
