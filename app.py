@@ -161,7 +161,6 @@ def save_db(db):
 def load_papers_db():
     data = get_db_value("papers_storage", {})
     if not data:
-        # Fallback migration from old json if present
         if os.path.exists("bctech_papers_store.json"):
             try:
                 with open("bctech_papers_store.json", "r", encoding="utf-8") as f:
@@ -328,7 +327,7 @@ QUESTION_BANK = {
             {"q": "CorelDraw में 'Intersects' कमांड का क्या कार्य है?", "options": ["दो ऑब्जेक्ट्स के कॉमन हिस्से को निकालना", "जोड़ना", "काटना", "अलग करना"], "answer": "दो ऑब्जेक्ट्स के कॉमन हिस्से को निकालना"},
             {"q": "CorelDraw में ग्रिड (Grid) ऑन करने की शॉर्टकट की क्या है?", "options": ["Ctrl + Y", "Ctrl + G", "Ctrl + Shift + G", "F7"], "answer": "Ctrl + Y"},
             {"q": "CorelDraw में गाइडलाइन (Guideline) लाने के लिए कहाँ क्लिक करते हैं?", "options": ["Ruler से खींचकर", "View menu", "Edit menu", "File menu"], "answer": "Ruler से खींचकर"},
-            {"q": "CorelDraw में 'Artistic Text' की विशेषता क्या है?", "options": ["स्पेशल इफेक्ट्स और डिजाइनिंग में आसानी", "लंबा पैराग्राफ लिखना", "टेबल बनाना", "कलर करना"], "answer": "स्पेशल इफेक्ट्स और डिजाइनिंग में आसानी"},
+            {"q": "CorelDraw में 'Artistic Text' की विशेषता क्या है?", "options": ["स्पेशल इफेक्ट्स और डिजाइनिंग में आसानी", "लंबा पैराग्राफ लिखना", "टे이블 बनाना", "कलर करना"], "answer": "स्पेशल इफेक्ट्स और डिजाइनिंग में आसानी"},
             {"q": "CorelDraw में 'Paragraph Text' किसके लिए उपयुक्त है?", "options": ["लंबे आर्टिकल और डॉक्यूमेंट", "लोगो", "सिंबल", "बटन"], "answer": "लंबे आर्टिकल और डॉक्यूमेंट"},
             {"q": "CorelDraw में 'Shape Tool' की शॉर्टकट की क्या है?", "options": ["F10", "F6", "F7", "F8"], "answer": "F10"},
             {"q": "CorelDraw में 'Pick Tool' की शॉर्टकट की क्या है?", "options": ["Spacebar", "F1", "F5", "F9"], "answer": "Spacebar"},
@@ -1312,7 +1311,7 @@ if query:
 
                 elif is_greeting(query):
                     if lang == "GUJARATI":
-                        reply = "નમસ્ते! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
+                        reply = "નમસ્તે! BC Tech માં આપનું સ્વાગત છે. હું તમને કેવી રીતે મદદ કરી શકું? 😊"
                     elif lang == "HINDI":
                         reply = "नमस्ते! BC Tech Computer Education में आपका स्वागत है। मैं आपकी कैसे मदद कर सकता हूँ? 😊"
                     else:
@@ -1422,7 +1421,7 @@ if query:
                                     full_reply += "પ્રૅક્ટિકલ ટેસ્ટ:\n"
                                     for pk, pv in valid_practical:
                                         full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
-                                    full_reply += f"- કુલ પ્રૅક્ટિકल: {tot_prac}\n\n"
+                                    full_reply += f"- કુલ પ્રૅક્ટિકલ: {tot_prac}\n\n"
                                 full_reply += f"કુલ ગુણ: {total_obtained} / {max_total}\n"
                                 full_reply += f"ટકાવારી: {percentage}%\n\n"
                                 full_reply += f"{motivational_tip}\n\n"
