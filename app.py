@@ -109,7 +109,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- SQLITE PERMANENT DATABASE MANAGER (NEVER DELETES ON RESTART/SLEEP) ---
+# --- 100% ROBUST SQLITE PERMANENT STORAGE MANAGER (BLOB SUPPORT) ---
 DB_NAME = "bctech_permanent_storage.db"
 
 def init_sqlite_db():
@@ -120,6 +120,17 @@ def init_sqlite_db():
             CREATE TABLE IF NOT EXISTS bctech_store (
                 key TEXT PRIMARY KEY,
                 value TEXT
+            )
+        """)
+        # Dedicated permanent table for uploaded papers to prevent any reset
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS bctech_papers (
+                paper_key TEXT PRIMARY KEY,
+                display_name TEXT,
+                filename TEXT,
+                file_blob BLOB,
+                mime TEXT,
+                locked INTEGER
             )
         """)
         conn.commit()
@@ -159,19 +170,73 @@ def save_db(db):
     set_db_value("chat_storage", db)
 
 def load_papers_db():
-    data = get_db_value("papers_storage", {})
-    if not data:
-        if os.path.exists("bctech_papers_store.json"):
-            try:
-                with open("bctech_papers_store.json", "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                set_db_value("papers_storage", data)
-            except Exception:
-                pass
-    return data
+    papers_dict = {}
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("SELECT paper_key, display_name, filename, file_blob, mime, locked FROM bctech_papers")
+        rows = cursor.fetchall()
+        conn.close()
+        for row in rows:
+            pk, d_name, fname, fblob, mime_type, locked_status = row
+            papers_dict[pk] = {
+                "display_name": d_name,
+                "filename": fname,
+                "data_b64": base64.b64encode(fblob).decode("utf-8") if fblob else "",
+                "mime": mime_type,
+                "locked": bool(locked_status)
+            }
+    except Exception:
+        pass
+    
+    # Fallback migration from old json if papers table is empty
+    if not papers_dict and os.path.exists("bctech_papers_store.json"):
+        try:
+            with open("bctech_papers_store.json", "r", encoding="utf-8") as f:
+                old_data = json.load(f)
+                for pk, p_info in old_data.items():
+                    papers_dict[pk] = p_info
+                    # Save into sqlite permanent table immediately
+                    save_single_paper_to_db(pk, p_info)
+        except Exception:
+            pass
+            
+    return papers_dict
+
+def save_single_paper_to_db(pk, p_info):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        f_blob = base64.b64decode(p_info["data_b64"]) if "data_b64" in p_info and p_info["data_b64"] else b""
+        cursor.execute("""
+            REPLACE INTO bctech_papers (paper_key, display_name, filename, file_blob, mime, locked)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+            pk,
+            p_info.get("display_name", pk),
+            p_info.get("filename", "file"),
+            f_blob,
+            p_info.get("mime", "application/pdf"),
+            1 if p_info.get("locked", True) else 0
+        ))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+def delete_paper_from_db(pk):
+    try:
+        conn = sqlite3.connect(DB_NAME)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM bctech_papers WHERE paper_key = ?", (pk,))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
 
 def save_papers_db(papers_db):
-    set_db_value("papers_storage", papers_db)
+    for pk, p_info in papers_db.items():
+        save_single_paper_to_db(pk, p_info)
 
 def load_room_store():
     return get_db_value("game_rooms_storage", {})
@@ -922,7 +987,7 @@ with st.sidebar:
                         "locked": True
                     }
                     save_papers_db(st.session_state.papers_data)
-                    st.success(f"Paper '{base_name}' successfully saved permanently!")
+                    st.success(f"Paper '{base_name}' successfully saved permanently in SQLite DB!")
             
             if st.session_state.papers_data:
                 st.markdown("**Existing Papers Status:**")
@@ -941,7 +1006,7 @@ with st.sidebar:
                         
                     if col_d.button("🗑️ Delete", key=f"del_{pk}"):
                         del st.session_state.papers_data[pk]
-                        save_papers_db(st.session_state.papers_data)
+                        delete_paper_from_db(pk)
                         st.success(f"Deleted '{d_name}' successfully!")
                         st.rerun()
         elif admin_pass != "":
@@ -1281,7 +1346,7 @@ if query:
 
                 elif check_is_where_from(query):
                     if lang == "GUJARATI":
-                        reply = "હું BC Tech Computer Education નો અસિસ્ટન્ટ છું, અને આપણી સંસ્થા સુરત, ગુજરાત, ભારતમાં આવેલી છે."
+                        reply = "હું BC Tech Computer Education નો અસિસ્ટન્ટ છું, और આપણી સંસ્થા સુરત, ગુજરાત, ભારતમાં આવેલી છે."
                     elif lang == "HINDI":
                         if "kaise ho" in clean_q_lower or "kaisa hai" in clean_q_lower:
                             reply = "मैं बहुत अच्छा हूँ! बताइए, मैं BC Tech Computer Education में आपकी कैसे मदद कर सकता हूँ? 😊"
@@ -1492,7 +1557,7 @@ if query:
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software.
                         - If a user asks HOW to do something in software, politely inform them to contact our branch or visit our website:
                           - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं。\n\nवेबसाइट: {BRANCH_LINK}"
-                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્चનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાत લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
+                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્ચનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાत લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
                           - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nWebsite: {BRANCH_LINK}"
                         
                         CRITICAL TIMINGS RULE:
