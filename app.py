@@ -803,7 +803,7 @@ def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="hi-IN"):
                         utterance_{unique_id}.voice = bestVoice;
                     }}
                     
-                    btn.innerHTML = '⏹️️ Stop';
+                    btn.innerHTML = '⏹️ Stop';
                     
                     utterance_{unique_id}.onend = function() {{
                         btn.innerHTML = '🔊 Read Aloud';
@@ -1272,7 +1272,7 @@ if query:
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 render_voice_and_copy_toolbar(reply, f"locked_p_{len(st.session_state.messages)}", "hi-IN")
             elif not file_url:
-                reply = f"⚠️️ The paper '{d_name}' file link is missing. Please re-upload it from the Admin panel."
+                reply = f"⚠️ The paper '{d_name}' file link is missing. Please re-upload it from the Admin panel."
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
             else:
@@ -1452,7 +1452,7 @@ if query:
                             motivational_tip = ""
                             if percentage >= 80:
                                 if lang == "GUJARATI":
-                                    motivational_tip = "ખૂબ જ સરસ! તમારું પરિણામ ઉત્કૃષ્ટ છે. આવી જ મહેનत ચાલુ રાખો!"
+                                    motivational_tip = "ખૂબ જ સરસ! તમારું પરિણામ ઉત્કૃષ્ટ છે. આવી જ મહેનત ચાલુ રાખો!"
                                 elif lang == "HINDI":
                                     motivational_tip = "बहुत बढ़िया! आपका प्रदर्शन शानदार है। इसी तरह कड़ी मेहनत जारी रखें!"
                                 else:
@@ -1498,7 +1498,7 @@ if query:
                                     full_reply += "प्रैक्टिकल टेस्ट:\n"
                                     for pk, pv in valid_practical:
                                         full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
-                                        full_reply += f"- कुल प्रैक्टिकल: {tot_prac}\n\n"
+                                    full_reply += f"- कुल प्रैक्टिकल: {tot_prac}\n\n"
                                 full_reply += f"कुल अंक: {total_obtained} / {max_total}\n"
                                 full_reply += f"प्रतिशत: {percentage}%\n\n"
                                 full_reply += f"{motivational_tip}\n\n"
@@ -1553,7 +1553,7 @@ if query:
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software.
                         - If a user asks HOW to do something in software, politely inform them to contact our branch or visit our website:
                           - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं。\n\nवेबसाइट: {BRANCH_LINK}"
-                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્ચનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
+                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્ચનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાत લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
                           - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nWebsite: {BRANCH_LINK}"
                         
                         CRITICAL TIMINGS RULE:
