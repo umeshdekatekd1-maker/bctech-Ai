@@ -388,7 +388,7 @@ QUESTION_BANK = {
             {"q": "CorelDraw में 'Intersects' कमांड का क्या कार्य है?", "options": ["दो ऑब्जेक्ट्स के कॉमन हिस्से को निकालना", "जोड़ना", "काटना", "अलग करना"], "answer": "दो ऑब्जेक्ट्स के कॉमन हिस्से को निकालना"},
             {"q": "CorelDraw में ग्रिड (Grid) ऑन करने की शॉर्टकट की क्या है?", "options": ["Ctrl + Y", "Ctrl + G", "Ctrl + Shift + G", "F7"], "answer": "Ctrl + Y"},
             {"q": "CorelDraw में गाइडलाइन (Guideline) लाने के लिए कहाँ क्लिक करते हैं?", "options": ["Ruler से खींचकर", "View menu", "Edit menu", "File menu"], "answer": "Ruler से खींचकर"},
-            {"q": "CorelDraw में 'Artistic Text' की विशेषता क्या है?", "options": ["स्पेशल इफेक्ट्स और डिजाइनिंग में आसानी", "लंबा पैराग्राफ लिखना", "टे이블 बनाना", "कलर करना"], "answer": "स्पेशल इफेक्ट्स और डिजाइनिंग में आसानी"},
+            {"q": "CorelDraw में 'Artistic Text' की विशेषता क्या है?", "options": ["स्पेशल इफेक्ट्स और डिजाइनिंग में आसानी", "लंबा पैराग्राफ लिखना", "टे이블 बनाना", "કलर करना"], "answer": "स्पेशल इफेक्ट्स और डिजाइनिंग में आसानी"},
             {"q": "CorelDraw में 'Paragraph Text' किसके लिए उपयुक्त है?", "options": ["लंबे आर्टिकल और डॉक्यूमेंट", "लोगो", "सिंबल", "बटन"], "answer": "लंबे आर्टिकल और डॉक्यूमेंट"},
             {"q": "CorelDraw में 'Shape Tool' की शॉर्टकट की क्या है?", "options": ["F10", "F6", "F7", "F8"], "answer": "F10"},
             {"q": "CorelDraw में 'Pick Tool' की शॉर्टकट की क्या है?", "options": ["Spacebar", "F1", "F5", "F9"], "answer": "Spacebar"},
@@ -1272,7 +1272,7 @@ if query:
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 render_voice_and_copy_toolbar(reply, f"locked_p_{len(st.session_state.messages)}", "hi-IN")
             elif not file_url:
-                reply = f"⚠️ The paper '{d_name}' file link is missing. Please re-upload it from the Admin panel."
+                reply = f"⚠️️ The paper '{d_name}' file link is missing. Please re-upload it from the Admin panel."
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
             else:
@@ -1545,16 +1545,16 @@ if query:
                         CRITICAL LANGUAGE & GRAMMAR RULE:
                         - Always respond in flawless, natural, and grammatically correct Hindi or Gujarati depending on the user's language. Never write broken or ungrammatical sentences.
                         
-                        CRITICAL LIVE DATE & FESTIVAL ACCURACY INSTRUCTIONS:
+                        CRITICAL LIVE DATE & FESTIVAL ACCURACY INSTRUCTIONS (STRICTEST RULE FOR ALL FESTIVALS & TITHIS UP TO 2050):
                         - Current Live Exact Date and Time (IST): {formatted_date_en} at {formatted_time}.
                         - Today in Hindi: आज {formatted_date_hi} है, और समय {formatted_time} हो रहा है।
-                        - When a user asks about any festival, date, or tithi up to the year 2050 (e.g., Navratri, Sharad Navratri, Diwali, Maha Shivratri, etc.), you must calculate and verify the exact date precisely according to the Hindu Panchang and Gregorian calendar for the target year. Never guess or provide incorrect dates; ensure absolute accuracy for all years up to 2050.
+                        - When a user asks about ANY festival, fast, tithi, or Hindu/Indian occasion up to the year 2050 (such as Navratri, Sharad Navratri, Chaitra Navratri, Diwali, Maha Shivratri, Holi, Raksha Bandhan, Janmashtami, Ganesh Chaturthi, etc.), you must calculate and output the 100% precise Gregorian calendar date strictly according to the authentic Hindu Panchang and astronomical calculations for the target year. Never guess, approximate, or provide incorrect dates (such as confusing September with October for Sharad Navratri). Absolute calendar and panchang accuracy is mandatory for every single festival queried up to 2050.
                         
                         CRITICAL SOFTWARE TUTORIAL & PRACTICAL INSTRUCTION RESTRICTION (STRICTEST RULE):
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software.
                         - If a user asks HOW to do something in software, politely inform them to contact our branch or visit our website:
                           - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं。\n\nवेबसाइट: {BRANCH_LINK}"
-                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્ચનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
+                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્ચનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાत લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
                           - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nWebsite: {BRANCH_LINK}"
                         
                         CRITICAL TIMINGS RULE:
