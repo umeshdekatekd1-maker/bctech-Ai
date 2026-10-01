@@ -13,6 +13,17 @@ import time
 import base64
 import sqlite3
 from datetime import datetime, timezone, timedelta
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
+# --- CLOUDINARY CONFIGURATION (Permanent Cloud Storage) ---
+cloudinary.config(
+    cloud_name="cni6hexo",
+    api_key="543231673932627",
+    api_secret="Fg5XhTTDQZObDFd5PPucuvzsLlg",
+    secure=True
+)
 
 st.set_page_config(
     page_title="BC Tech Ai Assistant", 
@@ -109,7 +120,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- 100% ROBUST SQLITE PERMANENT STORAGE MANAGER (BLOB SUPPORT) ---
+# --- 100% ROBUST SQLITE PERMANENT STORAGE MANAGER & CLOUDINARY LINKS ---
 DB_NAME = "bctech_permanent_storage.db"
 
 def init_sqlite_db():
@@ -122,13 +133,13 @@ def init_sqlite_db():
                 value TEXT
             )
         """)
-        # Dedicated permanent table for uploaded papers to prevent any reset
+        # Permanent table for Cloudinary uploaded paper links
         cursor.execute("""
-            CREATE TABLE IF NOT EXISTS bctech_papers (
+            CREATE TABLE IF NOT EXISTS bctech_papers_cloud (
                 paper_key TEXT PRIMARY KEY,
                 display_name TEXT,
                 filename TEXT,
-                file_blob BLOB,
+                file_url TEXT,
                 mime TEXT,
                 locked INTEGER
             )
@@ -174,48 +185,34 @@ def load_papers_db():
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("SELECT paper_key, display_name, filename, file_blob, mime, locked FROM bctech_papers")
+        cursor.execute("SELECT paper_key, display_name, filename, file_url, mime, locked FROM bctech_papers_cloud")
         rows = cursor.fetchall()
         conn.close()
         for row in rows:
-            pk, d_name, fname, fblob, mime_type, locked_status = row
+            pk, d_name, fname, furl, mime_type, locked_status = row
             papers_dict[pk] = {
                 "display_name": d_name,
                 "filename": fname,
-                "data_b64": base64.b64encode(fblob).decode("utf-8") if fblob else "",
+                "file_url": furl,
                 "mime": mime_type,
                 "locked": bool(locked_status)
             }
     except Exception:
         pass
-    
-    # Fallback migration from old json if papers table is empty
-    if not papers_dict and os.path.exists("bctech_papers_store.json"):
-        try:
-            with open("bctech_papers_store.json", "r", encoding="utf-8") as f:
-                old_data = json.load(f)
-                for pk, p_info in old_data.items():
-                    papers_dict[pk] = p_info
-                    # Save into sqlite permanent table immediately
-                    save_single_paper_to_db(pk, p_info)
-        except Exception:
-            pass
-            
     return papers_dict
 
 def save_single_paper_to_db(pk, p_info):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        f_blob = base64.b64decode(p_info["data_b64"]) if "data_b64" in p_info and p_info["data_b64"] else b""
         cursor.execute("""
-            REPLACE INTO bctech_papers (paper_key, display_name, filename, file_blob, mime, locked)
+            REPLACE INTO bctech_papers_cloud (paper_key, display_name, filename, file_url, mime, locked)
             VALUES (?, ?, ?, ?, ?, ?)
         """, (
             pk,
             p_info.get("display_name", pk),
             p_info.get("filename", "file"),
-            f_blob,
+            p_info.get("file_url", ""),
             p_info.get("mime", "application/pdf"),
             1 if p_info.get("locked", True) else 0
         ))
@@ -228,7 +225,7 @@ def delete_paper_from_db(pk):
     try:
         conn = sqlite3.connect(DB_NAME)
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM bctech_papers WHERE paper_key = ?", (pk,))
+        cursor.execute("DELETE FROM bctech_papers_cloud WHERE paper_key = ?", (pk,))
         conn.commit()
         conn.close()
     except Exception:
@@ -270,7 +267,7 @@ if "room_code" in query_params and query_params["room_code"] and st.session_stat
         if "role" in query_params:
             st.session_state.player_role = query_params["role"]
 
-# EXPANDED 75 QUESTIONS PER CATEGORY QUESTION BANK (3 pools of 25 each for Level 1, 2, 3)
+# QUESTION BANK
 QUESTION_BANK = {
     "Basic Computer & Internet": {
         "pool_1": [
@@ -938,7 +935,7 @@ def clean_val_display(val):
     except Exception:
         return str(val).strip()
 
-# Sidebar - Admin Panel with Safe Paper Handling
+# Sidebar - Admin Panel with Cloudinary Permanent Paper Management
 with st.sidebar:
     st.markdown("### 🎓 BC Tech Ai Assistant")
     st.markdown('<div id="new_chat_btn_wrap">', unsafe_allow_html=True)
@@ -960,7 +957,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### 🔒 Teacher / Admin Panel")
-    with st.expander("📁 Upload & Manage Papers", expanded=False):
+    with st.expander("📁 Upload Permanent Papers (Cloudinary)", expanded=False):
         admin_pass = st.text_input("Enter Password", type="password", key="admin_pass_input")
         if admin_pass == "bctech1AA@":
             st.success("Access Granted!")
@@ -971,23 +968,31 @@ with st.sidebar:
                 base_name = os.path.splitext(original_filename)[0]
                 st.info(f"Detected Paper Name: **{base_name}**")
                 
-                if st.button("Upload & Save Paper"):
-                    p_key = base_name.strip().lower()
-                    file_bytes = uploaded_file.getvalue()
-                    encoded_file = base64.b64encode(file_bytes).decode("utf-8")
-                    
-                    file_ext = os.path.splitext(original_filename)[1].lower()
-                    mimetype = "application/pdf" if file_ext == ".pdf" else (f"image/{file_ext[1:]}" if file_ext in [".jpg", ".jpeg", ".png"] else "application/octet-stream")
+                if st.button("Upload & Save to Cloudinary"):
+                    with st.spinner("Uploading securely to Cloudinary... Please wait..."):
+                        try:
+                            file_ext = os.path.splitext(original_filename)[1].lower()
+                            mimetype = "application/pdf" if file_ext == ".pdf" else (f"image/{file_ext[1:]}" if file_ext in [".jpg", ".jpeg", ".png"] else "application/octet-stream")
+                            
+                            # Upload to Cloudinary securely
+                            upload_result = cloudinary.uploader.upload(
+                                uploaded_file,
+                                resource_type="auto"
+                            )
+                            secure_url = upload_result.get("secure_url")
+                            p_key = base_name.strip().lower()
 
-                    st.session_state.papers_data[p_key] = {
-                        "display_name": base_name,
-                        "filename": original_filename,
-                        "data_b64": encoded_file,
-                        "mime": mimetype,
-                        "locked": True
-                    }
-                    save_papers_db(st.session_state.papers_data)
-                    st.success(f"Paper '{base_name}' successfully saved permanently in SQLite DB!")
+                            st.session_state.papers_data[p_key] = {
+                                "display_name": base_name,
+                                "filename": original_filename,
+                                "file_url": secure_url,
+                                "mime": mimetype,
+                                "locked": True
+                            }
+                            save_papers_db(st.session_state.papers_data)
+                            st.success(f"🎉 Paper '{base_name}' uploaded to Cloudinary & saved permanently!")
+                        except Exception as e:
+                            st.error(f"Cloudinary upload failed: {e}")
             
             if st.session_state.papers_data:
                 st.markdown("**Existing Papers Status:**")
@@ -1256,6 +1261,7 @@ if query:
         p_info = st.session_state.papers_data[paper_requested]
         d_name = p_info.get("display_name", paper_requested)
         is_locked = p_info.get("locked", False)
+        file_url = p_info.get("file_url", "")
 
         st.session_state.messages.append({"role": "user", "content": query})
         with st.chat_message("user", avatar="👤"):
@@ -1267,27 +1273,20 @@ if query:
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 render_voice_and_copy_toolbar(reply, f"locked_p_{len(st.session_state.messages)}", "hi-IN")
-            elif "data_b64" not in p_info:
-                reply = f"⚠️ The paper '{d_name}' file data is missing. Please re-upload it from the Admin panel."
+            elif not file_url:
+                reply = f"⚠️ The paper '{d_name}' file link is missing. Please re-upload it from the Admin panel."
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
             else:
                 st.write(f"📂 Here is your requested paper: **{d_name}**")
                 mtype = p_info.get("mime", "")
                 try:
-                    raw_bytes = base64.b64decode(p_info["data_b64"])
                     if "image/" in mtype:
-                        st.image(raw_bytes, caption=d_name, use_container_width=True)
-                        reply = f"Displayed large image paper: {d_name}"
+                        st.image(file_url, caption=d_name, use_container_width=True)
+                        reply = f"Displayed image paper: {d_name}"
                     else:
-                        st.download_button(
-                            label=f"📂 Open Paper: {d_name}",
-                            data=raw_bytes,
-                            file_name=p_info.get("filename", f"{d_name}.pdf"),
-                            mime="application/pdf",
-                            key=f"view_btn_{paper_requested}_{len(st.session_state.messages)}"
-                        )
-                        reply = f"Generated paper view button for: {d_name}"
+                        st.markdown(f"[🔗 View / Download Paper: {d_name}]({file_url})", unsafe_allow_html=True)
+                        reply = f"Generated permanent Cloudinary link for: {d_name}"
                 except Exception as e:
                     reply = f"Error loading file for {d_name}: {e}"
                     st.error(reply)
@@ -1401,7 +1400,7 @@ if query:
 
                 elif check_is_creator_intent(query):
                     if lang == "GUJARATI":
-                        reply = f"મને BC Tech Computer Education ના એડમિન અને ડેવલपर દ્વારા બનાવવામાં આવ્યો છે."
+                        reply = f"મને BC Tech Computer Education ના એડમિન અને ડેवलपर દ્વારા બનાવવામાં આવ્યો છે."
                     elif lang == "HINDI":
                         reply = f"मुझे BC Tech Computer Education के डेवलपर और एडमिन द्वारा बनाया गया है।"
                     else:
@@ -1455,14 +1454,14 @@ if query:
                             motivational_tip = ""
                             if percentage >= 80:
                                 if lang == "GUJARATI":
-                                    motivational_tip = "ખૂબ જ સરસ! તમારું પરિણામ ઉત્કૃષ્ટ છે. આવી જ મહેનત ચાલુ રાખો!"
+                                    motivational_tip = "ખૂબ જ સરસ! તમારું પરિણામ ઉત્કૃષ્ટ છે. આવી જ મહેનत ચાલુ રાખો!"
                                 elif lang == "HINDI":
                                     motivational_tip = "बहुत बढ़िया! आपका प्रदर्शन शानदार है। इसी तरह कड़ी मेहनत जारी रखें!"
                                 else:
                                     motivational_tip = "Outstanding performance! Keep up the brilliant work!"
                             elif percentage >= 50:
                                 if lang == "GUJARATI":
-                                    motivational_tip = "સરસ પ્રયાસ! તમે સારી મહેનત કરી છે, થોડી વધુ મહેનતથી તમે ટોપ પર પહોંચી શકો છો."
+                                    motivational_tip = "सरस પ્રયાસ! તમે સારી મહેનત કરી છે, થોડી વધુ મહેનતથી તમે ટોપ પર પહોંચી શકો છો."
                                 elif lang == "HINDI":
                                     motivational_tip = "अच्छा प्रयास! आपने अच्छी मेहनत की है, थोड़ी और लगन से आप और भी बेहतर कर सकते हैं।"
                                 else:
@@ -1501,7 +1500,7 @@ if query:
                                     full_reply += "प्रैक्टिकल टेस्ट:\n"
                                     for pk, pv in valid_practical:
                                         full_reply += f"- {pk.capitalize()}: {int(tv) if tv.is_integer() else tv}\n"
-                                        full_reply += f"- कुल प्रैक्टिकल: {tot_prac}\n\n"
+                                    full_reply += f"- कुल प्रैक्टिकल: {tot_prac}\n\n"
                                 full_reply += f"कुल अंक: {total_obtained} / {max_total}\n"
                                 full_reply += f"प्रतिशत: {percentage}%\n\n"
                                 full_reply += f"{motivational_tip}\n\n"
@@ -1546,18 +1545,17 @@ if query:
                         You are an expert, highly knowledgeable, fluent, and precise AI Assistant for BC Tech Computer Education, Surat, Gujarat, India.
                         
                         CRITICAL LANGUAGE & GRAMMAR RULE:
-                        - Always respond in flawless, natural, and grammatically correct Hindi or Gujarati depending on the user's language. Never write broken or ungrammatical sentences (tuti-futi hindi). Ensure high linguistic quality.
+                        - Always respond in flawless, natural, and grammatically correct Hindi or Gujarati depending on the user's language. Never write broken or ungrammatical sentences.
                         
                         CRITICAL LIVE DATE & FESTIVAL ACCURACY INSTRUCTIONS:
                         - Current Live Exact Date and Time (IST): {formatted_date_en} at {formatted_time}.
                         - Today in Hindi: आज {formatted_date_hi} है, और समय {formatted_time} हो रहा है।
-                        - When a user asks about any festival, date, or tithi (e.g., Raksha Bandhan 2027, Anant Chaturdashi, etc.), you must verify calculations precisely according to the Hindu Panchang or Gregorian calendar for the target year. For instance, Raksha Bandhan in 2027 falls on August 17, 2027 (Tuesday). Never guess or provide random incorrect dates. Always double-check accurate calendar data.
                         
                         CRITICAL SOFTWARE TUTORIAL & PRACTICAL INSTRUCTION RESTRICTION (STRICTEST RULE):
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software.
                         - If a user asks HOW to do something in software, politely inform them to contact our branch or visit our website:
                           - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं。\n\nवेबसाइट: {BRANCH_LINK}"
-                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્ચનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાत લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
+                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્ચનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
                           - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nWebsite: {BRANCH_LINK}"
                         
                         CRITICAL TIMINGS RULE:
@@ -1632,7 +1630,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
     
     rooms = load_room_store()
     curr_room_code = st.session_state.active_room_code
-    my_role = st.session_state.player_role  # "P1" or "P2"
+    my_role = st.session_state.player_role
 
     if curr_room_code and curr_room_code in rooms:
         room_info = rooms[curr_room_code]
@@ -1720,11 +1718,11 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
                         st.success("सफलतापूर्वक Battle Zone से कनेक्ट हो गए!")
                         st.rerun()
                     else:
-                        st.error("यह Battle Code मौजूद नहीं है! सही कोड डालें।")
+                        st.error("यह Battle Code मौजूद नहीं है!")
                 else:
                     st.warning("कृपया नाम और सही Battle Code दोनों भरें!")
 
-        if st.button("⬅️ वापस चैट पर जाएं"):
+        if st.button("⬅️️ वापस चैट पर जाएं"):
             st.session_state.game_state = "IDLE"
             st.query_params.clear()
             st.query_params["chat_id"] = current_chat_id
@@ -1739,38 +1737,8 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             st.rerun()
 
         st.subheader(f"⏳ Battle Code: `{curr_code}`")
-        st.info(f"खिलाड़ी **{rooms.get(curr_code, {}).get('p1_name', 'P1')}** बैटल ज़ोन में तैयार हैं। दूसरे खिलाड़ी को यह कोड दें ताकि वह जुड़ सके।")
+        st.info(f"खिलाड़ी **{rooms.get(curr_code, {}).get('p1_name', 'P1')}** बैटल ज़ोन में तैयार हैं।")
         
-        st.markdown("---")
-        st.markdown("### 🔗 यदि आप Player 2 हैं, तो यहाँ से Battle Zone जॉइन करें:")
-        p2_wait_name = st.text_input("Player 2 अपना नाम दर्ज करें:", key="p2_wait_input")
-        wait_code_input = st.text_input("यही Battle Code दोबारा दर्ज करें:", key="wait_code_input")
-        if st.button("Join Battle Zone Now"):
-            if p2_wait_name.strip() != "" and wait_code_input.strip() != "":
-                clean_input_code = wait_code_input.strip().upper()
-                matched_key = None
-                for k in rooms.keys():
-                    if k.upper() == clean_input_code:
-                        matched_key = k
-                        break
-                        
-                if matched_key:
-                    rooms[matched_key]["p2_name"] = p2_wait_name
-                    rooms[matched_key]["game_state"] = "CATEGORY"
-                    save_room_store(rooms)
-                    
-                    st.session_state.active_room_code = matched_key
-                    st.session_state.player_role = "P2"
-                    st.session_state.game_state = "CATEGORY"
-                    st.query_params["room_code"] = matched_key
-                    st.query_params["role"] = "P2"
-                    st.success("सफलतापूर्वक कनेक्ट हो गए!")
-                    st.rerun()
-                else:
-                    st.error("गलत Battle Code!")
-            else:
-                st.warning("कृपया नाम और Battle Code दोनों भरें!")
-
         if st.button("🔄 चेक करें क्या दूसरा खिलाड़ी जुड़ गया है?"):
             st.rerun()
 
@@ -1830,7 +1798,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         max_q_limit = 5 if curr_lvl == 1 else 10
         is_my_turn = (st.session_state.player_role == active_role)
 
-        # --- TIMER & TIMEOUT LOGIC ---
         elapsed = time.time() - q_start_time
         remaining = max(0, int(30 - elapsed))
 
@@ -1863,7 +1830,6 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         if q_idx < len(q_list) and q_idx < max_q_limit:
             current_q_data = q_list[q_idx]
 
-            # HEADER SECTION
             col_a, col_b = st.columns([3, 1])
             with col_a:
                 st.subheader(f"🧠 BC Tech Brain Battle - लेवल {curr_lvl} | सवाल {q_idx + 1} / {max_q_limit}")
@@ -1872,14 +1838,12 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
 
             st.markdown("---")
 
-            # TURN ISOLATION: WAITING PLAYER GETS NO TIMER, ACTIVE PLAYER GETS TIMER
             if not is_my_turn:
                 st.info(f"🔵 **प्रतीक्षा करें (Waiting):** यह **{active_player}** की बारी है। कृपया प्रतीक्षा करें...")
                 time.sleep(1)
                 st.rerun()
                 st.stop()
             
-            # ACTIVE PLAYER VIEW ONLY
             st.success(f"🟢 **आपकी बारी (Your Turn)!** शेष समय: **{remaining} सेकंड**")
             st.progress(remaining / 30.0)
 
@@ -1953,25 +1917,15 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         p1_lvl_score = sum(1 for log in lvl_logs if log['player'] == p1 and "सही" in log['status'])
         p2_lvl_score = sum(1 for log in lvl_logs if log['player'] == p2 and "सही" in log['status'])
         
-        st.markdown(f"### 📊 लेवल {finished_lvl} परिणाम (Level {finished_lvl} Winner):")
+        st.markdown(f"### 📊 लेवल {finished_lvl} परिणाम:")
         col_s1, col_s2 = st.columns(2)
         with col_s1:
             st.metric(label=f"👤 {p1}", value=f"{p1_lvl_score} सही जवाब")
         with col_s2:
             st.metric(label=f"👤 {p2}", value=f"{p2_lvl_score} सही जवाब")
             
-        if p1_lvl_score > p2_lvl_score:
-            st.success(f"🏆 **लेवल {finished_lvl} के विजेता:** {p1} 🎊")
-        elif p2_lvl_score > p1_lvl_score:
-            st.success(f"🏆 **लेवल {finished_lvl} के विजेता:** {p2} 🎊")
-        else:
-            st.info(f"🤝 **लेवल {finished_lvl} टाई (Tie) रहा!**")
-
-        st.markdown("---")
-        
         if st.button(f"लेवल {next_lvl} पर आगे बढ़ें 🚀"):
             cat = r_data.get("category", "Basic Computer & Internet")
-            
             pool_key = f"pool_{next_lvl}"
             if pool_key in QUESTION_BANK[cat]:
                 next_pool = QUESTION_BANK[cat][pool_key].copy()
@@ -1996,7 +1950,7 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
         r_data = rooms.get(curr_code, {})
         
         st.balloons()
-        st.header("🏆 BC Tech Brain Battle - फाइनल स्कोरकार्ड & समीक्षा")
+        st.header("🏆 BC Tech Brain Battle - फाइनल स्कोरकार्ड")
         
         p1 = r_data.get("p1_name", "P1")
         p2 = r_data.get("p2_name", "P2")
@@ -2009,20 +1963,11 @@ if st.session_state.game_state in ["CREATING", "WAITING", "CATEGORY", "PLAYING",
             
         st.markdown("---")
         if s1 > s2:
-            st.success(f"🎊 महा-विजेता (Overall Winner): **{p1}** ने शानदार प्रदर्शन करते हुए मुकाबला जीत लिया है! 🏆")
+            st.success(f"🎊 महा-विजेता: **{p1}** ने मुकाबला जीत लिया है! 🏆")
         elif s2 > s1:
-            st.success(f"🎊 महा-विजेता (Overall Winner): **{p2}** ने शानदार प्रदर्शन करते हुए मुकाबला जीत लिया है! 🏆")
+            st.success(f"🎊 महा-विजेता: **{p2}** ने मुकाबला जीत लिया है! 🏆")
         else:
-            st.info("🤝 कुल मुकाबला **टाई (Tie)** रहा! दोनों खिलाड़ियों ने अद्भुत खेल दिखाया।")
-            
-        with st.expander("📜 सभी लेवल्स के विस्तृत जवाब देखें (Full Game Review - Who got what right/wrong)", expanded=True):
-            for idx, log in enumerate(r_data.get("history_log", []), 1):
-                st.markdown(f"""
-                **[लेवल {log['level']}] {idx}. {log['question']}**  
-                - खिलाड़ी: *{log['player']}* | चुना गया उत्तर: `{log['chosen']}` ({log['status']})  
-                - 🟢 **सही उत्तर: `{log['correct']}`**  
-                ---
-                """)
+            st.info("🤝 मुकाबला **टाई (Tie)** रहा!")
 
         if st.button("🔄 दोबारा खेलें (Play Again)"):
             st.session_state.game_state = "IDLE"
