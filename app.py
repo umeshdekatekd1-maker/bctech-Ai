@@ -956,7 +956,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### 🔒 Teacher / Admin Panel")
-    with st.expander("📁 Upload Permanent Papers (Cloudinary)", expanded=False):
+    with st.expander("📁 Upload ", expanded=False):
         admin_pass = st.text_input("Enter Password", type="password", key="admin_pass_input")
         if admin_pass == "bctech1AA@":
             st.success("Access Granted!")
