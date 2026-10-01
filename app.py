@@ -956,7 +956,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### 🔒 Teacher / Admin Panel")
-    with st.expander("📁 Upload ", expanded=False):
+    with st.expander("📁 Upload", expanded=False):
         admin_pass = st.text_input("Enter Password", type="password", key="admin_pass_input")
         if admin_pass == "bctech1AA@":
             st.success("Access Granted!")
@@ -1452,7 +1452,7 @@ if query:
                             motivational_tip = ""
                             if percentage >= 80:
                                 if lang == "GUJARATI":
-                                    motivational_tip = "ખૂબ જ સરસ! તમારું પરિણામ ઉત્કૃષ્ટ છે. આવી જ મહેનત ચાલુ રાખો!"
+                                    motivational_tip = "ખૂબ જ સરસ! તમારું પરિણામ ઉત્કૃષ્ટ છે. આવી જ મહેનत ચાલુ રાખો!"
                                 elif lang == "HINDI":
                                     motivational_tip = "बहुत बढ़िया! आपका प्रदर्शन शानदार है। इसी तरह कड़ी मेहनत जारी रखें!"
                                 else:
@@ -1553,7 +1553,7 @@ if query:
                         - You are strictly FORBIDDEN from explaining, teaching, or giving tutorials or step-by-step instructions for ANY software.
                         - If a user asks HOW to do something in software, politely inform them to contact our branch or visit our website:
                           - In Hindi: "इस विषय में प्रैक्टिकल ट्रेनिंग और सीखने के लिए आप हमारी ब्रांच से संपर्क कर सकते हैं या आधिकारिक वेबसाइट पर जा सकते हैं。\n\nवेबसाइट: {BRANCH_LINK}"
-                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્ચનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાत લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
+                          - In Gujarati: "આ વિષયમાં પ્રેક્ટિકલ તાલીમ અને માર્ગદર્શન માટે આપ અમારી બ્રાન્ચનો સંપર્ક કરી શકો છો અથવા વેબસાઇટની મુલાકાત લઈ શકો છો.\n\nવેબસાઇટ: {BRANCH_LINK}"
                           - In English: "For practical training and learning on this software, you can contact our branch or visit our official website:\n\nWebsite: {BRANCH_LINK}"
                         
                         CRITICAL TIMINGS RULE:
