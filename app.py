@@ -120,7 +120,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- SQLITE PERMANENT STORAGE MANAGER FOR CLOUDINARY LINKS ---
+# --- 100% ROBUST SQLITE PERMANENT STORAGE MANAGER & CLOUDINARY LINKS ---
 DB_NAME = "bctech_permanent_storage.db"
 
 def init_sqlite_db():
@@ -255,6 +255,16 @@ if "active_room_code" not in st.session_state:
 
 if "player_role" not in st.session_state:
     st.session_state.player_role = None
+
+query_params = st.query_params
+if "room_code" in query_params and query_params["room_code"] and st.session_state.game_state == "IDLE":
+    r_code = query_params["room_code"].strip().upper()
+    all_rooms = load_room_store()
+    if r_code in all_rooms:
+        st.session_state.active_room_code = r_code
+        st.session_state.game_state = all_rooms[r_code].get("game_state", "PLAYING")
+        if "role" in query_params:
+            st.session_state.player_role = query_params["role"]
 
 # EXPANDED 75 QUESTIONS PER CATEGORY QUESTION BANK (3 pools of 25 each for Level 1, 2, 3)
 QUESTION_BANK = {
@@ -793,7 +803,7 @@ def render_voice_and_copy_toolbar(text_to_speak, unique_id, lang_code="hi-IN"):
                         utterance_{unique_id}.voice = bestVoice;
                     }}
                     
-                    btn.innerHTML = '⏹️ Stop';
+                    btn.innerHTML = '⏹️️ Stop';
                     
                     utterance_{unique_id}.onend = function() {{
                         btn.innerHTML = '🔊 Read Aloud';
@@ -1262,7 +1272,7 @@ if query:
                 st.session_state.messages.append({"role": "assistant", "content": reply})
                 render_voice_and_copy_toolbar(reply, f"locked_p_{len(st.session_state.messages)}", "hi-IN")
             elif not file_url:
-                reply = f"⚠️ The paper '{d_name}' file link is missing. Please re-upload it from the Admin panel."
+                reply = f"⚠️️ The paper '{d_name}' file link is missing. Please re-upload it from the Admin panel."
                 st.write(reply)
                 st.session_state.messages.append({"role": "assistant", "content": reply})
             else:
